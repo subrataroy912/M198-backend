@@ -1,0 +1,5 @@
+spring:
+  application:
+      name: Majorproject
+  mongodb:
+    uri: ${MONGODB_URI}/majorproject
