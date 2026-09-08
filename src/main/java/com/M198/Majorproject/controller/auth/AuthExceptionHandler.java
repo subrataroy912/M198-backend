@@ -12,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import com.M198.Majorproject.service.profile.ProfileService.ProfileNotFoundException;
 import com.M198.Majorproject.service.profile.ProfileService.HandleConflictException;
+import com.M198.Majorproject.service.profile.ProfileService.ProfileStorageException;
 import com.M198.Majorproject.service.course.CourseService.CourseAccessException;
 import com.M198.Majorproject.service.course.CourseService.CourseConflictException;
 import com.M198.Majorproject.service.course.CourseService.CourseNotFoundException;
@@ -69,6 +70,12 @@ public class AuthExceptionHandler {
         ResponseEntity<Map<String, String>> handleProfileNotFoundException(ProfileNotFoundException exception) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "Profile not found"));
+        }
+
+        @ExceptionHandler(ProfileStorageException.class)
+        ResponseEntity<Map<String, String>> handleProfileStorageException(ProfileStorageException exception) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(Map.of("error", exception.getMessage()));
         }
 
         @ExceptionHandler(CourseNotFoundException.class)

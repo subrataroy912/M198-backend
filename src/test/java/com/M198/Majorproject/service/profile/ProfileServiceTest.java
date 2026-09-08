@@ -2,7 +2,11 @@ package com.M198.Majorproject.service.profile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -10,6 +14,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
+import org.springframework.mock.web.MockMultipartFile;
 
 import com.M198.Majorproject.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.entity.identity.AccountStatus;
@@ -19,12 +24,16 @@ import com.M198.Majorproject.entity.identity.User;
 import com.M198.Majorproject.entity.identity.UserProfile;
 import com.M198.Majorproject.repository.identity.UserProfileRepository;
 import com.M198.Majorproject.repository.identity.UserRepository;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.Uploader;
 
 class ProfileServiceTest {
 
     private final UserRepository userRepository = mock(UserRepository.class);
     private final UserProfileRepository profileRepository = mock(UserProfileRepository.class);
-    private final ProfileService profileService = new ProfileService(userRepository, profileRepository);
+    private final Cloudinary cloudinary = mock(Cloudinary.class);
+    private final Uploader uploader = mock(Uploader.class);
+    private final ProfileService profileService = new ProfileService(userRepository, profileRepository, cloudinary);
     private final Authentication authentication = mock(Authentication.class);
     private User user;
     private UserProfile profile;
@@ -50,6 +59,7 @@ class ProfileServiceTest {
                 .thenReturn(Optional.of(user));
         when(profileRepository.findByUserId("user-1")).thenReturn(Optional.of(profile));
         when(profileRepository.save(profile)).thenReturn(profile);
+        when(cloudinary.uploader()).thenReturn(uploader);
     }
 
     @Test
@@ -121,5 +131,57 @@ class ProfileServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> profileService.updateMyProfile(authentication, request));
+    }
+
+    @Test
+    void emptyAssetUrlClearsAssetAndNullAssetUrlPreservesExistingAsset() {
+        profile.setAvatarUrl("https://existing.example/avatar.jpg");
+        profile.setBannerUrl("https://existing.example/banner.jpg");
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest();
+        request.setAvatarUrl("");
+        request.setBannerUrl(null);
+
+        profileService.updateMyProfile(authentication, request);
+
+        assertEquals(null, profile.getAvatarUrl());
+        assertEquals("https://existing.example/banner.jpg", profile.getBannerUrl());
+    }
+
+    @Test
+    void emptyUploadedFileUsesTheAssetUrlClearRule() {
+        profile.setAvatarUrl("https://existing.example/avatar.jpg");
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest();
+        request.setAvatarUrl("");
+
+        profileService.updateMyProfile(
+                authentication,
+                request,
+                new MockMultipartFile("avatarFile", new byte[0]),
+                null);
+
+        assertEquals(null, profile.getAvatarUrl());
+        verifyNoInteractions(uploader);
+    }
+
+    @Test
+    void nonEmptyAssetFilesUploadToTheirDedicatedFoldersAndOverrideUrlFields() throws Exception {
+        when(uploader.upload(any(byte[].class), argThat(options -> "user_avatars".equals(options.get("folder"))))
+                .thenReturn(java.util.Map.of("secure_url", "https://cdn.example/avatar.jpg"));
+        when(uploader.upload(any(byte[].class), argThat(options -> "user_banners".equals(options.get("folder"))))
+                .thenReturn(java.util.Map.of("secure_url", "https://cdn.example/banner.jpg"));
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest();
+        request.setAvatarUrl("");
+        request.setBannerUrl("");
+
+        var response = profileService.updateMyProfile(
+                authentication,
+                request,
+                new MockMultipartFile("avatarFile", "avatar.jpg", "image/jpeg", new byte[] { 1 }),
+                new MockMultipartFile("bannerFile", "banner.jpg", "image/jpeg", new byte[] { 2 }));
+
+        assertEquals("https://cdn.example/avatar.jpg", response.getAvatarUrl());
+        assertEquals("https://cdn.example/banner.jpg", response.getBannerUrl());
+        verify(uploader).upload(any(byte[].class), argThat(options -> "user_avatars".equals(options.get("folder"))));
+        verify(uploader).upload(any(byte[].class), argThat(options -> "user_banners".equals(options.get("folder"))));
     }
 }

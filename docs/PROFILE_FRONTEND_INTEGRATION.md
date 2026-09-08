@@ -129,6 +129,34 @@ Content-Type: application/json
 }
 ```
 
+### Uploading avatar or banner files
+
+To upload profile assets, send `multipart/form-data` instead. Put the JSON update
+payload in a `profile` part with `Content-Type: application/json`, and use the
+optional `avatarFile` and `bannerFile` parts for the binary files.
+
+```http
+PATCH /v1/users/me
+Authorization: Bearer <access-token>
+Content-Type: multipart/form-data; boundary=...
+```
+
+```text
+profile: {"displayName":"Ada Lovelace","avatarUrl":"","bannerUrl":null}
+avatarFile: <avatar binary file>
+bannerFile: <banner binary file>
+```
+
+- A non-empty `avatarFile` is uploaded to Cloudinary's `user_avatars` folder;
+  its secure CDN URL replaces `avatarUrl` in the saved profile.
+- A non-empty `bannerFile` is uploaded to Cloudinary's `user_banners` folder;
+  its secure CDN URL replaces `bannerUrl` in the saved profile.
+- Without a corresponding file, send `""` for `avatarUrl` or `bannerUrl` to
+  clear that asset. Send `null` (or omit the field) to retain the existing
+  asset URL.
+- When a file is supplied, its uploaded URL takes precedence over the matching
+  JSON URL field.
+
 ### Editable fields
 
 | Field | Type | Maximum length |
