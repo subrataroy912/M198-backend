@@ -54,7 +54,10 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.M198.Majorproject.dto.PublicUserProfileResponse;
 import com.M198.Majorproject.dto.UpdateUserProfileRequest;
@@ -85,11 +88,20 @@ public class ProfileController {
 		return profileService.getUserProfile(userId, authentication);
 	}
 
-	@PatchMapping("/me")
+	@PatchMapping(value = "/me", consumes = MediaType.APPLICATION_JSON_VALUE)
 	public UserProfileResponse updateProfile(
 			@Valid @RequestBody UpdateUserProfileRequest request,
 			Authentication authentication) {
 		return profileService.updateMyProfile(authentication, request);
+	}
+
+	@PatchMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public UserProfileResponse updateProfileWithAssets(
+			@Valid @RequestPart("profile") UpdateUserProfileRequest request,
+			@RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile,
+			@RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile,
+			Authentication authentication) {
+		return profileService.updateMyProfile(authentication, request, avatarFile, bannerFile);
 	}
 
 }

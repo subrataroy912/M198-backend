@@ -1,8 +1,12 @@
 package com.M198.Majorproject.service.profile;
 
+import java.io.IOException;
+import java.util.Map;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.M198.Majorproject.dto.PublicUserProfileResponse;
 import com.M198.Majorproject.dto.UpdateUserProfileRequest;
@@ -13,16 +17,22 @@ import com.M198.Majorproject.entity.identity.User;
 import com.M198.Majorproject.entity.identity.UserProfile;
 import com.M198.Majorproject.repository.identity.UserProfileRepository;
 import com.M198.Majorproject.repository.identity.UserRepository;
+import com.cloudinary.Cloudinary;
 
 @Service
 public class ProfileService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
+    private final Cloudinary cloudinary;
 
-    public ProfileService(UserRepository userRepository, UserProfileRepository profileRepository) {
+    public ProfileService(
+            UserRepository userRepository,
+            UserProfileRepository profileRepository,
+            Cloudinary cloudinary) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
+        this.cloudinary = cloudinary;
     }
 
     public UserProfileResponse getMyProfile(Authentication authentication) {
@@ -43,14 +53,53 @@ public class ProfileService {
     }
 
     public UserProfileResponse updateMyProfile(Authentication authentication, UpdateUserProfileRequest request) {
+        return updateMyProfile(authentication, request, null, null);
+    }
+
+    public UserProfileResponse updateMyProfile(
+            Authentication authentication,
+            UpdateUserProfileRequest request,
+            MultipartFile avatarFile,
+            MultipartFile bannerFile) {
         String userId = authenticatedUserId(authentication);
         User user = activeUser(userId);
         UserProfile profile = profile(userId);
         applyUpdate(profile, request);
+        applyMediaUpdate(profile, avatarFile, bannerFile);
         try {
             return toOwnerResponse(user, profileRepository.save(profile));
         } catch (DuplicateKeyException exception) {
             throw new HandleConflictException();
+        }
+    }
+
+    private void applyMediaUpdate(UserProfile profile, MultipartFile avatarFile, MultipartFile bannerFile) {
+        if (hasContent(avatarFile)) {
+            profile.setAvatarUrl(upload(avatarFile, "user_avatars"));
+        }
+        if (hasContent(bannerFile)) {
+            profile.setBannerUrl(upload(bannerFile, "user_banners"));
+        }
+    }
+
+    private boolean hasContent(MultipartFile file) {
+        return file != null && !file.isEmpty();
+    }
+
+    private String upload(MultipartFile file, String folder) {
+        try {
+            Map<?, ?> result = cloudinary.uploader().upload(file.getBytes(), Map.of("folder", folder));
+            Object secureUrl = result.get("secure_url");
+            if (!(secureUrl instanceof String url) || url.isBlank()) {
+                throw new ProfileStorageException("Cloudinary did not return a secure asset URL");
+            }
+            return url;
+        } catch (ProfileStorageException exception) {
+            throw exception;
+        } catch (IOException exception) {
+            throw new ProfileStorageException("Could not read uploaded profile asset", exception);
+        } catch (Exception exception) {
+            throw new ProfileStorageException("Could not upload profile asset", exception);
         }
     }
 
@@ -175,4 +224,16 @@ public class ProfileService {
     public static class HandleConflictException extends RuntimeException {
         private static final long serialVersionUID = 1L;
     }
+
+    public static class ProfileStorageException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        public ProfileStorageException(String message) {
+            super(message);
+        }
+
+        public ProfileStorageException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
+}
