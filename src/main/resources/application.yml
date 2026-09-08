@@ -15,8 +15,14 @@ spring:
           github:
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
+            provider: github
             scope:
               - read:user
               - user:email
   mongodb:
     uri: ${MONGODB_URI}/majorproject
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-lifetime: ${JWT_ACCESS_TOKEN_LIFETIME:15m}
+    refresh-token-lifetime: ${JWT_REFRESH_TOKEN_LIFETIME:7d}

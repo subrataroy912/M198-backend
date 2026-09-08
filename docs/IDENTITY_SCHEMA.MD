@@ -84,11 +84,25 @@ Java model: `entity.identity.UserOAuth`
 | `createdAt` | `created_at` | Instant | Set by Mongo auditing |
 | `updatedAt` | `updated_at` | Instant | Set by Mongo auditing |
 
+## RefreshToken Collection
+
+Java model: `entity.identity.RefreshToken`
+
+| Field | MongoDB field | Type | Purpose |
+| --- | --- | --- | --- |
+| `id` | `_id` | String | Refresh-token record identifier |
+| `tokenHash` | `token_hash` | String | SHA-256 hash of the client refresh token; unique |
+| `userId` | `user_id` | String | Reference to `User` |
+| `expiresAt` | `expires_at` | Instant | TTL cleanup and validity boundary |
+| `revokedAt` | `revoked_at` | Instant | Rotation or logout revocation timestamp |
+| `createdAt` | `created_at` | Instant | Set by Mongo auditing |
+
 ## Implemented Java Files
 
 - `entity.identity.User`
 - `entity.identity.UserProfile`
 - `entity.identity.UserOAuth`
+- `entity.identity.RefreshToken`
 - `entity.identity.AccountType`
 - `entity.identity.AccountStatus`
 - `entity.identity.ProfileVisibility`
@@ -108,11 +122,13 @@ The identity repositories currently support:
 - Find all OAuth links for a user.
 - Find a user's OAuth link by provider.
 - Find a platform user by external provider identity.
+- Rotate and revoke persisted refresh tokens by hash.
 
 ## Security Decisions
 
 - `passwordHash` must contain only a strong adaptive hash, never a plain password.
 - OAuth access and refresh tokens must not be returned in profile responses.
+- Application refresh tokens are stored as SHA-256 hashes and revoked on rotation or logout.
 - OAuth tokens should be encrypted at rest or replaced with a provider-token
   vault reference before production use.
 - Email normalization should happen in the registration service before the unique

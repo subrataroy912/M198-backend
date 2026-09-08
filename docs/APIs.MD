@@ -1,20 +1,29 @@
- # API Catalog
+# API Catalog
 
-> **Status:** Planned API contract. The current controllers expose only
-> class-level `@RequestMapping` prefixes; no method-level endpoint is currently
-> implemented.
+> **Status:** Authentication endpoints are implemented. The remaining feature
+> controllers are still planned contracts.
 
-All routes use the `/v1` version prefix. Protected routes will require an
-authenticated user once security is implemented. Role names below are design
-intent, not active authorization rules.
+All API routes use the `/v1` version prefix. Protected routes require an
+authenticated user. Role names below are design intent; resource-level
+authorization for the planned feature controllers is not implemented yet.
 
 ## Authentication
 
 | Method | Route | Intended access | Purpose |
 | --- | --- | --- | --- |
-| POST | `/v1/auth/register` | Public | Create a teacher or student account |
-| POST | `/v1/auth/login` | Public | Verify credentials and issue a token |
-| POST | `/v1/auth/logout` | Authenticated | Invalidate the current session |
+| POST | `/v1/auth/register` | Public | Create a teacher or student account and issue JWTs |
+| POST | `/v1/auth/login` | Public | Verify credentials and issue JWTs |
+| POST | `/v1/auth/refresh` | Public with refresh token | Rotate a refresh token and issue new JWTs |
+| POST | `/v1/auth/logout` | Authenticated | Revoke the supplied refresh token |
+| GET | `/oauth2/authorization/google` | Public | Start Google OAuth login/registration |
+| GET | `/oauth2/authorization/github` | Public | Start GitHub OAuth login/registration |
+
+Password registration accepts `TEACHER` or `STUDENT` only. OAuth users default to
+`STUDENT`. OAuth accounts are linked to an existing account only when the provider
+returns a verified matching email. OAuth failures return a generic `401` JSON
+response. Access tokens are bearer JWTs; refresh tokens are rotated and stored
+only as SHA-256 hashes in `auth_refresh_tokens`. Unauthenticated and forbidden
+API requests return consistent JSON `401` and `403` responses.
 
 ## Courses and Admission
 
