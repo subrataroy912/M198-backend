@@ -1,7 +1,8 @@
 # API Catalog
 
-> **Status:** Authentication endpoints are implemented. The remaining feature
-> controllers are still planned contracts.
+> **Status:** Authentication and the documented feature endpoint slices are
+> implemented. Pagination, cloud-storage URL providers, and projection rebuild
+> jobs remain infrastructure follow-up work.
 
 All API routes use the `/v1` version prefix. Protected routes require an
 authenticated user. Role names below are design intent; resource-level
