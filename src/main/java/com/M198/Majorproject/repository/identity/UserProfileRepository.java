@@ -9,4 +9,6 @@ import com.M198.Majorproject.entity.identity.UserProfile;
 public interface UserProfileRepository extends MongoRepository<UserProfile, String> {
 
     Optional<UserProfile> findByUserId(String userId);
+
+    Optional<UserProfile> findByHandle(String handle);
 }

@@ -6,10 +6,11 @@ student admission through enrollment codes, coursework, submissions,
 attachments, comments, notifications, profiles, exploration, and academic
 analytics.
 
-> **Current implementation status:** The project is at the foundation and API
-> design stage. The application starts successfully when MongoDB is configured.
-> The identity persistence slice from the user schema is implemented; the
-> remaining business domains and endpoint methods are still planned.
+> **Current implementation status:** Authentication, JWT refresh-token
+> rotation, OAuth provisioning, and Profiles are implemented. The application
+> starts when MongoDB, JWT, and OAuth configuration are supplied. Course,
+> coursework, submission, notification, exploration, and analytics endpoints
+> remain planned.
 
 ## Project Mission
 
@@ -37,9 +38,10 @@ The project is designed around these goals:
 3. Protected operations use the authenticated identity and role.
 4. The user can end the session through logout or token invalidation.
 
-Authentication endpoints are currently documented but not implemented. Spring
-Security and JWT dependencies are present, while the authentication services and
-controllers are still to be built.
+Authentication is implemented with registration, login, refresh, logout, JWT
+validation, and OAuth provisioning. Refresh tokens are stored server-side and
+rotated on use. Profile endpoints use the authenticated JWT subject for owner
+operations.
 
 ### Course admission and enrollment
 
@@ -124,9 +126,10 @@ The following class-level prefixes are currently registered:
 | Profiles | `/v1/users` |
 | Explore | `/v1/explore` |
 
-There are no method-level `GET`, `POST`, `PATCH`, or `DELETE` mappings yet.
-Consequently, the detailed endpoint catalog in [docs/APIs.MD](docs/APIs.MD)
-represents the planned contract, not a currently callable API.
+Most business areas still have planned method-level mappings. The Profiles
+area is implemented with `GET /v1/users/me`, `GET /v1/users/{userId}`, and
+`PATCH /v1/users/me`; the detailed endpoint catalog in
+[docs/APIs.MD](docs/APIs.MD) describes the remaining planned areas.
 
 ## Configuration
 

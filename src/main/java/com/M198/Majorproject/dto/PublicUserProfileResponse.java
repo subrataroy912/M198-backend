@@ -1,16 +1,12 @@
 package com.M198.Majorproject.dto;
 
-import com.M198.Majorproject.entity.identity.AccountType;
 import com.M198.Majorproject.entity.identity.ProfileVisibility;
 import lombok.Data;
 
 @Data
-public class UserProfileResponse {
+public class PublicUserProfileResponse {
 
-    private String id; // The User ID
-    private String email;
-    private AccountType accountType;
-
+    private String id;
     private String handle;
     private String firstName;
     private String lastName;

@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,15 +50,15 @@ public class OAuthUserService implements OAuth2UserService<OAuth2UserRequest, OA
     }
 
     private void addVerifiedGithubEmail(OAuth2UserRequest userRequest, Map<String, Object> attributes) {
-        String response = restClient.get()
-                .uri("/user/emails")
-                .headers(headers -> headers.setBearerAuth(userRequest.getAccessToken().getTokenValue()))
-                .retrieve()
-                .body(String.class);
-        if (response == null) {
-            return;
-        }
         try {
+            String response = restClient.get()
+                    .uri("/user/emails")
+                    .headers(headers -> headers.setBearerAuth(userRequest.getAccessToken().getTokenValue()))
+                    .retrieve()
+                    .body(String.class);
+            if (response == null) {
+                return;
+            }
             JsonNode emails = objectMapper.readTree(response);
             for (JsonNode email : emails) {
                 if (email.path("primary").asBoolean(false) && email.path("verified").asBoolean(false)) {
@@ -66,7 +67,7 @@ public class OAuthUserService implements OAuth2UserService<OAuth2UserRequest, OA
                     return;
                 }
             }
-        } catch (Exception ignored) {
+        } catch (RestClientException | java.io.IOException ignored) {
             // The success handler will reject the login when verification is unavailable.
         }
     }

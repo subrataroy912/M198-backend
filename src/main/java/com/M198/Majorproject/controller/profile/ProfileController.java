@@ -48,11 +48,46 @@
  */
 package com.M198.Majorproject.controller.profile;
 
+import jakarta.validation.Valid;
+import com.M198.Majorproject.dto.PublicUserProfileResponse;
+import com.M198.Majorproject.dto.UpdateUserProfileRequest;
+import com.M198.Majorproject.dto.UserProfileResponse;
+import com.M198.Majorproject.service.profile.ProfileService;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/v1/users")
 public class ProfileController {
+
+	private final ProfileService profileService;
+
+	public ProfileController(ProfileService profileService) {
+		this.profileService = profileService;
+	}
+
+	@GetMapping("/me")
+	public UserProfileResponse getMyProfile(Authentication authentication) {
+		return profileService.getMyProfile(authentication);
+	}
+
+	@GetMapping("/{userId}")
+	public PublicUserProfileResponse getUserProfile(
+			@PathVariable String userId,
+			Authentication authentication) {
+		return profileService.getUserProfile(userId, authentication);
+	}
+
+	@PatchMapping("/me")
+	public UserProfileResponse updateProfile(
+			@Valid @RequestBody UpdateUserProfileRequest request,
+			Authentication authentication) {
+		return profileService.updateMyProfile(authentication, request);
+	}
 
 }

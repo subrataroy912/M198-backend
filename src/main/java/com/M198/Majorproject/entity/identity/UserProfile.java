@@ -30,6 +30,9 @@ public class UserProfile {
     @Field("user_id")
     private String userId;
 
+    @Indexed(unique = true, sparse = true)
+    private String handle;
+
     @Field("first_name")
     private String firstName;
 

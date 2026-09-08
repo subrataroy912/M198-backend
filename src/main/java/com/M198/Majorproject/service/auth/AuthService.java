@@ -109,8 +109,9 @@ public class AuthService {
         if (!storedToken.getUserId().equals(userId)) {
             throw new AuthenticationServiceException("Invalid refresh token");
         }
-        storedToken.setRevokedAt(Instant.now());
-        refreshTokenRepository.save(storedToken);
+        if (refreshTokenRepository.revokeIfActive(storedToken.getTokenHash(), Instant.now()) != 1) {
+            throw new AuthenticationServiceException("Invalid refresh token");
+        }
         User user = userRepository.findByIdAndActiveTrueAndStatus(userId, AccountStatus.ACTIVE)
                 .orElseThrow(() -> new AuthenticationServiceException("Invalid refresh token"));
         return issueTokens(user);
@@ -153,6 +154,8 @@ public class AuthService {
                     .orElseGet(() -> createOAuthUserIfEmailIsAvailable(email, displayName, avatarUrl));
         }
 
+        ensureProfileExists(user, displayName, avatarUrl);
+
         if (oauthRepository.findByUserIdAndProvider(user.getId(), provider).isEmpty()) {
             oauthRepository.save(UserOAuth.builder()
                     .userId(user.getId())
@@ -191,6 +194,28 @@ public class AuthService {
             throw new AuthenticationServiceException("An account already exists for this email");
         }
         return createOAuthUser(email, displayName, avatarUrl);
+    }
+
+    private void ensureProfileExists(User user, String displayName, String avatarUrl) {
+        var existingProfile = profileRepository.findByUserId(user.getId());
+        if (existingProfile.filter(profile -> profile.getDeletedAt() == null).isPresent()) {
+            return;
+        }
+        if (existingProfile.isPresent()) {
+            UserProfile profile = existingProfile.get();
+            profile.setDeletedAt(null);
+            profileRepository.save(profile);
+            return;
+        }
+        String[] names = splitDisplayName(displayName, user.getEmail());
+        profileRepository.save(UserProfile.builder()
+                .userId(user.getId())
+                .firstName(names[0])
+                .lastName(names[1])
+                .displayName(displayName == null || displayName.isBlank() ? names[0] : displayName)
+                .avatarUrl(avatarUrl)
+                .profileVisibility(ProfileVisibility.PRIVATE)
+                .build());
     }
 
     private AuthResponse issueTokens(User user) {

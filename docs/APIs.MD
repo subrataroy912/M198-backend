@@ -206,6 +206,16 @@ GET /v1/users/{userId}
 
 PATCH /v1/users/me
 
+The current-user endpoint returns the authenticated user's account and profile
+fields, while public profile responses exclude email and account type. Profile
+updates are partial and only modify profile fields; account identity, password,
+account type, and status cannot be changed through this endpoint. Soft-deleted
+profiles are not returned. `PUBLIC` profiles can be read by authenticated users,
+but `PRIVATE` profiles are restricted to their owner. `COURSE_MEMBERS` visibility
+is reserved until course-membership authorization is implemented. Profiles may
+have an optional unique `handle` of up to 30 characters using letters, numbers,
+and underscores.
+
 ---
 
 ### Explore
