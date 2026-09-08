@@ -26,22 +26,24 @@ public class AppUserDetailsService implements UserDetailsService {
 
     public UserDetails loadById(String userId) throws UsernameNotFoundException {
         User user = userRepository.findByIdAndActiveTrueAndStatus(userId, AccountStatus.ACTIVE)
-            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         return toUserDetails(user, userId);
     }
 
     private UserDetails toUserDetails(User user) {
         return toUserDetails(user, user.getEmail());
-        }
+    }
 
-        private UserDetails toUserDetails(User user, String username) {
+    private UserDetails toUserDetails(User user, String username) {
         var builder = org.springframework.security.core.userdetails.User
-            .withUsername(username)
-            .password(user.getPasswordHash() == null ? "" : user.getPasswordHash())
-            .roles(user.getAccountType().name());
+                .withUsername(username)
+                .password(user.getPasswordHash() == null ? "" : user.getPasswordHash())
+                .roles(user.getAccountType().name());
+
         if (user.getPasswordHash() == null) {
             builder.credentialsExpired(true);
         }
+
         return builder.build();
     }
 }
