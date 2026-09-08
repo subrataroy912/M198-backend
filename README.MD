@@ -7,10 +7,9 @@ attachments, comments, notifications, profiles, exploration, and academic
 analytics.
 
 > **Current implementation status:** The project is at the foundation and API
-> design stage. The application starts successfully when MongoDB is configured,
-> but the controllers currently contain class-level route prefixes and API
-> documentation only. No endpoint methods, services, repositories, entities,
-> DTOs, authentication, or authorization have been implemented yet.
+> design stage. The application starts successfully when MongoDB is configured.
+> The identity persistence slice from the user schema is implemented; the
+> remaining business domains and endpoint methods are still planned.
 
 ## Project Mission
 
@@ -38,8 +37,9 @@ The project is designed around these goals:
 3. Protected operations use the authenticated identity and role.
 4. The user can end the session through logout or token invalidation.
 
-Authentication is currently documented but not implemented. Spring Security and
-JWT dependencies are not currently present in the build.
+Authentication endpoints are currently documented but not implemented. Spring
+Security and JWT dependencies are present, while the authentication services and
+controllers are still to be built.
 
 ### Course admission and enrollment
 
@@ -52,8 +52,8 @@ JWT dependencies are not currently present in the build.
 6. A student can leave a course, while an authorized teacher can manage the
 	course roster.
 
-The enrollment flow is a planned design. There is currently no database model,
-service, or endpoint implementation behind it.
+The enrollment flow is a planned design. Its database model, service, and
+endpoint implementation are still to be built.
 
 ### Learning and assessment
 
@@ -77,6 +77,7 @@ grade them, and view course-level analytics.
 ```text
 src/main/java/com/M198/Majorproject/
 |-- MajorprojectApplication.java       # Spring Boot entry point
+|-- config/                            # MongoDB auditing configuration
 |-- controller/
 |   |-- analytics/                     # Course and student analytics
 |   |-- attachment/                    # Upload, download, and deletion URLs
@@ -88,17 +89,13 @@ src/main/java/com/M198/Majorproject/
 |   |-- notification/                  # Notifications and alert settings
 |   |-- profile/                       # Current and public user profiles
 |   `-- submission/                    # Student submissions and grading
-|-- entity/                            # Planned MongoDB documents; currently empty
-|-- repository/                        # Planned MongoDB repositories; currently empty
+|-- entity/identity/                   # User, profile, OAuth documents and enums
+|-- repository/identity/               # Identity MongoDB repositories
 `-- service/                            # Planned business services; currently empty
 
 docs/
 |-- APIs.MD                            # Planned API catalog
-|-- DEPENDENCIES.MD                    # Dependency and platform plan
-|-- DTOs.MD                            # Planned request and response objects
-|-- ENTITIEs.MD                        # Planned domain documents
-|-- REPOSITORIES.MD                    # Planned persistence interfaces
-`-- SERVICES.MD                        # Planned business services
+`-- IDENTITY_SCHEMA.MD                 # Implemented identity schema
 ```
 
 The controller folders are organized by business domain so future services can
@@ -160,13 +157,13 @@ is not a valid goal for this project.
 
 The current test suite contains one Spring context test. It verifies that the
 application context can start with the configured MongoDB connection; it does
-not yet test HTTP endpoints or business workflows.
+not yet test HTTP endpoints, repository queries, or business workflows.
 
 ## Development Roadmap
 
-1. Define MongoDB entities and enums for users, courses, memberships,
-	coursework, submissions, attachments, comments, notifications, and grades.
-2. Add repositories and indexes for email, enrollment codes, memberships, and
+1. Add MongoDB entities and enums for courses, memberships, coursework,
+	submissions, attachments, comments, notifications, and grades.
+2. Add repositories and indexes for enrollment codes, memberships, and
 	submission ownership.
 3. Implement DTOs with validation and safe response projections.
 4. Implement services for authentication, admission, coursework, submissions,
@@ -180,9 +177,5 @@ not yet test HTTP endpoints or business workflows.
 ## Documentation Guide
 
 - [Planned APIs](docs/APIs.MD)
-- [Dependency and platform plan](docs/DEPENDENCIES.MD)
-- [Planned DTOs](docs/DTOs.MD)
-- [Planned entities](docs/ENTITIEs.MD)
-- [Planned repositories](docs/REPOSITORIES.MD)
-- [Planned services](docs/SERVICES.MD)
+- [Implemented identity schema](docs/IDENTITY_SCHEMA.MD)
 - [Spring reference material](HELP.md)
