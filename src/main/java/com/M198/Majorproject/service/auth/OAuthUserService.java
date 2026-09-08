@@ -3,6 +3,7 @@ package com.M198.Majorproject.service.auth;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -20,13 +21,16 @@ public class OAuthUserService implements OAuth2UserService<OAuth2UserRequest, OA
 
     private final DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
     private final ObjectMapper objectMapper;
-    private final RestClient restClient = RestClient.builder()
-            .baseUrl("https://api.github.com")
+        private final RestClient restClient;
+
+        public OAuthUserService(
+            ObjectMapper objectMapper,
+            @Value("${app.oauth2.github-api-base-url:https://api.github.com}") String githubApiBaseUrl) {
+        this.objectMapper = objectMapper;
+        this.restClient = RestClient.builder()
+            .baseUrl(githubApiBaseUrl)
             .defaultHeader("Accept", "application/vnd.github+json")
             .build();
-
-    public OAuthUserService(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
     }
 
     @Override

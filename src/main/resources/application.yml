@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:file:./local.env[.properties]
   application:
     name: Majorproject
   security:
@@ -20,9 +22,14 @@ spring:
               - read:user
               - user:email
   mongodb:
-    uri: ${MONGODB_URI}/majorproject
+    uri: ${MONGODB_URI:mongodb://localhost:27017}/${MONGODB_DATABASE:majorproject}
 app: 
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+  oauth2:
+    frontend-callback-url: ${APP_OAUTH2_FRONTEND_CALLBACK_URL:http://localhost:5173/auth/callback}
+    github-api-base-url: ${APP_GITHUB_API_BASE_URL:https://api.github.com}
   jwt:
-    secret: ${JWT_SECRET}
+    secret: ${JWT_SECRET:local-development-secret-that-is-at-least-32-characters}
     access-token-lifetime: ${JWT_ACCESS_TOKEN_LIFETIME:15m}
     refresh-token-lifetime: ${JWT_REFRESH_TOKEN_LIFETIME:7d}

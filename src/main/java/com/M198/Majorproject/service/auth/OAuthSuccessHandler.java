@@ -3,14 +3,14 @@ package com.M198.Majorproject.service.auth;
 import java.io.IOException;
 import java.util.Map;
 
-import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.M198.Majorproject.dto.AuthResponse;
 import com.M198.Majorproject.entity.identity.OAuthProvider;
 
@@ -22,16 +22,16 @@ import jakarta.servlet.http.HttpServletResponse;
 public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
 
     private final AuthService authService;
-    private final ObjectMapper objectMapper;
     private final OAuthFailureHandler failureHandler;
+    private final String frontendCallbackUrl;
 
     public OAuthSuccessHandler(
             AuthService authService,
-            ObjectMapper objectMapper,
-            OAuthFailureHandler failureHandler) {
+            OAuthFailureHandler failureHandler,
+            @Value("${app.oauth2.frontend-callback-url:http://localhost:5173/auth/callback}") String frontendCallbackUrl) {
         this.authService = authService;
-        this.objectMapper = objectMapper;
         this.failureHandler = failureHandler;
+        this.frontendCallbackUrl = frontendCallbackUrl;
     }
 
     @Override
@@ -68,9 +68,14 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
                     "OAuth account provisioning failed", exception));
             return;
         }
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setStatus(HttpServletResponse.SC_OK);
-        objectMapper.writeValue(response.getWriter(), result);
+
+            String targetUrl = UriComponentsBuilder
+                .fromUriString(frontendCallbackUrl)
+                .queryParam("accessToken", result.getAccessToken())
+                .queryParam("refreshToken", result.getRefreshToken())
+                .build()
+                .toUriString();
+            response.sendRedirect(targetUrl);
     }
 
     private String value(Map<String, Object> attributes, String key) {

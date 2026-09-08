@@ -74,18 +74,23 @@ grade them, and view course-level analytics.
 
 ## Project Structure
 
-```text
-src/main/java/com/M198/Majorproject/
-|-- MajorprojectApplication.java       # Spring Boot entry point
-|-- config/                            # MongoDB auditing configuration
-|-- controller/
-|   |-- analytics/                     # Course and student analytics
-|   |-- attachment/                    # Upload, download, and deletion URLs
-|   |-- auth/                          # Registration, login, and logout
-|   |-- comment/                       # Public and private comments
-|   |-- course/                        # Course and membership operations
-|   |-- coursework/                    # Assignments, announcements, materials
-|   |-- explore/                       # Public discovery and recommendations
+```properties
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>
+MONGODB_DATABASE=majorproject
+GOOGLE_CLIENT_ID=<google-client-id>
+GOOGLE_CLIENT_SECRET=<google-client-secret>
+GITHUB_CLIENT_ID=<github-client-id>
+GITHUB_CLIENT_SECRET=<github-client-secret>
+JWT_SECRET=<at-least-32-character-secret>
+JWT_ACCESS_TOKEN_LIFETIME=15m
+JWT_REFRESH_TOKEN_LIFETIME=7d
+APP_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+APP_OAUTH2_FRONTEND_CALLBACK_URL=http://localhost:5173/auth/callback
+APP_GITHUB_API_BASE_URL=https://api.github.com
+```
+
+Replace the placeholder values in `local.env` before running locally. Do not
+commit credentials or a populated connection string to source control.
 |   |-- notification/                  # Notifications and alert settings
 |   |-- profile/                       # Current and public user profiles
 |   `-- submission/                    # Student submissions and grading
@@ -125,9 +130,9 @@ represents the planned contract, not a currently callable API.
 
 ## Configuration
 
-`src/main/resources/application.yml` expects the MongoDB connection string in
-the `MONGODB_URI` environment variable and appends `/majorproject` as the
-database name:
+`src/main/resources/application.yml` imports an optional root-level
+`local.env` file. The same values can be provided as normal process environment
+variables in deployment. The local file is ignored by Git.
 
 ```yaml
 spring:
