@@ -83,10 +83,13 @@ public class ProfileService {
             profile.setAbout(request.getAbout().trim());
         }
         if (request.getAvatarUrl() != null) {
-            profile.setAvatarUrl(request.getAvatarUrl().trim());
-        }
-        if (request.getBannerUrl() != null) {
-            profile.setBannerUrl(request.getBannerUrl().trim());
+    String avatar = request.getAvatarUrl().trim();
+    profile.setAvatarUrl(avatar.isEmpty() ? null : avatar);
+}
+if (request.getBannerUrl() != null) {
+    String banner = request.getBannerUrl().trim();
+    profile.setBannerUrl(banner.isEmpty() ? null : banner);
+}
         }
         if (request.getCity() != null) {
             profile.setCity(request.getCity().trim());
