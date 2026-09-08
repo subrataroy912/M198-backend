@@ -1,14 +1,12 @@
 package com.M198.Majorproject.service.auth;
 
 import java.io.IOException;
-import java.util.Map;
 
-import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,10 +15,11 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class OAuthFailureHandler implements AuthenticationFailureHandler {
 
-    private final ObjectMapper objectMapper;
+    private final String frontendCallbackUrl;
 
-    public OAuthFailureHandler(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public OAuthFailureHandler(
+            @Value("${app.oauth2.frontend-callback-url:http://localhost:5173/auth/callback}") String frontendCallbackUrl) {
+        this.frontendCallbackUrl = frontendCallbackUrl;
     }
 
     @Override
@@ -28,8 +27,11 @@ public class OAuthFailureHandler implements AuthenticationFailureHandler {
             HttpServletRequest request,
             HttpServletResponse response,
             AuthenticationException exception) throws IOException, ServletException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        objectMapper.writeValue(response.getWriter(), Map.of("error", "OAuth authentication failed"));
+        String targetUrl = UriComponentsBuilder
+                .fromUriString(frontendCallbackUrl)
+                .queryParam("error", "oauth_failed")
+                .build()
+                .toUriString();
+        response.sendRedirect(targetUrl);
     }
 }

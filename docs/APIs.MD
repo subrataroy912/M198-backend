@@ -21,8 +21,8 @@ authorization for the planned feature controllers is not implemented yet.
 
 Password registration accepts `TEACHER` or `STUDENT` only. OAuth users default to
 `STUDENT`. OAuth accounts are linked to an existing account only when the provider
-returns a verified matching email. OAuth failures return a generic `401` JSON
-response. Access tokens are bearer JWTs; refresh tokens are rotated and stored
+returns a verified matching email. OAuth failures redirect to the configured
+frontend callback with `error=oauth_failed`. Access tokens are bearer JWTs; refresh tokens are rotated and stored
 only as SHA-256 hashes in `auth_refresh_tokens`. Unauthenticated and forbidden
 API requests return consistent JSON `401` and `403` responses.
 
