@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -39,7 +40,7 @@ import com.M198.Majorproject.repository.course.CourseRepository;
 import com.M198.Majorproject.repository.course.EnrollmentCodeRepository;
 import com.cloudinary.Cloudinary;
 
-@ Service 
+@  Service 
 
     public class CourseService {
 
@@ -51,6 +52,7 @@ import com.cloudinary.Cloudinary;
         private final String apiKey;
         private final String apiSecret;
 
+        @Autowired
         public CourseService(
                 CourseRepository courseRepository,
                 CourseMembershipRepository membershipRepository,
@@ -66,6 +68,13 @@ import com.cloudinary.Cloudinary;
             this.cloudName = cloudName;
             this.apiKey = apiKey;
             this.apiSecret = apiSecret;
+        }
+
+        public CourseService(
+                CourseRepository courseRepository,
+                CourseMembershipRepository membershipRepository,
+                EnrollmentCodeRepository enrollmentCodeRepository) {
+            this(courseRepository, membershipRepository, enrollmentCodeRepository, null, "", "", "");
         }
 
         public CourseCoverUploadResponse requestCoverUpload(Authentication authentication) {
@@ -351,8 +360,5 @@ import com.cloudinary.Cloudinary;
             }
         }
     }
-    
-    
-        
-        
-        
+
+                
