@@ -79,7 +79,6 @@ import com.cloudinary.Cloudinary;
 
         public CourseCoverUploadResponse requestCoverUpload(Authentication authentication) {
             authenticatedUserId(authentication);
-            requireRole(authentication, AccountType.TEACHER);
             if (cloudName.isBlank() || apiKey.isBlank() || apiSecret.isBlank()) {
                 throw new CourseAccessException("Cloudinary is not configured");
             }
@@ -99,7 +98,6 @@ import com.cloudinary.Cloudinary;
 
         public CourseResponse createCourse(Authentication authentication, CreateCourseRequest request) {
             String userId = authenticatedUserId(authentication);
-            requireRole(authentication, AccountType.TEACHER);
 
             Course course = courseRepository.save(Course.builder()
                     .ownerId(userId)
