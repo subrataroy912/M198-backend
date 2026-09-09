@@ -48,6 +48,7 @@ cloudinary:
 inngest:
   api:
     key: ${INNGEST_EVENT_KEY:}
+    event-url: ${INNGEST_EVENT_URL:https://inn.gs/e/}
   signing:
     key: ${INNGEST_SIGNING_KEY:}
   app:

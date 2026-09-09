@@ -89,6 +89,9 @@ JWT_REFRESH_TOKEN_LIFETIME=7d
 APP_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 APP_OAUTH2_FRONTEND_CALLBACK_URL=http://localhost:5173/auth/callback
 APP_GITHUB_API_BASE_URL=https://api.github.com
+INNGEST_EVENT_KEY=<inngest-event-key>
+# Optional; defaults to Inngest Cloud's event endpoint.
+INNGEST_EVENT_URL=https://inn.gs/e/
 ```
 
 Replace the placeholder values in `local.env` before running locally. Do not

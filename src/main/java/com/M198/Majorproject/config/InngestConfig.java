@@ -24,6 +24,9 @@ public class InngestConfig extends InngestConfiguration {
     @Value("${inngest.api.key:}")
     private String apiKey;
 
+    @Value("${inngest.api.event-url:https://inn.gs/e/}")
+    private String eventUrl;
+
     @Value("${inngest.signing.key:}")
     private String signingKey;
 
@@ -32,7 +35,7 @@ public class InngestConfig extends InngestConfiguration {
 
     @Override
     protected Inngest inngestClient() {
-        return new Inngest(appId, apiKey);
+        return new Inngest(appId, eventUrl + apiKey);
     }
 
     @Override

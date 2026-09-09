@@ -17,6 +17,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -45,9 +47,12 @@ import com.M198.Majorproject.repository.identity.UserRepository;
 import com.M198.Majorproject.repository.identity.RefreshTokenRepository;
 import com.M198.Majorproject.security.JwtService;
 import com.inngest.Inngest;
+import com.inngest.InngestEvent;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
@@ -217,10 +222,7 @@ public class AuthService {
     }
 
     private void emitUserRegisteredEvent(User user) {
-        if (inngest == null) {
-            return;
-        }
-        inngest.send(new com.inngest.InngestEvent("user-registered", Map.of(
+        sendInngestEvent(new InngestEvent("user-registered", Map.of(
                 "userId", user.getId(),
                 "email", user.getEmail(),
                 "accountType", user.getAccountType(),
@@ -228,10 +230,7 @@ public class AuthService {
     }
 
     private void emitUserLoggedInEvent(User user) {
-        if (inngest == null) {
-            return;
-        }
-        inngest.send(new com.inngest.InngestEvent("user-logged-in", Map.of(
+        sendInngestEvent(new InngestEvent("user-logged-in", Map.of(
                 "userId", user.getId(),
                 "email", user.getEmail(),
                 "accountType", user.getAccountType(),
@@ -239,14 +238,23 @@ public class AuthService {
     }
 
     private void emitUserOAuthLinkedEvent(User user, OAuthProvider provider, String providerUserId) {
-        if (inngest == null) {
-            return;
-        }
-        inngest.send(new com.inngest.InngestEvent("user-oauth-linked", Map.of(
+        sendInngestEvent(new InngestEvent("user-oauth-linked", Map.of(
                 "userId", user.getId(),
                 "provider", provider,
                 "providerUserId", providerUserId,
                 "linkedAt", Instant.now())));
+    }
+
+    private void sendInngestEvent(InngestEvent event) {
+        if (inngest == null) {
+            return;
+        }
+        try {
+            inngest.send(event);
+        } catch (RuntimeException exception) {
+            // Event delivery must not invalidate a completed login or registration.
+            log.error("Unable to send Inngest event", exception);
+        }
     }
 
     private void ensureProfileExists(User user, String displayName, String avatarUrl) {
