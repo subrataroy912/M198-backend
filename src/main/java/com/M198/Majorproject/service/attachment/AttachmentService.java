@@ -82,6 +82,7 @@ public class AttachmentService {
         AttachmentResponse response = toResponse(attachmentRepository.save(attachment));
         UploadParameters upload = uploadParameters(attachment);
         response.setUploadUrl(upload.url());
+        response.setPublicId(attachment.getStorageKey());
         response.setUploadApiKey(apiKey);
         response.setUploadSignature(upload.signature());
         response.setUploadTimestamp(upload.timestamp());
@@ -95,9 +96,9 @@ public class AttachmentService {
                 .filter(value -> value.getStatus() == AttachmentStatus.PENDING)
                 .orElseThrow(AttachmentNotFoundException::new);
         CourseMembership membership = hasRole(authentication, "ROLE_ADMIN")
-            ? null : membership(attachment.getCourseId(), userId);
+                ? null : membership(attachment.getCourseId(), userId);
         if (!attachment.getOwnerId().equals(userId) && !hasRole(authentication, "ROLE_ADMIN")
-            && !staff(membership)) {
+                && !staff(membership)) {
             throw new AttachmentAccessException();
         }
         if (!attachment.getStorageKey().equals(request.getPublicId().trim())) {
@@ -226,7 +227,9 @@ public class AttachmentService {
         return response;
     }
 
-    private record UploadParameters(String url, String signature, long timestamp) { }
+    private record UploadParameters(String url, String signature, long timestamp) {
+
+    }
 
     public static class AttachmentNotFoundException extends RuntimeException {
 

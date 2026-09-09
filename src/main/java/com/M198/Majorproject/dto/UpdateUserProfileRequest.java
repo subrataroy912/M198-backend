@@ -2,6 +2,7 @@ package com.M198.Majorproject.dto;
 
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 
 @Data
@@ -17,6 +18,7 @@ public class UpdateUserProfileRequest {
     @Size(max = 100)
     private String lastName;
 
+    @JsonAlias("name")
     @Size(max = 150)
     private String displayName;
 
@@ -24,12 +26,15 @@ public class UpdateUserProfileRequest {
     private String headline;
 
     @Size(max = 5000)
+    @JsonAlias("bio")
     private String about;
 
-    @Size(max = 2048)
+    @JsonAlias("avatar")
+    @Size(max = 10000000)
     private String avatarUrl;
 
-    @Size(max = 2048)
+    @JsonAlias("banner")
+    @Size(max = 10000000)
     private String bannerUrl;
 
     @Size(max = 100)
@@ -39,6 +44,7 @@ public class UpdateUserProfileRequest {
     private String country;
 
     @Size(max = 100)
+    @JsonAlias("batchYear")
     private String gradeLevel;
 
     private com.M198.Majorproject.entity.identity.ProfileVisibility profileVisibility;

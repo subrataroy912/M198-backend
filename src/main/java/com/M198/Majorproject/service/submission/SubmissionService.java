@@ -1,7 +1,6 @@
 package com.M198.Majorproject.service.submission;
 
 import java.time.Instant;
-import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,8 +21,6 @@ import com.M198.Majorproject.entity.submission.SubmissionStatus;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.coursework.CourseworkRepository;
 import com.M198.Majorproject.repository.submission.SubmissionRepository;
-import com.inngest.Inngest;
-import com.inngest.InngestEvent;
 
 @Service
 public class SubmissionService {
@@ -31,17 +28,13 @@ public class SubmissionService {
     private final CourseworkRepository courseworkRepository;
     private final CourseMembershipRepository membershipRepository;
     private final SubmissionRepository submissionRepository;
-    private final Inngest inngest;
-
     public SubmissionService(
             CourseworkRepository courseworkRepository,
             CourseMembershipRepository membershipRepository,
-            SubmissionRepository submissionRepository,
-            Inngest inngest) {
+            SubmissionRepository submissionRepository) {
         this.courseworkRepository = courseworkRepository;
         this.membershipRepository = membershipRepository;
         this.submissionRepository = submissionRepository;
-        this.inngest = inngest;
     }
 
     public SubmissionResponse start(String courseworkId, Authentication authentication) {
@@ -136,7 +129,6 @@ public class SubmissionService {
         submission.setReturnedAt(Instant.now());
         submission.setStatus(SubmissionStatus.GRADED);
         Submission saved = submissionRepository.save(submission);
-        emitSubmissionGradedEvent(saved, coursework, authenticatedUserId(authentication));
         return toResponse(saved);
     }
 
@@ -177,22 +169,6 @@ public class SubmissionService {
             throw new SubmissionAccessException();
         }
         return authentication.getName();
-    }
-
-    private void emitSubmissionGradedEvent(Submission submission, Coursework coursework, String graderId) {
-        if (inngest == null) {
-            return;
-        }
-        InngestEvent event = new InngestEvent("submission-graded", Map.of(
-                "courseId", submission.getCourseId(),
-                "courseworkId", submission.getCourseworkId(),
-                "submissionId", submission.getId(),
-                "studentId", submission.getStudentId(),
-                "graderId", graderId,
-                "score", submission.getScore(),
-                "gradedAt", submission.getGradedAt() == null ? Instant.now() : submission.getGradedAt(),
-                "maximumPoints", coursework.getMaximumPoints()));
-        inngest.send(event);
     }
 
     private SubmissionResponse toResponse(Submission submission) {

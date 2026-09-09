@@ -16,8 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import com.inngest.Inngest;
-import com.inngest.InngestEvent;
 import com.M198.Majorproject.dto.CreateCourseRequest;
 import com.M198.Majorproject.dto.EnrollCourseRequest;
 import com.M198.Majorproject.entity.course.Course;
@@ -34,9 +32,8 @@ class CourseServiceTest {
     private final CourseRepository courseRepository = mock(CourseRepository.class);
     private final CourseMembershipRepository membershipRepository = mock(CourseMembershipRepository.class);
     private final EnrollmentCodeRepository enrollmentCodeRepository = mock(EnrollmentCodeRepository.class);
-    private final Inngest inngest = mock(Inngest.class);
     private final CourseService courseService = new CourseService(
-            courseRepository, membershipRepository, enrollmentCodeRepository, inngest);
+            courseRepository, membershipRepository, enrollmentCodeRepository);
     private final Authentication teacher = mock(Authentication.class);
     private final Authentication student = mock(Authentication.class);
 
@@ -44,13 +41,12 @@ class CourseServiceTest {
     void setUp() {
         when(teacher.isAuthenticated()).thenReturn(true);
         when(teacher.getName()).thenReturn("teacher-1");
-        when(inngest.getEventKey()).thenReturn("test-event-key");
         doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_TEACHER")))
-            .when(teacher).getAuthorities();
+                .when(teacher).getAuthorities();
         when(student.isAuthenticated()).thenReturn(true);
         when(student.getName()).thenReturn("student-1");
         doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))
-            .when(student).getAuthorities();
+                .when(student).getAuthorities();
         when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> {
             Course course = invocation.getArgument(0);
             course.setId("course-1");
@@ -71,7 +67,6 @@ class CourseServiceTest {
         assertEquals(8, response.getEnrollmentCode().length());
         verify(membershipRepository).save(any(CourseMembership.class));
         verify(enrollmentCodeRepository).save(any(EnrollmentCode.class));
-        verify(inngest).send(any(InngestEvent.class));
     }
 
     @Test

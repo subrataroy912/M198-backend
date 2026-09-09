@@ -10,22 +10,19 @@
  */
 package com.M198.Majorproject.service.auth;
 
-import java.time.Instant;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.Locale;
-import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.M198.Majorproject.dto.AuthResponse;
@@ -37,22 +34,18 @@ import com.M198.Majorproject.entity.identity.AccountStatus;
 import com.M198.Majorproject.entity.identity.AccountType;
 import com.M198.Majorproject.entity.identity.OAuthProvider;
 import com.M198.Majorproject.entity.identity.ProfileVisibility;
+import com.M198.Majorproject.entity.identity.RefreshToken;
 import com.M198.Majorproject.entity.identity.User;
 import com.M198.Majorproject.entity.identity.UserOAuth;
 import com.M198.Majorproject.entity.identity.UserProfile;
-import com.M198.Majorproject.entity.identity.RefreshToken;
+import com.M198.Majorproject.repository.identity.RefreshTokenRepository;
 import com.M198.Majorproject.repository.identity.UserOAuthRepository;
 import com.M198.Majorproject.repository.identity.UserProfileRepository;
 import com.M198.Majorproject.repository.identity.UserRepository;
-import com.M198.Majorproject.repository.identity.RefreshTokenRepository;
 import com.M198.Majorproject.security.JwtService;
-import com.inngest.Inngest;
-import com.inngest.InngestEvent;
 
 @Service
 public class AuthService {
-
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
@@ -61,8 +54,6 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final Inngest inngest;
-
     public AuthService(
             UserRepository userRepository,
             UserProfileRepository profileRepository,
@@ -70,8 +61,7 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager,
             JwtService jwtService,
-            RefreshTokenRepository refreshTokenRepository,
-            Inngest inngest) {
+            RefreshTokenRepository refreshTokenRepository) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.oauthRepository = oauthRepository;
@@ -79,7 +69,6 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.refreshTokenRepository = refreshTokenRepository;
-        this.inngest = inngest;
     }
 
     public AuthResponse register(RegisterUserRequest request) {
@@ -91,7 +80,8 @@ public class AuthService {
             throw new DuplicateKeyException("Email is already registered");
         }
 
-        User user = userRepository.save(User.builder()
+        User user = userRepository.save(
+            User.builder()
                 .email(email)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .accountType(request.getAccountType())
@@ -106,7 +96,6 @@ public class AuthService {
                 .displayName((request.getFirstName().trim() + " " + request.getLastName().trim()).trim())
                 .profileVisibility(ProfileVisibility.PRIVATE)
                 .build());
-        emitUserRegisteredEvent(user);
         return issueTokens(user);
     }
 
@@ -118,7 +107,6 @@ public class AuthService {
                 .orElseThrow(() -> new AuthenticationServiceException("Invalid credentials"));
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
-        emitUserLoggedInEvent(user);
         return issueTokens(user);
     }
 
@@ -170,7 +158,7 @@ public class AuthService {
         var existingLink = oauthRepository.findByProviderAndProviderUserId(provider, providerUserId);
         if (existingLink.isPresent()) {
             user = userRepository.findByIdAndActiveTrueAndStatus(existingLink.get().getUserId(), AccountStatus.ACTIVE)
-                .orElseThrow(() -> new AuthenticationServiceException("OAuth account is unavailable"));
+                    .orElseThrow(() -> new AuthenticationServiceException("OAuth account is unavailable"));
         } else {
             user = userRepository.findByEmailAndActiveTrueAndStatus(normalizeEmail(email), AccountStatus.ACTIVE)
                     .orElseGet(() -> createOAuthUserIfEmailIsAvailable(email, displayName, avatarUrl));
@@ -184,11 +172,9 @@ public class AuthService {
                     .provider(provider)
                     .providerUserId(providerUserId)
                     .build());
-            emitUserOAuthLinkedEvent(user, provider, providerUserId);
         }
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
-        emitUserLoggedInEvent(user);
         return issueTokens(user);
     }
 
@@ -210,7 +196,6 @@ public class AuthService {
                 .avatarUrl(avatarUrl)
                 .profileVisibility(ProfileVisibility.PRIVATE)
                 .build());
-        emitUserRegisteredEvent(user);
         return user;
     }
 
@@ -219,42 +204,6 @@ public class AuthService {
             throw new AuthenticationServiceException("An account already exists for this email");
         }
         return createOAuthUser(email, displayName, avatarUrl);
-    }
-
-    private void emitUserRegisteredEvent(User user) {
-        sendInngestEvent(new InngestEvent("user-registered", Map.of(
-                "userId", user.getId(),
-                "email", user.getEmail(),
-                "accountType", user.getAccountType(),
-                "createdAt", user.getCreatedAt() == null ? Instant.now() : user.getCreatedAt())));
-    }
-
-    private void emitUserLoggedInEvent(User user) {
-        sendInngestEvent(new InngestEvent("user-logged-in", Map.of(
-                "userId", user.getId(),
-                "email", user.getEmail(),
-                "accountType", user.getAccountType(),
-                "lastLoginAt", user.getLastLoginAt() == null ? Instant.now() : user.getLastLoginAt())));
-    }
-
-    private void emitUserOAuthLinkedEvent(User user, OAuthProvider provider, String providerUserId) {
-        sendInngestEvent(new InngestEvent("user-oauth-linked", Map.of(
-                "userId", user.getId(),
-                "provider", provider,
-                "providerUserId", providerUserId,
-                "linkedAt", Instant.now())));
-    }
-
-    private void sendInngestEvent(InngestEvent event) {
-        if (inngest == null) {
-            return;
-        }
-        try {
-            inngest.send(event);
-        } catch (RuntimeException exception) {
-            // Event delivery must not invalidate a completed login or registration.
-            log.error("Unable to send Inngest event", exception);
-        }
     }
 
     private void ensureProfileExists(User user, String displayName, String avatarUrl) {
@@ -283,13 +232,13 @@ public class AuthService {
         UserProfile profile = profileRepository.findByUserId(user.getId()).orElse(null);
         String refreshToken = jwtService.createRefreshToken(user.getId());
         refreshTokenRepository.save(RefreshToken.builder()
-            .tokenHash(hash(refreshToken))
-            .userId(user.getId())
-            .expiresAt(jwtService.refreshTokenExpiresAt())
-            .build());
+                .tokenHash(hash(refreshToken))
+                .userId(user.getId())
+                .expiresAt(jwtService.refreshTokenExpiresAt())
+                .build());
         return AuthResponse.builder()
                 .accessToken(jwtService.createAccessToken(user.getId(), user.getAccountType().name()))
-            .refreshToken(refreshToken)
+                .refreshToken(refreshToken)
                 .userId(user.getId())
                 .email(user.getEmail())
                 .displayName(profile == null ? null : profile.getDisplayName())
@@ -318,10 +267,11 @@ public class AuthService {
     private String[] splitDisplayName(String displayName, String email) {
         String value = displayName == null || displayName.isBlank() ? email.substring(0, email.indexOf('@')) : displayName.trim();
         int separator = value.indexOf(' ');
-        return separator < 0 ? new String[] { value, "" } : new String[] { value.substring(0, separator), value.substring(separator + 1).trim() };
+        return separator < 0 ? new String[]{value, ""} : new String[]{value.substring(0, separator), value.substring(separator + 1).trim()};
     }
 
     private static class AuthenticationServiceException extends AuthenticationException {
+
         private static final long serialVersionUID = 1L;
 
         AuthenticationServiceException(String message) {

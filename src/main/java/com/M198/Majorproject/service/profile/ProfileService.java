@@ -5,12 +5,12 @@
  *              and profile updates for the current authenticated user.
  *
  * This service protects private information while allowing public user discovery.
- * It also uploads avatar/banner assets to Cloudinary and emits profile update events.
+ * It also uploads avatar/banner assets to Cloudinary.
  */
 package com.M198.Majorproject.service.profile;
 
 import java.io.IOException;
-import java.time.Instant;
+import java.util.Base64;
 import java.util.Map;
 
 import org.springframework.security.core.Authentication;
@@ -28,7 +28,6 @@ import com.M198.Majorproject.entity.identity.UserProfile;
 import com.M198.Majorproject.repository.identity.UserProfileRepository;
 import com.M198.Majorproject.repository.identity.UserRepository;
 import com.cloudinary.Cloudinary;
-import com.inngest.Inngest;
 
 @Service
 public class ProfileService {
@@ -36,17 +35,14 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
     private final Cloudinary cloudinary;
-    private final Inngest inngest;
 
     public ProfileService(
             UserRepository userRepository,
             UserProfileRepository profileRepository,
-            Cloudinary cloudinary,
-            Inngest inngest) {
+            Cloudinary cloudinary) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.cloudinary = cloudinary;
-        this.inngest = inngest;
     }
 
     public UserProfileResponse getMyProfile(Authentication authentication) {
@@ -82,10 +78,6 @@ public class ProfileService {
         applyMediaUpdate(profile, avatarFile, bannerFile);
         try {
             UserProfile saved = profileRepository.save(profile);
-            emitUserProfileUpdatedEvent(saved, user);
-            if (request != null && request.getProfileVisibility() != null) {
-                emitUserProfileVisibilityChangedEvent(saved, user);
-            }
             return toOwnerResponse(user, saved);
         } catch (DuplicateKeyException exception) {
             throw new HandleConflictException();
@@ -107,7 +99,44 @@ public class ProfileService {
 
     private String upload(MultipartFile file, String folder) {
         try {
-            Map<?, ?> result = cloudinary.uploader().upload(file.getBytes(), Map.of("folder", folder));
+            return upload(file.getBytes(), file.getContentType(), folder);
+        } catch (ProfileStorageException exception) {
+            throw exception;
+        } catch (IOException exception) {
+            throw new ProfileStorageException("Could not read uploaded profile asset", exception);
+        }
+    }
+
+    private String mediaValue(String value, String folder) {
+        if (!value.startsWith("data:")) {
+            return value;
+        }
+        int separator = value.indexOf(',');
+        if (separator < 0 || !value.substring(0, separator).contains(";base64")) {
+            throw new ProfileStorageException("Invalid profile image data");
+        }
+        String metadata = value.substring(5, separator);
+        String contentType = metadata.substring(0, metadata.indexOf(';'));
+        if (!contentType.startsWith("image/")) {
+            throw new ProfileStorageException("Profile image must be an image file");
+        }
+        try {
+            byte[] bytes = Base64.getDecoder().decode(value.substring(separator + 1));
+            return upload(bytes, contentType, folder);
+        } catch (IllegalArgumentException exception) {
+            throw new ProfileStorageException("Invalid profile image data", exception);
+        }
+    }
+
+    private String upload(byte[] bytes, String contentType, String folder) {
+        try {
+            Map<String, Object> options = new java.util.HashMap<>();
+            options.put("folder", folder);
+            options.put("resource_type", "image");
+            if (contentType != null && !contentType.isBlank()) {
+                options.put("context", "content_type=" + contentType);
+            }
+            Map<?, ?> result = cloudinary.uploader().upload(bytes, options);
             Object secureUrl = result.get("secure_url");
             if (!(secureUrl instanceof String url) || url.isBlank()) {
                 throw new ProfileStorageException("Cloudinary did not return a secure asset URL");
@@ -115,8 +144,6 @@ public class ProfileService {
             return url;
         } catch (ProfileStorageException exception) {
             throw exception;
-        } catch (IOException exception) {
-            throw new ProfileStorageException("Could not read uploaded profile asset", exception);
         } catch (Exception exception) {
             throw new ProfileStorageException("Could not upload profile asset", exception);
         }
@@ -152,11 +179,11 @@ public class ProfileService {
         }
         if (request.getAvatarUrl() != null) {
             String avatar = request.getAvatarUrl().trim();
-            profile.setAvatarUrl(avatar.isEmpty() ? null : avatar);
+            profile.setAvatarUrl(avatar.isEmpty() ? null : mediaValue(avatar, "user_avatars"));
         }
         if (request.getBannerUrl() != null) {
             String banner = request.getBannerUrl().trim();
-            profile.setBannerUrl(banner.isEmpty() ? null : banner);
+            profile.setBannerUrl(banner.isEmpty() ? null : mediaValue(banner, "user_banners"));
         }
         if (request.getCity() != null) {
             profile.setCity(request.getCity().trim());
@@ -170,30 +197,6 @@ public class ProfileService {
         if (request.getProfileVisibility() != null) {
             profile.setProfileVisibility(request.getProfileVisibility());
         }
-    }
-
-    private void emitUserProfileUpdatedEvent(UserProfile profile, User user) {
-        if (inngest == null) {
-            return;
-        }
-        inngest.send(new com.inngest.InngestEvent("user-profile-updated", Map.of(
-                "userId", profile.getUserId(),
-                "displayName", profile.getDisplayName(),
-                "handle", profile.getHandle(),
-                "profileVisibility", profile.getProfileVisibility(),
-                "updatedAt", Instant.now(),
-                "email", user.getEmail())));
-    }
-
-    private void emitUserProfileVisibilityChangedEvent(UserProfile profile, User user) {
-        if (inngest == null) {
-            return;
-        }
-        inngest.send(new com.inngest.InngestEvent("user-profile-visibility-changed", Map.of(
-                "userId", profile.getUserId(),
-                "profileVisibility", profile.getProfileVisibility(),
-                "updatedAt", Instant.now(),
-                "email", user.getEmail())));
     }
 
     private User activeUser(String userId) {
@@ -261,14 +264,17 @@ public class ProfileService {
     }
 
     public static class ProfileNotFoundException extends RuntimeException {
+
         private static final long serialVersionUID = 1L;
     }
 
     public static class HandleConflictException extends RuntimeException {
+
         private static final long serialVersionUID = 1L;
     }
 
     public static class ProfileStorageException extends RuntimeException {
+
         private static final long serialVersionUID = 1L;
 
         public ProfileStorageException(String message) {

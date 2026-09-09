@@ -1,4 +1,4 @@
- # Majorproject
+# Majorproject
 
 Majorproject is a Spring Boot backend for a classroom and course-management
 platform. The planned system supports user accounts, teacher-led courses,
@@ -49,10 +49,10 @@ operations.
 2. The platform creates an enrollment code for the course.
 3. A student submits the enrollment code to request admission.
 4. The platform validates the code, prevents duplicate membership, and creates a
-	student-course membership.
+   student-course membership.
 5. Enrolled students can access course content and their own submissions.
 6. A student can leave a course, while an authorized teacher can manage the
-	course roster.
+   course roster.
 
 The enrollment flow is a planned design. Its database model, service, and
 endpoint implementation are still to be built.
@@ -89,9 +89,6 @@ JWT_REFRESH_TOKEN_LIFETIME=7d
 APP_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 APP_OAUTH2_FRONTEND_CALLBACK_URL=http://localhost:5173/auth/callback
 APP_GITHUB_API_BASE_URL=https://api.github.com
-INNGEST_EVENT_KEY=<inngest-event-key>
-# Optional; defaults to Inngest Cloud's event endpoint.
-INNGEST_EVENT_URL=https://inn.gs/e/
 ```
 
 Replace the placeholder values in `local.env` before running locally. Do not
@@ -119,17 +116,18 @@ the frontend. Render's forwarded HTTPS headers are honored so Spring generates
 the same HTTPS URI during the authorization request. If the browser reaches the
 frontend with `error=oauth_failed`, inspect the backend logs: the failure handler
 logs the provider error while intentionally keeping it out of the redirect URL.
-|   |-- notification/                  # Notifications and alert settings
-|   |-- profile/                       # Current and public user profiles
-|   `-- submission/                    # Student submissions and grading
+| |-- notification/ # Notifications and alert settings
+| |-- profile/ # Current and public user profiles
+| `-- submission/                    # Student submissions and grading
 |-- entity/identity/                   # User, profile, OAuth documents and enums
 |-- repository/identity/               # Identity MongoDB repositories
-`-- service/                            # Planned business services; currently empty
+`-- service/ # Planned business services; currently empty
 
 docs/
-|-- APIs.MD                            # Planned API catalog
-`-- IDENTITY_SCHEMA.MD                 # Implemented identity schema
-```
+|-- APIs.MD # Planned API catalog
+`-- IDENTITY_SCHEMA.MD # Implemented identity schema
+
+````
 
 The controller folders are organized by business domain so future services can
 mirror the same boundaries. Spring component scanning still discovers these
@@ -167,7 +165,7 @@ variables in deployment. The local file is ignored by Git.
 spring:
   mongodb:
 	 uri: ${MONGODB_URI}/majorproject
-```
+````
 
 PowerShell example:
 
@@ -196,16 +194,16 @@ not yet test HTTP endpoints, repository queries, or business workflows.
 ## Development Roadmap
 
 1. Add MongoDB entities and enums for courses, memberships, coursework,
-	submissions, attachments, comments, notifications, and grades.
+   submissions, attachments, comments, notifications, and grades.
 2. Add repositories and indexes for enrollment codes, memberships, and
-	submission ownership.
+   submission ownership.
 3. Implement DTOs with validation and safe response projections.
 4. Implement services for authentication, admission, coursework, submissions,
-	files, comments, notifications, profiles, and analytics.
+   files, comments, notifications, profiles, and analytics.
 5. Add authentication and role-based authorization.
 6. Implement controller methods from the planned API catalog.
 7. Add controller and service tests for permissions, admission, submission
-	privacy, grading, and error responses.
+   privacy, grading, and error responses.
 8. Add API documentation generation and deployment configuration.
 
 ## Documentation Guide

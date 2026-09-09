@@ -22,6 +22,7 @@ public class AttachmentResponse {
     private Long sizeBytes;
     private AttachmentStatus status;
     private String uploadUrl;
+    private String publicId;
     private String uploadApiKey;
     private String uploadSignature;
     private Long uploadTimestamp;

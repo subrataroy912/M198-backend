@@ -32,7 +32,7 @@ class ProfileServiceTest {
     private final UserProfileRepository profileRepository = mock(UserProfileRepository.class);
     private final Cloudinary cloudinary = mock(Cloudinary.class);
     private final Uploader uploader = mock(Uploader.class);
-    private final ProfileService profileService = new ProfileService(userRepository, profileRepository, cloudinary, null);
+        private final ProfileService profileService = new ProfileService(userRepository, profileRepository, cloudinary);
     private final Authentication authentication = mock(Authentication.class);
     private User user;
     private UserProfile profile;

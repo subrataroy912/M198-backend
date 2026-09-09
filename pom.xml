@@ -110,19 +110,6 @@
             <version>2.4.0</version>
             <scope>compile</scope>
         </dependency>
-        <!-- Source: https://mvnrepository.com/artifact/com.inngest/inngest-spring-boot-adapter -->
-        <dependency>
-            <groupId>com.inngest</groupId>
-            <artifactId>inngest-spring-boot-adapter</artifactId>
-            <version>0.2.1</version>
-            <scope>compile</scope>
-        </dependency>
-        <!-- Required by the Inngest adapter's javax.servlet-based controller. -->
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <version>4.0.1</version>
-        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>

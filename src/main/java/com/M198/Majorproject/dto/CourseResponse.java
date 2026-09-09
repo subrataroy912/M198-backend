@@ -18,6 +18,7 @@ public class CourseResponse {
     private String section;
     private String subject;
     private String description;
+    private String coverUrl;
     private CourseVisibility visibility;
     private CourseStatus status;
     private boolean enrollmentEnabled;

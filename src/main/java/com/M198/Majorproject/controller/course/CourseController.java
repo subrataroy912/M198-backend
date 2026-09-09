@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.M198.Majorproject.dto.CourseResponse;
+import com.M198.Majorproject.dto.CourseCoverUploadResponse;
 import com.M198.Majorproject.dto.CreateCourseRequest;
 import com.M198.Majorproject.dto.EnrollCourseRequest;
 import com.M198.Majorproject.dto.CourseMemberResponse;
@@ -45,6 +46,11 @@ public class CourseController {
             @Valid @RequestBody CreateCourseRequest request,
             Authentication authentication) {
         return courseService.createCourse(authentication, request);
+    }
+
+    @PostMapping("/cover-upload")
+    public CourseCoverUploadResponse requestCoverUpload(Authentication authentication) {
+        return courseService.requestCoverUpload(authentication);
     }
 
     @GetMapping

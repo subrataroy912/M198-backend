@@ -32,7 +32,7 @@ spring:
   mongodb:
     uri: ${MONGODB_URI:mongodb://localhost:27017}/${MONGODB_DATABASE:majorproject}
 server:
-  # Render supplies PORT dynamically; binding to it keeps the Inngest serve URL reachable.
+  # Render supplies PORT dynamically; binding to it keeps the application reachable.
   port: ${PORT:8080}
 app:
   cors:
@@ -48,11 +48,3 @@ cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:}
   api-key: ${CLOUDINARY_API_KEY:}
   api-secret: ${CLOUDINARY_API_SECRET:}
-inngest:
-  api:
-    key: ${INNGEST_EVENT_KEY:}
-    event-url: ${INNGEST_EVENT_URL:https://inn.gs/e/}
-  signing:
-    key: ${INNGEST_SIGNING_KEY:}
-  app:
-    id: ${INNGEST_APP_ID:majorproject}

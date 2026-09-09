@@ -29,16 +29,14 @@ import com.M198.Majorproject.entity.submission.SubmissionStatus;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.coursework.CourseworkRepository;
 import com.M198.Majorproject.repository.submission.SubmissionRepository;
-import com.inngest.Inngest;
 
 class SubmissionServiceTest {
 
     private final CourseworkRepository courseworkRepository = mock(CourseworkRepository.class);
     private final CourseMembershipRepository membershipRepository = mock(CourseMembershipRepository.class);
     private final SubmissionRepository submissionRepository = mock(SubmissionRepository.class);
-    private final Inngest inngest = mock(Inngest.class);
     private final SubmissionService service = new SubmissionService(
-            courseworkRepository, membershipRepository, submissionRepository, inngest);
+            courseworkRepository, membershipRepository, submissionRepository);
     private final Authentication student = mock(Authentication.class);
     private final Authentication teacher = mock(Authentication.class);
 
@@ -125,13 +123,10 @@ class SubmissionServiceTest {
                 .studentId("student-1").status(SubmissionStatus.TURNED_IN).build();
         when(submissionRepository.findById("submission-1")).thenReturn(Optional.of(submission));
         when(submissionRepository.save(submission)).thenReturn(submission);
-        when(inngest.getEventKey()).thenReturn("test-event-key");
-
         var response = service.grade("work-1", "submission-1", teacher, grade(8));
 
         assertEquals(SubmissionStatus.GRADED, response.getStatus());
         assertEquals(BigDecimal.valueOf(8), response.getScore());
-        verify(inngest).send(any(com.inngest.InngestEvent.class));
     }
 
     @Test

@@ -26,4 +26,7 @@ public class CreateCourseRequest {
     private String description;
 
     private CourseVisibility visibility = CourseVisibility.PRIVATE;
+
+    @Size(max = 2048)
+    private String coverUrl;
 }
