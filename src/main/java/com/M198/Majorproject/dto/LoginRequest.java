@@ -1,3 +1,10 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * DTO        : LoginRequest
+ * PURPOSE    : Carries the email and password used for credential-based sign-in.
+ *
+ * This request is the entry point for authentication verification before issuing JWT tokens.
+ */
 package com.M198.Majorproject.dto;
 
 import jakarta.validation.constraints.Email;

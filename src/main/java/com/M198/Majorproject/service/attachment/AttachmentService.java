@@ -1,5 +1,6 @@
 package com.M198.Majorproject.service.attachment;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -18,8 +19,6 @@ import com.M198.Majorproject.entity.attachment.AttachmentStatus;
 import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
-import com.M198.Majorproject.entity.coursework.Coursework;
-import com.M198.Majorproject.entity.submission.Submission;
 import com.M198.Majorproject.repository.attachment.AttachmentRepository;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.coursework.CourseworkRepository;
@@ -120,7 +119,7 @@ public class AttachmentService {
                 resourceType, resourceId, AttachmentStatus.UPLOADED).stream().map(this::toResponse).toList();
     }
 
-    public void delete(String attachmentId, Authentication authentication) {
+    public void delete(String attachmentId, Authentication authentication) throws IOException {
         String userId = authenticatedUserId(authentication);
         Attachment attachment = attachmentRepository.findByIdAndStatus(attachmentId, AttachmentStatus.UPLOADED)
                 .orElseThrow(AttachmentNotFoundException::new);
@@ -130,7 +129,8 @@ public class AttachmentService {
         }
         requireCloudinaryConfiguration();
         try {
-            Map<String, Object> result = cloudinary.uploader().destroy(
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = (Map<String, Object>) cloudinary.uploader().destroy(
                     attachment.getStorageKey(), Map.of("resource_type", "auto", "invalidate", true));
             Object resultStatus = result.get("result");
             if (resultStatus != null && !"ok".equals(resultStatus) && !"not found".equals(resultStatus)) {
@@ -138,7 +138,7 @@ public class AttachmentService {
             }
         } catch (AttachmentStorageException exception) {
             throw exception;
-        } catch (Exception exception) {
+        } catch (RuntimeException exception) {
             throw new AttachmentStorageException("Cloudinary delete failed");
         }
         attachment.setStatus(AttachmentStatus.DELETED);
@@ -181,10 +181,12 @@ public class AttachmentService {
     private String resourceCourseId(AttachmentResourceType type, String resourceId) {
         if (type == AttachmentResourceType.COURSEWORK) {
             return courseworkRepository.findById(resourceId)
-                    .map(Coursework::getCourseId).orElseThrow(AttachmentNotFoundException::new);
+                    .map(coursework -> coursework.getCourseId())
+                    .orElseThrow(AttachmentNotFoundException::new);
         }
         return submissionRepository.findById(resourceId)
-                .map(Submission::getCourseId).orElseThrow(AttachmentNotFoundException::new);
+                .map(submission -> submission.getCourseId())
+                .orElseThrow(AttachmentNotFoundException::new);
     }
 
     private CourseMembership membership(String courseId, String userId) {

@@ -46,6 +46,14 @@
  *    - Response: Returns the updated safe profile representation.
  *    - Why it's used: Allows users to maintain personal details and preferences.
  */
+/**
+ * CREATED BY : SUBRATA ROY
+ * CONTROLLER : ProfileController
+ * PURPOSE    : Exposes endpoints for viewing and updating the current user's profile and public profile data.
+ *
+ * This controller sits in front of the profile service and ensures account owners can access
+ * their own information, while visibility rules still protect private data from unrelated users.
+ */
 package com.M198.Majorproject.controller.profile;
 
 import org.springframework.security.core.Authentication;

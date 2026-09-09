@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * ENTITY     : Course
+ * PURPOSE    : Stores the core classroom model and course metadata for teacher-led learning units.
+ *
+ * This document holds the course owner, title, section, subject, status, visibility,
+ * and enrollment settings needed for student access and course management.
+ */
 package com.M198.Majorproject.entity.course;
 
 import java.time.Instant;

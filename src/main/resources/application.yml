@@ -41,3 +41,10 @@ cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:}
   api-key: ${CLOUDINARY_API_KEY:}
   api-secret: ${CLOUDINARY_API_SECRET:}
+inngest:
+  api:
+    key: ${INNGEST_EVENT_KEY:}
+  signing:
+    key: ${INNGEST_SIGNING_KEY:}
+  app:
+    id: ${INNGEST_APP_ID:majorproject}

@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * REPOSITORY : UserRepository
+ * PURPOSE    : Provides MongoDB access for user identity lookup and account validation.
+ *
+ * This repository handles user existence checks, active-account queries,
+ * and the core authentication lookups used by the security and auth services.
+ */
 package com.M198.Majorproject.repository.identity;
 
 import java.util.Optional;

@@ -1,3 +1,12 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * CONTROLLER : CourseController
+ * PURPOSE    : Handles course operations such as creation, listing, updating, enrollment,
+ *              membership checks, and course archiving.
+ *
+ * This controller routes all teaching and student course interactions into the service layer,
+ * keeping HTTP concerns separate from the business logic of course management.
+ */
 package com.M198.Majorproject.controller.course;
 
 import java.util.List;

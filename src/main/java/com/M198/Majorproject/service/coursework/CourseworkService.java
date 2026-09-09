@@ -1,6 +1,8 @@
 package com.M198.Majorproject.service.coursework;
 
 import java.time.Instant;
+import java.util.Map;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
@@ -18,6 +20,8 @@ import com.M198.Majorproject.entity.coursework.CourseworkStatus;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.course.CourseRepository;
 import com.M198.Majorproject.repository.coursework.CourseworkRepository;
+import com.inngest.Inngest;
+import com.inngest.InngestEvent;
 
 @Service
 public class CourseworkService {
@@ -25,14 +29,17 @@ public class CourseworkService {
     private final CourseRepository courseRepository;
     private final CourseMembershipRepository membershipRepository;
     private final CourseworkRepository courseworkRepository;
+    private final Inngest inngest;
 
     public CourseworkService(
             CourseRepository courseRepository,
             CourseMembershipRepository membershipRepository,
-            CourseworkRepository courseworkRepository) {
+            CourseworkRepository courseworkRepository,
+            Inngest inngest) {
         this.courseRepository = courseRepository;
         this.membershipRepository = membershipRepository;
         this.courseworkRepository = courseworkRepository;
+        this.inngest = inngest;
     }
 
     public CourseworkResponse create(
@@ -104,7 +111,11 @@ public class CourseworkService {
         if (request.getStatus() != null) {
             applyStatus(coursework, request.getStatus());
         }
-        return toResponse(courseworkRepository.save(coursework));
+        Coursework saved = courseworkRepository.save(coursework);
+        if (saved.getStatus() == CourseworkStatus.PUBLISHED) {
+            emitCourseworkPublishedEvent(saved);
+        }
+        return toResponse(saved);
     }
 
     public void archive(String courseId, String courseworkId, Authentication authentication) {
@@ -136,6 +147,20 @@ public class CourseworkService {
             coursework.setArchivedAt(null);
         }
         coursework.setStatus(status);
+    }
+
+    private void emitCourseworkPublishedEvent(Coursework coursework) {
+        if (inngest == null) {
+            return;
+        }
+        InngestEvent event = new InngestEvent("coursework-published", Map.of(
+                "courseId", coursework.getCourseId(),
+                "courseworkId", coursework.getId(),
+                "creatorId", coursework.getCreatorId(),
+                "title", coursework.getTitle(),
+                "type", coursework.getType(),
+                "publishedAt", coursework.getPublishedAt() == null ? Instant.now() : coursework.getPublishedAt()));
+        inngest.send(event);
     }
 
     private void validateAssignmentFields(String type, Instant dueAt, Integer maximumPoints) {

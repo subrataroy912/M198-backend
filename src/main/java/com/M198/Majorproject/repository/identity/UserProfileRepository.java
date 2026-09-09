@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * REPOSITORY : UserProfileRepository
+ * PURPOSE    : Provides MongoDB access for user profile lookups and uniqueness checks.
+ *
+ * This repository supports profile ownership, handle validation, and profile visibility lookups
+ * for authenticated users and public profile screens.
+ */
 package com.M198.Majorproject.repository.identity;
 
 import java.util.Optional;

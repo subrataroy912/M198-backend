@@ -1,7 +1,6 @@
 package com.M198.Majorproject.service.notification;
 
 import java.time.Instant;
-import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.dao.DuplicateKeyException;

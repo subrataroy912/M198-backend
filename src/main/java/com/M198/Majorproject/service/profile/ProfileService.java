@@ -1,6 +1,16 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * SERVICE    : ProfileService
+ * PURPOSE    : Manages user profile data, visibility rules, media uploads,
+ *              and profile updates for the current authenticated user.
+ *
+ * This service protects private information while allowing public user discovery.
+ * It also uploads avatar/banner assets to Cloudinary and emits profile update events.
+ */
 package com.M198.Majorproject.service.profile;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Map;
 
 import org.springframework.security.core.Authentication;
@@ -18,6 +28,7 @@ import com.M198.Majorproject.entity.identity.UserProfile;
 import com.M198.Majorproject.repository.identity.UserProfileRepository;
 import com.M198.Majorproject.repository.identity.UserRepository;
 import com.cloudinary.Cloudinary;
+import com.inngest.Inngest;
 
 @Service
 public class ProfileService {
@@ -25,14 +36,17 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
     private final Cloudinary cloudinary;
+    private final Inngest inngest;
 
     public ProfileService(
             UserRepository userRepository,
             UserProfileRepository profileRepository,
-            Cloudinary cloudinary) {
+            Cloudinary cloudinary,
+            Inngest inngest) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.cloudinary = cloudinary;
+        this.inngest = inngest;
     }
 
     public UserProfileResponse getMyProfile(Authentication authentication) {
@@ -67,7 +81,12 @@ public class ProfileService {
         applyUpdate(profile, request);
         applyMediaUpdate(profile, avatarFile, bannerFile);
         try {
-            return toOwnerResponse(user, profileRepository.save(profile));
+            UserProfile saved = profileRepository.save(profile);
+            emitUserProfileUpdatedEvent(saved, user);
+            if (request != null && request.getProfileVisibility() != null) {
+                emitUserProfileVisibilityChangedEvent(saved, user);
+            }
+            return toOwnerResponse(user, saved);
         } catch (DuplicateKeyException exception) {
             throw new HandleConflictException();
         }
@@ -151,6 +170,30 @@ public class ProfileService {
         if (request.getProfileVisibility() != null) {
             profile.setProfileVisibility(request.getProfileVisibility());
         }
+    }
+
+    private void emitUserProfileUpdatedEvent(UserProfile profile, User user) {
+        if (inngest == null) {
+            return;
+        }
+        inngest.send(new com.inngest.InngestEvent("user-profile-updated", Map.of(
+                "userId", profile.getUserId(),
+                "displayName", profile.getDisplayName(),
+                "handle", profile.getHandle(),
+                "profileVisibility", profile.getProfileVisibility(),
+                "updatedAt", Instant.now(),
+                "email", user.getEmail())));
+    }
+
+    private void emitUserProfileVisibilityChangedEvent(UserProfile profile, User user) {
+        if (inngest == null) {
+            return;
+        }
+        inngest.send(new com.inngest.InngestEvent("user-profile-visibility-changed", Map.of(
+                "userId", profile.getUserId(),
+                "profileVisibility", profile.getProfileVisibility(),
+                "updatedAt", Instant.now(),
+                "email", user.getEmail())));
     }
 
     private User activeUser(String userId) {

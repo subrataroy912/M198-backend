@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * SECURITY   : JwtAuthenticationFilter
+ * PURPOSE    : Reads the JWT from request headers and populates the Spring Security context.
+ *
+ * This filter runs before protected endpoints are processed and authenticates the caller
+ * when a valid JWT token is present in the Authorization header.
+ */
 package com.M198.Majorproject.security;
 
 import java.io.IOException;

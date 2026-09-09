@@ -47,6 +47,15 @@
  *    - Response: Returns a successful empty response after the session is closed.
  *    - Why it's used: Prevents a logged-in client from continuing to use its token.
  */
+/**
+ * CREATED BY : SUBRATA ROY
+ * CONTROLLER : AuthController
+ * PURPOSE    : Exposes public authentication endpoints for registration, login,
+ *              refresh-token rotation, and logout.
+ *
+ * This is the first layer where client requests enter the app for identity-related work.
+ * It validates incoming DTOs and delegates the actual business logic to AuthService.
+ */
 package com.M198.Majorproject.controller.auth;
 
 import org.springframework.http.HttpStatus;

@@ -31,7 +31,8 @@ class AuthServiceTest {
             passwordEncoder,
             authenticationManager,
             new JwtService("test-secret-that-is-long-enough-32", java.time.Duration.ofMinutes(5), java.time.Duration.ofDays(1)),
-            refreshTokenRepository);
+            refreshTokenRepository,
+            null);
 
     @Test
     void publicRegistrationRejectsAdministratorRoleBeforePersistence() {

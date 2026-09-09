@@ -1,5 +1,6 @@
 package com.M198.Majorproject.controller.attachment;
 
+import java.io.IOException;
 import java.util.List;
 
 import jakarta.validation.Valid;
@@ -54,7 +55,7 @@ public class AttachmentApiController {
     }
 
     @DeleteMapping("/{attachmentId}")
-    public void delete(@PathVariable String attachmentId, Authentication authentication) {
+    public void delete(@PathVariable String attachmentId, Authentication authentication) throws IOException {
         attachmentService.delete(attachmentId, authentication);
     }
 

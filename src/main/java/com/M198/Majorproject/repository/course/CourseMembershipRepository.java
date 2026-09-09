@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * REPOSITORY : CourseMembershipRepository
+ * PURPOSE    : Manages membership records linking users to courses and tracking their roles.
+ *
+ * Membership records are the gatekeepers for access control in classrooms,
+ * allowing teachers, owners, students, and active/inactive states to be evaluated reliably.
+ */
 package com.M198.Majorproject.repository.course;
 
 import java.util.List;

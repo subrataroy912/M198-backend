@@ -1,3 +1,13 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * SERVICE    : AuthService
+ * PURPOSE    : Handles account creation, credential-based login, JWT issuance,
+ *              refresh token management, OAuth linking, and session lifecycle.
+ *
+ * This service is the core identity engine of the platform.
+ * It manages user registration, token creation, login events, OAuth account setup,
+ * and secure profile creation for newly registered users.
+ */
 package com.M198.Majorproject.service.auth;
 
 import java.time.Instant;
@@ -5,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,6 +44,7 @@ import com.M198.Majorproject.repository.identity.UserProfileRepository;
 import com.M198.Majorproject.repository.identity.UserRepository;
 import com.M198.Majorproject.repository.identity.RefreshTokenRepository;
 import com.M198.Majorproject.security.JwtService;
+import com.inngest.Inngest;
 
 @Service
 public class AuthService {
@@ -44,6 +56,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final Inngest inngest;
 
     public AuthService(
             UserRepository userRepository,
@@ -52,7 +65,8 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager,
             JwtService jwtService,
-            RefreshTokenRepository refreshTokenRepository) {
+            RefreshTokenRepository refreshTokenRepository,
+            Inngest inngest) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.oauthRepository = oauthRepository;
@@ -60,6 +74,7 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.inngest = inngest;
     }
 
     public AuthResponse register(RegisterUserRequest request) {
@@ -86,6 +101,7 @@ public class AuthService {
                 .displayName((request.getFirstName().trim() + " " + request.getLastName().trim()).trim())
                 .profileVisibility(ProfileVisibility.PRIVATE)
                 .build());
+        emitUserRegisteredEvent(user);
         return issueTokens(user);
     }
 
@@ -97,6 +113,7 @@ public class AuthService {
                 .orElseThrow(() -> new AuthenticationServiceException("Invalid credentials"));
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
+        emitUserLoggedInEvent(user);
         return issueTokens(user);
     }
 
@@ -162,9 +179,11 @@ public class AuthService {
                     .provider(provider)
                     .providerUserId(providerUserId)
                     .build());
+            emitUserOAuthLinkedEvent(user, provider, providerUserId);
         }
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
+        emitUserLoggedInEvent(user);
         return issueTokens(user);
     }
 
@@ -186,6 +205,7 @@ public class AuthService {
                 .avatarUrl(avatarUrl)
                 .profileVisibility(ProfileVisibility.PRIVATE)
                 .build());
+        emitUserRegisteredEvent(user);
         return user;
     }
 
@@ -194,6 +214,39 @@ public class AuthService {
             throw new AuthenticationServiceException("An account already exists for this email");
         }
         return createOAuthUser(email, displayName, avatarUrl);
+    }
+
+    private void emitUserRegisteredEvent(User user) {
+        if (inngest == null) {
+            return;
+        }
+        inngest.send(new com.inngest.InngestEvent("user-registered", Map.of(
+                "userId", user.getId(),
+                "email", user.getEmail(),
+                "accountType", user.getAccountType(),
+                "createdAt", user.getCreatedAt() == null ? Instant.now() : user.getCreatedAt())));
+    }
+
+    private void emitUserLoggedInEvent(User user) {
+        if (inngest == null) {
+            return;
+        }
+        inngest.send(new com.inngest.InngestEvent("user-logged-in", Map.of(
+                "userId", user.getId(),
+                "email", user.getEmail(),
+                "accountType", user.getAccountType(),
+                "lastLoginAt", user.getLastLoginAt() == null ? Instant.now() : user.getLastLoginAt())));
+    }
+
+    private void emitUserOAuthLinkedEvent(User user, OAuthProvider provider, String providerUserId) {
+        if (inngest == null) {
+            return;
+        }
+        inngest.send(new com.inngest.InngestEvent("user-oauth-linked", Map.of(
+                "userId", user.getId(),
+                "provider", provider,
+                "providerUserId", providerUserId,
+                "linkedAt", Instant.now())));
     }
 
     private void ensureProfileExists(User user, String displayName, String avatarUrl) {

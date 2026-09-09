@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * REPOSITORY : CommentRepository
+ * PURPOSE    : Retrieves comments and discussion entries tied to course, assignment, or submission objects.
+ *
+ * Comment visibility and deletion rules are enforced through query filters so the app can keep
+ * discussion data private, public, or course-scoped as needed.
+ */
 package com.M198.Majorproject.repository.comment;
 
 import java.util.List;

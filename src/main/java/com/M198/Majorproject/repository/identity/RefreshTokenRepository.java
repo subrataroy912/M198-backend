@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * REPOSITORY : RefreshTokenRepository
+ * PURPOSE    : Stores and validates refresh tokens used for rotation-based authentication.
+ *
+ * This repository is responsible for finding active refresh tokens and revoking them safely
+ * whenever a session is refreshed or logged out.
+ */
 package com.M198.Majorproject.repository.identity;
 
 import java.util.Optional;

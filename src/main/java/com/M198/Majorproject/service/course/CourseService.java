@@ -1,8 +1,18 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * SERVICE    : CourseService
+ * PURPOSE    : Handles course creation, enrollment, roster management, ownership rules,
+ *              and lifecycle updates for classroom operations.
+ *
+ * This service is responsible for teacher/student course interaction.
+ * It validates memberships, enforces access control, and keeps course data consistent.
+ */
 package com.M198.Majorproject.service.course;
 
 import java.time.Instant;
-import java.util.UUID;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.Authentication;
@@ -24,6 +34,8 @@ import com.M198.Majorproject.entity.identity.AccountType;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.course.CourseRepository;
 import com.M198.Majorproject.repository.course.EnrollmentCodeRepository;
+import com.inngest.Inngest;
+import com.inngest.InngestEvent;
 
 @Service
 public class CourseService {
@@ -31,14 +43,17 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final CourseMembershipRepository membershipRepository;
     private final EnrollmentCodeRepository enrollmentCodeRepository;
+    private final Inngest inngest;
 
     public CourseService(
             CourseRepository courseRepository,
             CourseMembershipRepository membershipRepository,
-            EnrollmentCodeRepository enrollmentCodeRepository) {
+            EnrollmentCodeRepository enrollmentCodeRepository,
+            Inngest inngest) {
         this.courseRepository = courseRepository;
         this.membershipRepository = membershipRepository;
         this.enrollmentCodeRepository = enrollmentCodeRepository;
+        this.inngest = inngest;
     }
 
     public CourseResponse createCourse(Authentication authentication, CreateCourseRequest request) {
@@ -72,11 +87,27 @@ public class CourseService {
                     .build());
             CourseResponse response = toResponse(course);
             response.setEnrollmentCode(enrollmentCode.getCode());
+            emitCourseCreatedEvent(course, enrollmentCode, userId);
             return response;
         } catch (RuntimeException exception) {
             compensateCourseCreation(course, ownerMembership);
             throw exception;
         }
+    }
+
+    private void emitCourseCreatedEvent(Course course, EnrollmentCode enrollmentCode, String userId) {
+        if (inngest == null) {
+            return;
+        }
+
+        InngestEvent event = new InngestEvent("course-created", Map.of(
+                "courseId", course.getId(),
+                "ownerId", userId,
+                "title", course.getTitle(),
+                "visibility", course.getVisibility(),
+                "enrollmentCode", enrollmentCode.getCode(),
+                "createdAt", course.getCreatedAt() == null ? Instant.now() : course.getCreatedAt()));
+        inngest.send(event);
     }
 
     private void compensateCourseCreation(Course course, CourseMembership ownerMembership) {
@@ -91,7 +122,7 @@ public class CourseService {
         String userId = authenticatedUserId(authentication);
         return membershipRepository.findAllByUserIdAndStatus(userId, MembershipStatus.ACTIVE).stream()
                 .map(membership -> courseRepository.findByIdAndStatus(membership.getCourseId(), CourseStatus.ACTIVE))
-                .flatMap(java.util.Optional::stream)
+                .flatMap(optionalCourse -> optionalCourse.stream())
                 .map(this::toResponse)
                 .toList();
     }

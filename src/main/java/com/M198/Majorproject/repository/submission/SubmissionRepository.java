@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * REPOSITORY : SubmissionRepository
+ * PURPOSE    : Fetches student submissions, status-based records, and coursework submission history.
+ *
+ * This repository supports the grading workflow by retrieving student work in a structured manner,
+ * grouped by coursework, student, and pass/fail or pending state.
+ */
 package com.M198.Majorproject.repository.submission;
 
 import org.springframework.data.domain.Page;

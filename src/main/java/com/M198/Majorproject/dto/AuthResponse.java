@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * DTO        : AuthResponse
+ * PURPOSE    : Returns the issued authentication data after login, registration, or refresh.
+ *
+ * This response includes identity details and token values needed by the frontend to establish
+ * a valid authenticated session with the backend.
+ */
 package com.M198.Majorproject.dto;
 
 import lombok.Builder;

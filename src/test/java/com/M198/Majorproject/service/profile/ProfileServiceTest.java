@@ -1,20 +1,19 @@
 package com.M198.Majorproject.service.profile;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-
-import java.util.Optional;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.security.core.Authentication;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.core.Authentication;
 
 import com.M198.Majorproject.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.entity.identity.AccountStatus;
@@ -33,12 +32,13 @@ class ProfileServiceTest {
     private final UserProfileRepository profileRepository = mock(UserProfileRepository.class);
     private final Cloudinary cloudinary = mock(Cloudinary.class);
     private final Uploader uploader = mock(Uploader.class);
-    private final ProfileService profileService = new ProfileService(userRepository, profileRepository, cloudinary);
+    private final ProfileService profileService = new ProfileService(userRepository, profileRepository, cloudinary, null);
     private final Authentication authentication = mock(Authentication.class);
     private User user;
     private UserProfile profile;
 
     @BeforeEach
+    @SuppressWarnings("unused")
     void setUp() {
         user = User.builder()
                 .id("user-1")
@@ -165,9 +165,9 @@ class ProfileServiceTest {
 
     @Test
     void nonEmptyAssetFilesUploadToTheirDedicatedFoldersAndOverrideUrlFields() throws Exception {
-        when(uploader.upload(any(byte[].class), argThat(options -> "user_avatars".equals(options.get("folder"))))
+        when(uploader.upload(any(byte[].class), argThat(options -> "user_avatars".equals(options.get("folder")))))
                 .thenReturn(java.util.Map.of("secure_url", "https://cdn.example/avatar.jpg"));
-        when(uploader.upload(any(byte[].class), argThat(options -> "user_banners".equals(options.get("folder"))))
+        when(uploader.upload(any(byte[].class), argThat(options -> "user_banners".equals(options.get("folder")))))
                 .thenReturn(java.util.Map.of("secure_url", "https://cdn.example/banner.jpg"));
         UpdateUserProfileRequest request = new UpdateUserProfileRequest();
         request.setAvatarUrl("");
@@ -176,8 +176,8 @@ class ProfileServiceTest {
         var response = profileService.updateMyProfile(
                 authentication,
                 request,
-                new MockMultipartFile("avatarFile", "avatar.jpg", "image/jpeg", new byte[] { 1 }),
-                new MockMultipartFile("bannerFile", "banner.jpg", "image/jpeg", new byte[] { 2 }));
+                new MockMultipartFile("avatarFile", "avatar.jpg", "image/jpeg", new byte[]{1}),
+                new MockMultipartFile("bannerFile", "banner.jpg", "image/jpeg", new byte[]{2}));
 
         assertEquals("https://cdn.example/avatar.jpg", response.getAvatarUrl());
         assertEquals("https://cdn.example/banner.jpg", response.getBannerUrl());

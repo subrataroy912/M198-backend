@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * ENTITY     : Notification
+ * PURPOSE    : Represents alerts and activity updates sent to users within the platform.
+ *
+ * Notifications keep learners and teachers informed about course changes,
+ * assignment updates, comments, grading events, and profile-related activity.
+ */
 package com.M198.Majorproject.entity.notification;
 
 import java.time.Instant;

@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * SECURITY   : JwtService
+ * PURPOSE    : Generates and validates access and refresh JWTs for authenticated users.
+ *
+ * This service creates secure tokens used for user session management.
+ * Access tokens are used for API authorization, while refresh tokens let users stay logged in.
+ */
 package com.M198.Majorproject.security;
 
 import java.nio.charset.StandardCharsets;

@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * ENTITY     : Coursework
+ * PURPOSE    : Represents assignment or learning activity content shared within a course.
+ *
+ * Coursework is the unit that connects course content with submission records,
+ * grading, comments, and student progress tracking.
+ */
 package com.M198.Majorproject.entity.coursework;
 
 import java.time.Instant;

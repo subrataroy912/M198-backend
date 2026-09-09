@@ -1,8 +1,5 @@
 package com.M198.Majorproject.dto;
 
-import java.math.BigDecimal;
-
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
 
 import com.M198.Majorproject.entity.submission.SubmissionStatus;

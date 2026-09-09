@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * SECURITY   : AppUserDetailsService
+ * PURPOSE    : Loads authenticated user details into Spring Security for JWT-based access control.
+ *
+ * This service translates the application user model into Spring Security's UserDetails,
+ * so protected endpoints can validate the authenticated caller correctly.
+ */
 package com.M198.Majorproject.security;
 
 import org.springframework.security.core.userdetails.UserDetails;

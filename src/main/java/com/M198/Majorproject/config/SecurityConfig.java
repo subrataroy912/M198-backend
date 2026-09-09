@@ -1,3 +1,13 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * MODULE     : Security Configuration
+ * PURPOSE    : Configures Spring Security, JWT filter, CORS, OAuth2 login,
+ *              password encoder, and protected route access rules.
+ *
+ * This class is the backbone of the app's authentication system.
+ * It ensures only public routes remain open while important endpoints like
+ * profile management, course actions, enrollments, and submissions are protected.
+ */
 package com.M198.Majorproject.config;
 
 import java.util.Arrays;
@@ -37,7 +47,7 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     @Bean
-    SecurityFilterChain securityFilterChain(
+    public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             OAuthSuccessHandler oauthSuccessHandler,
@@ -81,10 +91,10 @@ public class SecurityConfig {
     }
 
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim)
+                .map(origin -> origin.trim())
                 .filter(origin -> !origin.isEmpty())
                 .toList());
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
@@ -98,17 +108,17 @@ public class SecurityConfig {
     }
 
     @Bean
-    PasswordEncoder passwordEncoder() {
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    ObjectMapper objectMapper() {
+    public ObjectMapper objectMapper() {
         return new ObjectMapper();
     }
 
     @Bean
-    DaoAuthenticationProvider daoAuthenticationProvider(
+    public DaoAuthenticationProvider daoAuthenticationProvider(
             AppUserDetailsService userDetailsService,
             PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
@@ -117,7 +127,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    AuthenticationManager authenticationManager(
+    public AuthenticationManager authenticationManager(
             AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }

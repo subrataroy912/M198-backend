@@ -16,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import com.inngest.Inngest;
+import com.inngest.InngestEvent;
 import com.M198.Majorproject.dto.CreateCourseRequest;
 import com.M198.Majorproject.dto.EnrollCourseRequest;
 import com.M198.Majorproject.entity.course.Course;
@@ -32,8 +34,9 @@ class CourseServiceTest {
     private final CourseRepository courseRepository = mock(CourseRepository.class);
     private final CourseMembershipRepository membershipRepository = mock(CourseMembershipRepository.class);
     private final EnrollmentCodeRepository enrollmentCodeRepository = mock(EnrollmentCodeRepository.class);
+    private final Inngest inngest = mock(Inngest.class);
     private final CourseService courseService = new CourseService(
-            courseRepository, membershipRepository, enrollmentCodeRepository);
+            courseRepository, membershipRepository, enrollmentCodeRepository, inngest);
     private final Authentication teacher = mock(Authentication.class);
     private final Authentication student = mock(Authentication.class);
 
@@ -41,6 +44,7 @@ class CourseServiceTest {
     void setUp() {
         when(teacher.isAuthenticated()).thenReturn(true);
         when(teacher.getName()).thenReturn("teacher-1");
+        when(inngest.getEventKey()).thenReturn("test-event-key");
         doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_TEACHER")))
             .when(teacher).getAuthorities();
         when(student.isAuthenticated()).thenReturn(true);
@@ -67,6 +71,7 @@ class CourseServiceTest {
         assertEquals(8, response.getEnrollmentCode().length());
         verify(membershipRepository).save(any(CourseMembership.class));
         verify(enrollmentCodeRepository).save(any(EnrollmentCode.class));
+        verify(inngest).send(any(InngestEvent.class));
     }
 
     @Test

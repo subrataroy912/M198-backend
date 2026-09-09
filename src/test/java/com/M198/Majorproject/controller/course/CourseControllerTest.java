@@ -19,7 +19,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import com.M198.Majorproject.controller.auth.AuthExceptionHandler;
-import com.M198.Majorproject.dto.CourseResponse;
 import com.M198.Majorproject.dto.CreateCourseRequest;
 import com.M198.Majorproject.service.course.CourseService;
 
@@ -32,6 +31,7 @@ class CourseControllerTest {
     private MockMvc mockMvc;
 
     @BeforeEach
+    @SuppressWarnings("unused")
     void setUp() {
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();

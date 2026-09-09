@@ -1,3 +1,11 @@
+/**
+ * CREATED BY : SUBRATA ROY
+ * REPOSITORY : CourseRepository
+ * PURPOSE    : Provides MongoDB access for course records and active course queries.
+ *
+ * This repository keeps the service layer focused on business rules while handling
+ * course lookup and status-based filtering directly against MongoDB.
+ */
 package com.M198.Majorproject.repository.course;
 
 import java.util.List;
