@@ -117,6 +117,12 @@
             <version>0.2.1</version>
             <scope>compile</scope>
         </dependency>
+        <!-- Required by the Inngest adapter's javax.servlet-based controller. -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>4.0.1</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
