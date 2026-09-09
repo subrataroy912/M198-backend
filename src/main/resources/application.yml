@@ -1,4 +1,8 @@
 spring:
+  # Render terminates TLS before proxying requests to the application. OAuth's
+  # default redirect URI is built from the incoming request, so honor Render's
+  # Forwarded/X-Forwarded-* headers and keep the URI HTTPS and publicly routable.
+  forward-headers-strategy: framework
   config:
     import: optional:file:./local.env[.properties]
   application:
