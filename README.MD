@@ -185,6 +185,5 @@ notifications, analytics, and profiles.
 ## Documentation Guide
 
 - [API catalog](docs/APIs.MD)
-- [Frontend wiring task](docs/FRONTEND_WIRING_TASK.MD)
 - [Implemented identity schema](docs/IDENTITY_SCHEMA.MD)
 - [Spring reference material](HELP.md)
