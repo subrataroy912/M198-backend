@@ -31,6 +31,9 @@ spring:
               - user:email
   mongodb:
     uri: ${MONGODB_URI:mongodb://localhost:27017}/${MONGODB_DATABASE:majorproject}
+server:
+  # Render supplies PORT dynamically; binding to it keeps the Inngest serve URL reachable.
+  port: ${PORT:8080}
 app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
