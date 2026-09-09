@@ -16,13 +16,14 @@ authorization for the planned feature controllers is not implemented yet.
 | POST | `/v1/auth/login` | Public | Verify credentials and issue JWTs |
 | POST | `/v1/auth/refresh` | Public with refresh token | Rotate a refresh token and issue new JWTs |
 | POST | `/v1/auth/logout` | Authenticated | Revoke the supplied refresh token |
-| GET | `/oauth2/authorization/google` | Public | Start Google OAuth login/registration |
-| GET | `/oauth2/authorization/github` | Public | Start GitHub OAuth login/registration |
+| GET | `/v1/auth/oauth/google` | Public | Start Google OAuth login/registration |
+| GET | `/v1/auth/oauth/github` | Public | Start GitHub OAuth login/registration |
 
 Password registration accepts `TEACHER` or `STUDENT` only. OAuth users default to
 `STUDENT`. OAuth accounts are linked to an existing account only when the provider
 returns a verified matching email. OAuth failures redirect to the configured
-frontend callback with `error=oauth_failed`. Access tokens are bearer JWTs; refresh tokens are rotated and stored
+frontend callback with `error=oauth_failed`; the underlying reason is logged by
+the API without being exposed to the browser. Access tokens are bearer JWTs; refresh tokens are rotated and stored
 only as SHA-256 hashes in `auth_refresh_tokens`. Unauthenticated and forbidden
 API requests return consistent JSON `401` and `403` responses.
 
