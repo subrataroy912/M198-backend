@@ -56,7 +56,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void teacherCreatesCourseAndReceivesEnrollmentCode() {
+    void authenticatedTeacherCreatesCourseAndReceivesEnrollmentCode() {
         CreateCourseRequest request = new CreateCourseRequest();
         request.setTitle("Mathematics");
 
@@ -70,12 +70,17 @@ class CourseServiceTest {
     }
 
     @Test
-    void studentCannotCreateCourse() {
+    void authenticatedStudentCanCreateCourse() {
         CreateCourseRequest request = new CreateCourseRequest();
         request.setTitle("Mathematics");
 
-        assertThrows(CourseService.CourseAccessException.class,
-                () -> courseService.createCourse(student, request));
+        var response = courseService.createCourse(student, request);
+
+        assertEquals("course-1", response.getId());
+        assertEquals("student-1", response.getOwnerId());
+        org.junit.jupiter.api.Assertions.assertNotNull(response.getEnrollmentCode());
+        verify(membershipRepository).save(any(CourseMembership.class));
+        verify(enrollmentCodeRepository).save(any(EnrollmentCode.class));
     }
 
     @Test

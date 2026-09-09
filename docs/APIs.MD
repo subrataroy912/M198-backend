@@ -31,7 +31,7 @@ API requests return consistent JSON `401` and `403` responses.
 
 | Method | Route | Intended access | Purpose |
 | --- | --- | --- | --- |
-| POST | `/v1/courses` | Teacher | Create a course and enrollment code |
+| POST | `/v1/courses` | Authenticated | Create a course and enrollment code |
 | GET | `/v1/courses` | Authenticated | List the user's courses |
 | GET | `/v1/courses/{courseId}` | Course member | View course details |
 | PATCH | `/v1/courses/{courseId}` | Teacher or owner | Update course details |

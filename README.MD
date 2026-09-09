@@ -45,7 +45,7 @@ operations.
 
 ### Course admission and enrollment
 
-1. A teacher creates a course with its name, section, subject, and description.
+1. An authenticated user creates a course with its name, section, subject, and description.
 2. The platform creates an enrollment code for the course.
 3. A student submits the enrollment code to request admission.
 4. The platform validates the code, prevents duplicate membership, and creates a
