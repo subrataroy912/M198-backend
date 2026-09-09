@@ -119,13 +119,6 @@ the frontend. Render's forwarded HTTPS headers are honored so Spring generates
 the same HTTPS URI during the authorization request. If the browser reaches the
 frontend with `error=oauth_failed`, inspect the backend logs: the failure handler
 logs the provider error while intentionally keeping it out of the redirect URL.
-
-#### Inngest configuration
-
-`INNGEST_EVENT_KEY` is an event key, not an HTTP URL. The application appends it
-to `INNGEST_EVENT_URL` (which defaults to `https://inn.gs/e/`) before sending
-events. An invalid event configuration no longer prevents users from completing
-OAuth, password login, or registration; it is logged as an event-delivery error.
 |   |-- notification/                  # Notifications and alert settings
 |   |-- profile/                       # Current and public user profiles
 |   `-- submission/                    # Student submissions and grading
