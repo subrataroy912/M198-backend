@@ -93,6 +93,29 @@ APP_GITHUB_API_BASE_URL=https://api.github.com
 
 Replace the placeholder values in `local.env` before running locally. Do not
 commit credentials or a populated connection string to source control.
+
+### OAuth deployment configuration
+
+Start authentication at `GET /v1/auth/oauth/google` (or `/github`), not at
+`/oauth2/authorization/...`. The latter is Spring Security's default endpoint,
+but this application deliberately uses the versioned `/v1/auth/oauth` endpoint.
+
+`APP_OAUTH2_FRONTEND_CALLBACK_URL` is the **final browser destination** after a
+successful or failed login. For example, it may correctly be
+`https://campus-mind-ev1s.onrender.com/auth/callback` when that is the frontend.
+It is not the callback that must be registered with Google.
+
+In Google Cloud Console, register the backend's exact redirect URI instead:
+
+```text
+https://<backend-render-service>.onrender.com/login/oauth2/code/google
+```
+
+The backend route must remain publicly reachable and must not be rewritten to
+the frontend. Render's forwarded HTTPS headers are honored so Spring generates
+the same HTTPS URI during the authorization request. If the browser reaches the
+frontend with `error=oauth_failed`, inspect the backend logs: the failure handler
+logs the provider error while intentionally keeping it out of the redirect URL.
 |   |-- notification/                  # Notifications and alert settings
 |   |-- profile/                       # Current and public user profiles
 |   `-- submission/                    # Student submissions and grading
