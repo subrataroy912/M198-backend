@@ -27,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import com.M198.Majorproject.dto.AuthResponse;
 import com.M198.Majorproject.dto.LoginRequest;
@@ -48,6 +49,7 @@ import com.M198.Majorproject.security.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
     public static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
@@ -65,23 +67,6 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
-
-    public AuthService(
-            UserRepository userRepository,
-            UserProfileRepository profileRepository,
-            UserOAuthRepository oauthRepository,
-            PasswordEncoder passwordEncoder,
-            AuthenticationManager authenticationManager,
-            JwtService jwtService,
-            RefreshTokenRepository refreshTokenRepository) {
-        this.userRepository = userRepository;
-        this.profileRepository = profileRepository;
-        this.oauthRepository = oauthRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
-        this.refreshTokenRepository = refreshTokenRepository;
-    }
 
     public AuthResponse register(RegisterUserRequest request) {
         if (request.getAccountType() != AccountType.TEACHER && request.getAccountType() != AccountType.STUDENT) {

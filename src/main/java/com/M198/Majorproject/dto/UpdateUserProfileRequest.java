@@ -3,9 +3,11 @@ package com.M198.Majorproject.dto;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
 import com.fasterxml.jackson.annotation.JsonAlias;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 public class UpdateUserProfileRequest {
 
     @Size(max = 30)

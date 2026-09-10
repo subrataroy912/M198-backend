@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.RequiredArgsConstructor;
 
 import com.M198.Majorproject.dto.PublicUserProfileResponse;
 import com.M198.Majorproject.dto.UpdateUserProfileRequest;
@@ -30,20 +31,12 @@ import com.M198.Majorproject.repository.identity.UserRepository;
 import com.cloudinary.Cloudinary;
 
 @Service
+@RequiredArgsConstructor
 public class ProfileService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
     private final Cloudinary cloudinary;
-
-    public ProfileService(
-            UserRepository userRepository,
-            UserProfileRepository profileRepository,
-            Cloudinary cloudinary) {
-        this.userRepository = userRepository;
-        this.profileRepository = profileRepository;
-        this.cloudinary = cloudinary;
-    }
 
     public UserProfileResponse getMyProfile(Authentication authentication) {
         String userId = authenticatedUserId(authentication);
@@ -144,7 +137,7 @@ public class ProfileService {
             return url;
         } catch (ProfileStorageException exception) {
             throw exception;
-        } catch (Exception exception) {
+        } catch (IOException exception) {
             throw new ProfileStorageException("Could not upload profile asset", exception);
         }
     }

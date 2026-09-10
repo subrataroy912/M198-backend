@@ -11,19 +11,22 @@ package com.M198.Majorproject.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
-@Builder
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class AuthResponse {
+@ Getter 
 
-    // Security Tokens
-    private String accessToken;
-    private String refreshToken;
+    @Setter
+    @Builder
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public class AuthResponse {
 
-    private String userId;
-    private String email;
-    private String displayName;
-    private String avatarUrl;
-}
+        // Security Tokens
+        private String accessToken;
+        private String refreshToken;
+
+        private String userId;
+        private String email;
+        private String displayName;
+        private String avatarUrl;
+    }

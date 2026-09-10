@@ -1,9 +1,11 @@
 package com.M198.Majorproject.dto;
 
 import com.M198.Majorproject.entity.identity.ProfileVisibility;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 public class PublicUserProfileResponse {
 
     private String id;

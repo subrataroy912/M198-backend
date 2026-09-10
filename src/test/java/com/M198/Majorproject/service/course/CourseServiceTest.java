@@ -1,18 +1,17 @@
 package com.M198.Majorproject.service.course;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -22,19 +21,25 @@ import com.M198.Majorproject.dto.UpdateCourseRequest;
 import com.M198.Majorproject.entity.course.Course;
 import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.CourseStatus;
+import com.M198.Majorproject.entity.course.CourseVisibility;
 import com.M198.Majorproject.entity.course.EnrollmentCode;
 import com.M198.Majorproject.entity.course.MembershipStatus;
+import com.M198.Majorproject.entity.explore.CourseDiscovery;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.course.CourseRepository;
 import com.M198.Majorproject.repository.course.EnrollmentCodeRepository;
+import com.M198.Majorproject.repository.explore.CourseDiscoveryRepository;
+import com.cloudinary.Cloudinary;
 
 class CourseServiceTest {
 
     private final CourseRepository courseRepository = mock(CourseRepository.class);
     private final CourseMembershipRepository membershipRepository = mock(CourseMembershipRepository.class);
     private final EnrollmentCodeRepository enrollmentCodeRepository = mock(EnrollmentCodeRepository.class);
+    private final CourseDiscoveryRepository courseDiscoveryRepository = mock(CourseDiscoveryRepository.class);
     private final CourseService courseService = new CourseService(
-            courseRepository, membershipRepository, enrollmentCodeRepository);
+            courseRepository, membershipRepository, enrollmentCodeRepository,
+            courseDiscoveryRepository, (Cloudinary) null, "", "", "");
     private final Authentication teacher = mock(Authentication.class);
     private final Authentication student = mock(Authentication.class);
 
@@ -68,6 +73,25 @@ class CourseServiceTest {
         assertEquals(8, response.getEnrollmentCode().length());
         verify(membershipRepository).save(any(CourseMembership.class));
         verify(enrollmentCodeRepository).save(any(EnrollmentCode.class));
+    }
+
+    @Test
+    void publicCourseCreationSynchronizesPublicActiveDiscoveryRecord() {
+        CreateCourseRequest request = new CreateCourseRequest();
+        request.setTitle("Mathematics");
+        request.setSubject("Science");
+        request.setVisibility(CourseVisibility.PUBLIC);
+
+        courseService.createCourse(teacher, request);
+
+        var discovery = org.mockito.ArgumentCaptor.forClass(CourseDiscovery.class);
+        verify(courseDiscoveryRepository).save(discovery.capture());
+        assertEquals("course-1", discovery.getValue().getCourseId());
+        assertEquals("Mathematics", discovery.getValue().getTitle());
+        assertEquals("Science", discovery.getValue().getSubject());
+        assertEquals(CourseVisibility.PUBLIC, discovery.getValue().getVisibility());
+        assertEquals(CourseStatus.ACTIVE, discovery.getValue().getStatus());
+        org.junit.jupiter.api.Assertions.assertNotNull(discovery.getValue().getLastActivityAt());
     }
 
     @Test

@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import com.M198.Majorproject.dto.CourseworkResponse;
 import com.M198.Majorproject.dto.CreateCourseworkRequest;
@@ -21,19 +22,12 @@ import com.M198.Majorproject.repository.course.CourseRepository;
 import com.M198.Majorproject.repository.coursework.CourseworkRepository;
 
 @Service
+@RequiredArgsConstructor
 public class CourseworkService {
 
     private final CourseRepository courseRepository;
     private final CourseMembershipRepository membershipRepository;
     private final CourseworkRepository courseworkRepository;
-    public CourseworkService(
-            CourseRepository courseRepository,
-            CourseMembershipRepository membershipRepository,
-            CourseworkRepository courseworkRepository) {
-        this.courseRepository = courseRepository;
-        this.membershipRepository = membershipRepository;
-        this.courseworkRepository = courseworkRepository;
-    }
 
     public CourseworkResponse create(
             String courseId, Authentication authentication, CreateCourseworkRequest request) {
@@ -211,10 +205,12 @@ public class CourseworkService {
     }
 
     public static class CourseworkNotFoundException extends RuntimeException {
+
         private static final long serialVersionUID = 1L;
     }
 
     public static class CourseworkAccessException extends RuntimeException {
+
         private static final long serialVersionUID = 1L;
 
         public CourseworkAccessException(String message) {

@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import com.M198.Majorproject.dto.GradeSubmissionRequest;
 import com.M198.Majorproject.dto.SubmissionResponse;
@@ -23,19 +24,12 @@ import com.M198.Majorproject.repository.coursework.CourseworkRepository;
 import com.M198.Majorproject.repository.submission.SubmissionRepository;
 
 @Service
+@RequiredArgsConstructor
 public class SubmissionService {
 
     private final CourseworkRepository courseworkRepository;
     private final CourseMembershipRepository membershipRepository;
     private final SubmissionRepository submissionRepository;
-    public SubmissionService(
-            CourseworkRepository courseworkRepository,
-            CourseMembershipRepository membershipRepository,
-            SubmissionRepository submissionRepository) {
-        this.courseworkRepository = courseworkRepository;
-        this.membershipRepository = membershipRepository;
-        this.submissionRepository = submissionRepository;
-    }
 
     public SubmissionResponse start(String courseworkId, Authentication authentication) {
         String studentId = authenticatedUserId(authentication);
@@ -114,10 +108,10 @@ public class SubmissionService {
         Submission submission = submissionRepository.findById(submissionId)
                 .filter(value -> courseworkId.equals(value.getCourseworkId()))
                 .orElseThrow(SubmissionNotFoundException::new);
-            if (submission.getStatus() != SubmissionStatus.TURNED_IN
+        if (submission.getStatus() != SubmissionStatus.TURNED_IN
                 && submission.getStatus() != SubmissionStatus.RETURNED) {
-                throw new SubmissionConflictException("Only turned-in submissions can be graded");
-            }
+            throw new SubmissionConflictException("Only turned-in submissions can be graded");
+        }
         if (coursework.getMaximumPoints() != null
                 && request.getScore().compareTo(java.math.BigDecimal.valueOf(coursework.getMaximumPoints())) > 0) {
             throw new SubmissionConflictException("Score exceeds maximum points");
@@ -190,13 +184,21 @@ public class SubmissionService {
     }
 
     public static class SubmissionNotFoundException extends RuntimeException {
+
         private static final long serialVersionUID = 1L;
     }
+
     public static class SubmissionAccessException extends RuntimeException {
+
         private static final long serialVersionUID = 1L;
     }
+
     public static class SubmissionConflictException extends RuntimeException {
+
         private static final long serialVersionUID = 1L;
-        public SubmissionConflictException(String message) { super(message); }
+
+        public SubmissionConflictException(String message) {
+            super(message);
+        }
     }
 }
