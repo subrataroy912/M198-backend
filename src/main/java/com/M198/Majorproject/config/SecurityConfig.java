@@ -65,6 +65,8 @@ public class SecurityConfig {
                         "/v1/auth/oauth/**",
                         "/oauth2/**",
                         "/login/**",
+                        "/v1/explore/feed",
+                        "/v1/explore/courses/search",
                         "/error")
                 .permitAll()
                 .requestMatchers("/v1/auth/logout").authenticated()

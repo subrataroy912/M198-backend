@@ -22,7 +22,9 @@ public class ExploreService {
                 : repository.findAllBySubjectAndVisibilityAndStatusOrderByPopularityScoreDescLastActivityAtDesc(subject.trim(), CourseVisibility.PUBLIC, CourseStatus.ACTIVE, pageable)).map(this::response);
     }
     public Page<CourseDiscoveryResponse> search(String query, int page, int size) {
-        if (query == null || query.isBlank()) return feed(null, page, size);
+        if (query == null || query.isBlank()) {
+            throw new IllegalArgumentException("q must not be blank");
+        }
         return repository.findAllByTitleContainingIgnoreCaseAndVisibilityAndStatusOrderByPopularityScoreDesc(query.trim(), CourseVisibility.PUBLIC, CourseStatus.ACTIVE, pageable(page, size)).map(this::response);
     }
     public Page<CourseDiscoveryResponse> recommendations(int page, int size) { return feed(null, page, size); }

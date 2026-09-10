@@ -18,6 +18,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.M198.Majorproject.dto.CreateCourseRequest;
 import com.M198.Majorproject.dto.EnrollCourseRequest;
+import com.M198.Majorproject.dto.UpdateCourseRequest;
 import com.M198.Majorproject.entity.course.Course;
 import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.CourseStatus;
@@ -119,5 +120,22 @@ class CourseServiceTest {
 
         verify(membershipRepository).delete(any(CourseMembership.class));
         verify(courseRepository).delete(any(Course.class));
+    }
+
+    @Test
+    void teacherCanUpdateCourseCoverUrl() {
+        Course course = Course.builder().id("course-1").title("Mathematics")
+                .status(CourseStatus.ACTIVE).build();
+        when(courseRepository.findByIdAndStatus("course-1", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
+        when(membershipRepository.findByCourseIdAndUserIdAndStatus(
+                "course-1", "teacher-1", MembershipStatus.ACTIVE))
+                .thenReturn(Optional.of(CourseMembership.builder().courseId("course-1").userId("teacher-1")
+                        .role(com.M198.Majorproject.entity.course.MembershipRole.TEACHER).build()));
+        UpdateCourseRequest request = new UpdateCourseRequest();
+        request.setCoverUrl(" https://images.example/course.png ");
+
+        var response = courseService.update("course-1", teacher, request);
+
+        assertEquals("https://images.example/course.png", response.getCoverUrl());
     }
 }

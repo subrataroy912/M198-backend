@@ -35,9 +35,11 @@ import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
 import com.M198.Majorproject.entity.course.CourseVisibility;
 import com.M198.Majorproject.entity.identity.AccountType;
+import com.M198.Majorproject.entity.explore.CourseDiscovery;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.course.CourseRepository;
 import com.M198.Majorproject.repository.course.EnrollmentCodeRepository;
+import com.M198.Majorproject.repository.explore.CourseDiscoveryRepository;
 import com.cloudinary.Cloudinary;
 
 @  Service 
@@ -47,6 +49,7 @@ import com.cloudinary.Cloudinary;
         private final CourseRepository courseRepository;
         private final CourseMembershipRepository membershipRepository;
         private final EnrollmentCodeRepository enrollmentCodeRepository;
+        private final CourseDiscoveryRepository courseDiscoveryRepository;
         private final Cloudinary cloudinary;
         private final String cloudName;
         private final String apiKey;
@@ -57,6 +60,7 @@ import com.cloudinary.Cloudinary;
                 CourseRepository courseRepository,
                 CourseMembershipRepository membershipRepository,
                 EnrollmentCodeRepository enrollmentCodeRepository,
+                CourseDiscoveryRepository courseDiscoveryRepository,
                 Cloudinary cloudinary,
                 @Value("${cloudinary.cloud-name:}") String cloudName,
                 @Value("${cloudinary.api-key:}") String apiKey,
@@ -64,6 +68,7 @@ import com.cloudinary.Cloudinary;
             this.courseRepository = courseRepository;
             this.membershipRepository = membershipRepository;
             this.enrollmentCodeRepository = enrollmentCodeRepository;
+            this.courseDiscoveryRepository = courseDiscoveryRepository;
             this.cloudinary = cloudinary;
             this.cloudName = cloudName;
             this.apiKey = apiKey;
@@ -74,7 +79,7 @@ import com.cloudinary.Cloudinary;
                 CourseRepository courseRepository,
                 CourseMembershipRepository membershipRepository,
                 EnrollmentCodeRepository enrollmentCodeRepository) {
-            this(courseRepository, membershipRepository, enrollmentCodeRepository, null, "", "", "");
+            this(courseRepository, membershipRepository, enrollmentCodeRepository, null, null, "", "", "");
         }
 
         public CourseCoverUploadResponse requestCoverUpload(Authentication authentication) {
@@ -127,6 +132,7 @@ import com.cloudinary.Cloudinary;
                         .build());
                 CourseResponse response = toResponse(course);
                 response.setEnrollmentCode(enrollmentCode.getCode());
+                syncDiscovery(course);
                 return response;
             } catch (RuntimeException exception) {
                 compensateCourseCreation(course, ownerMembership);
@@ -180,6 +186,7 @@ import com.cloudinary.Cloudinary;
                 membership.setJoinedAt(Instant.now());
                 membership.setRemovedAt(null);
                 membershipRepository.save(membership);
+                syncDiscovery(course);
                 return toResponse(course);
             }
             try {
@@ -193,6 +200,7 @@ import com.cloudinary.Cloudinary;
             } catch (DuplicateKeyException exception) {
                 throw new CourseConflictException("User already has membership in this course");
             }
+            syncDiscovery(course);
             return toResponse(course);
         }
 
@@ -208,6 +216,7 @@ import com.cloudinary.Cloudinary;
             membership.setStatus(MembershipStatus.LEFT);
             membership.setRemovedAt(Instant.now());
             membershipRepository.save(membership);
+            syncDiscovery(activeCourse(courseId));
         }
 
         public CourseResponse update(String courseId, Authentication authentication, UpdateCourseRequest request) {
@@ -232,7 +241,12 @@ import com.cloudinary.Cloudinary;
             if (request.getEnrollmentEnabled() != null) {
                 course.setEnrollmentEnabled(request.getEnrollmentEnabled());
             }
-            return toResponse(courseRepository.save(course));
+            if (request.getCoverUrl() != null) {
+                course.setCoverUrl(normalize(request.getCoverUrl()));
+            }
+            Course savedCourse = courseRepository.save(course);
+            syncDiscovery(savedCourse);
+            return toResponse(savedCourse);
         }
 
         public void archive(String courseId, Authentication authentication) {
@@ -241,7 +255,8 @@ import com.cloudinary.Cloudinary;
             requireOwnerOrTeacher(courseId, userId);
             course.setStatus(CourseStatus.ARCHIVED);
             course.setArchivedAt(Instant.now());
-            courseRepository.save(course);
+            Course archivedCourse = courseRepository.save(course);
+            syncDiscovery(archivedCourse);
         }
 
         public List<CourseMemberResponse> roster(String courseId, Authentication authentication) {
@@ -333,6 +348,28 @@ import com.cloudinary.Cloudinary;
 
         private String generateEnrollmentCode() {
             return UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        }
+
+        /**
+         * Keeps the public-course read model aligned with the source course. The
+         * projection intentionally stores no private course content; explore
+         * queries additionally filter it to PUBLIC and ACTIVE courses.
+         */
+        private void syncDiscovery(Course course) {
+            if (courseDiscoveryRepository == null) {
+                return;
+            }
+            CourseDiscovery discovery = courseDiscoveryRepository.findByCourseId(course.getId())
+                    .orElseGet(CourseDiscovery::new);
+            discovery.setCourseId(course.getId());
+            discovery.setTitle(course.getTitle());
+            discovery.setSubject(course.getSubject());
+            discovery.setVisibility(course.getVisibility());
+            discovery.setStatus(course.getStatus());
+            discovery.setEnrollmentCount(
+                    membershipRepository.countByCourseIdAndStatus(course.getId(), MembershipStatus.ACTIVE));
+            discovery.setLastActivityAt(Instant.now());
+            courseDiscoveryRepository.save(discovery);
         }
 
         public static class CourseNotFoundException extends RuntimeException {
