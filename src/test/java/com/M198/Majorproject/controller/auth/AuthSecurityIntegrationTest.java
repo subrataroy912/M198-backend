@@ -1,25 +1,23 @@
 package com.M198.Majorproject.controller.auth;
 
+import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.HttpHeaders;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationServiceException;
 
 import com.M198.Majorproject.dto.AuthResponse;
 import com.M198.Majorproject.service.auth.AuthService;
@@ -98,7 +96,7 @@ class AuthSecurityIntegrationTest {
     }
 
     @Test
-    void logoutStillRequiresAuthenticationAndRevokesRefreshSession() throws Exception {
+    void logoutWithoutCsrfHeaderSucceedsForAuthenticatedUserAndClearsRefreshCookie() throws Exception {
         doNothing().when(authService).logout(eq("user-1"), eq("valid-refresh-token"));
         doAnswer(invocation -> {
             HttpServletResponse response = invocation.getArgument(0);
@@ -108,7 +106,6 @@ class AuthSecurityIntegrationTest {
 
         mockMvc.perform(post("/v1/auth/logout")
                 .with(user("user-1"))
-                .with(csrf())
                 .cookie(new jakarta.servlet.http.Cookie("refreshToken", "valid-refresh-token")))
                 .andExpect(status().isNoContent());
 
