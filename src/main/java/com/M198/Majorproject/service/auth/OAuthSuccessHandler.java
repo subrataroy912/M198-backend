@@ -61,21 +61,25 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
         AuthResponse result;
         try {
             result = authService.authenticateOAuth(
-                provider, providerUserId, email, emailVerified, displayName, avatarUrl);
+                    provider, providerUserId, email, emailVerified, displayName, avatarUrl);
         } catch (RuntimeException exception) {
             failureHandler.onAuthenticationFailure(request, response,
-                new org.springframework.security.authentication.AuthenticationServiceException(
-                    "OAuth account provisioning failed", exception));
+                    new org.springframework.security.authentication.AuthenticationServiceException(
+                            "OAuth account provisioning failed", exception));
             return;
         }
 
-            String targetUrl = UriComponentsBuilder
+        String targetUrl = UriComponentsBuilder
                 .fromUriString(frontendCallbackUrl)
                 .queryParam("accessToken", result.getAccessToken())
                 .queryParam("refreshToken", result.getRefreshToken())
+                .queryParam("userId", result.getUserId())
+                .queryParam("email", result.getEmail())
+                .queryParam("displayName", result.getDisplayName())
+                .queryParam("avatarUrl", result.getAvatarUrl())
                 .build()
                 .toUriString();
-            response.sendRedirect(targetUrl);
+        response.sendRedirect(targetUrl);
     }
 
     private String value(Map<String, Object> attributes, String key) {
