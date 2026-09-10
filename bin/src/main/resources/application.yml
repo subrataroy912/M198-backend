@@ -1,0 +1,53 @@
+spring:
+  # Render terminates TLS before proxying requests to the application. OAuth's
+  # default redirect URI is built from the incoming request, so honor Render's
+  # Forwarded/X-Forwarded-* headers and keep the URI HTTPS and publicly routable.
+  forward-headers-strategy: framework
+  config:
+    import: optional:file:./local.env[.properties]
+  application:
+    name: Majorproject
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+              - openid
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            provider: github
+            scope:
+              - read:user
+              - user:email
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017}/${MONGODB_DATABASE:majorproject}
+server:
+  # Render supplies PORT dynamically; binding to it keeps the application reachable.
+  port: ${PORT:8080}
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+  cookies:
+    secure: ${APP_COOKIE_SECURE:false}
+    same-site: ${APP_COOKIE_SAME_SITE:Lax}
+  oauth2:
+    frontend-callback-url: ${APP_OAUTH2_FRONTEND_CALLBACK_URL:http://localhost:5173/auth/callback}
+    github-api-base-url: ${APP_GITHUB_API_BASE_URL:https://api.github.com}
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-lifetime: ${JWT_ACCESS_TOKEN_LIFETIME:15m}
+    refresh-token-lifetime: ${JWT_REFRESH_TOKEN_LIFETIME:7d}
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+  api-key: ${CLOUDINARY_API_KEY:}
+  api-secret: ${CLOUDINARY_API_SECRET:}
