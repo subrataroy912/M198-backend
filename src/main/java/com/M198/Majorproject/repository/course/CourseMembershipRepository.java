@@ -28,4 +28,6 @@ public interface CourseMembershipRepository extends MongoRepository<CourseMember
     List<CourseMembership> findAllByUserIdAndStatus(String userId, MembershipStatus status);
 
     boolean existsByCourseIdAndUserIdAndStatus(String courseId, String userId, MembershipStatus status);
+
+    long countByCourseIdAndStatus(String courseId, MembershipStatus status);
 }

@@ -14,6 +14,8 @@ import java.util.List;
 import jakarta.validation.Valid;
 
 import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -74,6 +76,7 @@ public class CourseController {
     }
 
     @DeleteMapping("/{courseId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void archiveCourse(@PathVariable String courseId, Authentication authentication) {
         courseService.archive(courseId, authentication);
     }
@@ -93,6 +96,7 @@ public class CourseController {
     }
 
     @DeleteMapping("/{courseId}/enrollment")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void leave(
             @PathVariable String courseId,
             Authentication authentication) {

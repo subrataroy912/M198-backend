@@ -185,5 +185,6 @@ notifications, analytics, and profiles.
 ## Documentation Guide
 
 - [API catalog](docs/APIs.MD)
+- [Course and explore frontend integration](docs/COURSE_FRONTEND_INTEGRATION.md)
 - [Implemented identity schema](docs/IDENTITY_SCHEMA.MD)
 - [Spring reference material](HELP.md)

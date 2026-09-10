@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -67,5 +68,11 @@ class CourseControllerTest {
 
         mockMvc.perform(get("/v1/courses/missing"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void archiveReturnsNoContent() throws Exception {
+        mockMvc.perform(delete("/v1/courses/course-1"))
+                .andExpect(status().isNoContent());
     }
 }

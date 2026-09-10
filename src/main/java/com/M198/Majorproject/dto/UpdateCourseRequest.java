@@ -18,6 +18,8 @@ public class UpdateCourseRequest {
     private String subject;
     @Size(max = 2000)
     private String description;
+    @Size(max = 2048)
+    private String coverUrl;
     private CourseVisibility visibility;
     private Boolean enrollmentEnabled;
 }
