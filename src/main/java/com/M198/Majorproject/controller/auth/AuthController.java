@@ -12,7 +12,7 @@
 	 * 3. logoutUser   - Invalidates the current authenticated session
  */
 
-/*
+ /*
  * =================================================================================
  * AUTH CONTROLLER ENDPOINT DOCUMENTATION
  * =================================================================================
@@ -69,44 +69,74 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.M198.Majorproject.dto.AuthResponse;
 import com.M198.Majorproject.dto.LoginRequest;
-import com.M198.Majorproject.dto.LogoutRequest;
 import com.M198.Majorproject.dto.RegisterUserRequest;
-import com.M198.Majorproject.dto.RefreshTokenRequest;
 import com.M198.Majorproject.service.auth.AuthService;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.Cookie;
+import org.springframework.security.web.csrf.CsrfToken;
 
 @RestController
 @RequestMapping("/v1/auth")
 @Validated
 public class AuthController {
 
-	private final AuthService authService;
+    private final AuthService authService;
 
-	public AuthController(AuthService authService) {
-		this.authService = authService;
-	}
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
 
-	@PostMapping("/register")
-	public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterUserRequest request) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
-	}
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterUserRequest request, HttpServletResponse response, CsrfToken csrfToken) {
+        csrfToken.getToken();
+        AuthResponse authResponse = authService.register(request);
+        authService.setRefreshCookie(response, authResponse.getRefreshToken());
+        authResponse.setRefreshToken(null);
+        return ResponseEntity.status(HttpStatus.CREATED).body(authResponse);
+    }
 
-	@PostMapping("/login")
-	public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-		return ResponseEntity.ok(authService.login(request));
-	}
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response, CsrfToken csrfToken) {
+        csrfToken.getToken();
+        AuthResponse authResponse = authService.login(request);
+        authService.setRefreshCookie(response, authResponse.getRefreshToken());
+        authResponse.setRefreshToken(null);
+        return ResponseEntity.ok(authResponse);
+    }
 
-	@PostMapping("/refresh")
-	public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-		return ResponseEntity.ok(authService.refresh(request));
-	}
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        String refreshToken = resolveRefreshToken(request);
+        AuthResponse authResponse = authService.refresh(refreshToken);
+        authService.setRefreshCookie(response, authResponse.getRefreshToken());
+        authResponse.setRefreshToken(null);
+        return ResponseEntity.ok(authResponse);
+    }
 
-	@PostMapping("/logout")
-	public ResponseEntity<Void> logout(
-			Authentication authentication,
-			@Valid @RequestBody LogoutRequest request) {
-		authService.logout(authentication.getName(), request);
-		return ResponseEntity.noContent().build();
-	}
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            Authentication authentication,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        String refreshToken = resolveRefreshToken(request);
+        authService.logout(authentication.getName(), refreshToken);
+        authService.clearRefreshCookie(response);
+        return ResponseEntity.noContent().build();
+    }
+
+    private String resolveRefreshToken(HttpServletRequest servletRequest) {
+        if (servletRequest.getCookies() != null) {
+            for (Cookie cookie : servletRequest.getCookies()) {
+                if (AuthService.REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        throw new IllegalArgumentException("Refresh token is required");
+    }
 }

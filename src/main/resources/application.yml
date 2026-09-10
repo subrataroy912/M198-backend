@@ -37,6 +37,9 @@ server:
 app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+  cookies:
+    secure: ${APP_COOKIE_SECURE:false}
+    same-site: ${APP_COOKIE_SAME_SITE:Lax}
   oauth2:
     frontend-callback-url: ${APP_OAUTH2_FRONTEND_CALLBACK_URL:http://localhost:5173/auth/callback}
     github-api-base-url: ${APP_GITHUB_API_BASE_URL:https://api.github.com}

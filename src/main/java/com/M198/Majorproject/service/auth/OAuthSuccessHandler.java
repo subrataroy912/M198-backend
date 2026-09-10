@@ -72,13 +72,14 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
         String targetUrl = UriComponentsBuilder
                 .fromUriString(frontendCallbackUrl)
                 .queryParam("accessToken", result.getAccessToken())
-                .queryParam("refreshToken", result.getRefreshToken())
                 .queryParam("userId", result.getUserId())
                 .queryParam("email", result.getEmail())
                 .queryParam("displayName", result.getDisplayName())
                 .queryParam("avatarUrl", result.getAvatarUrl())
                 .build()
                 .toUriString();
+        authService.setRefreshCookie(response, result.getRefreshToken());
+        authService.setCsrfCookie(response);
         response.sendRedirect(targetUrl);
     }
 

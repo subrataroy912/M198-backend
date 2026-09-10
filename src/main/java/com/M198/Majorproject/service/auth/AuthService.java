@@ -15,7 +15,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Locale;
+import java.util.UUID;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,8 +30,6 @@ import org.springframework.stereotype.Service;
 
 import com.M198.Majorproject.dto.AuthResponse;
 import com.M198.Majorproject.dto.LoginRequest;
-import com.M198.Majorproject.dto.LogoutRequest;
-import com.M198.Majorproject.dto.RefreshTokenRequest;
 import com.M198.Majorproject.dto.RegisterUserRequest;
 import com.M198.Majorproject.entity.identity.AccountStatus;
 import com.M198.Majorproject.entity.identity.AccountType;
@@ -44,8 +45,18 @@ import com.M198.Majorproject.repository.identity.UserProfileRepository;
 import com.M198.Majorproject.repository.identity.UserRepository;
 import com.M198.Majorproject.security.JwtService;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 @Service
 public class AuthService {
+
+    public static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
+
+    @org.springframework.beans.factory.annotation.Value("${app.cookies.secure:false}")
+    private boolean secureCookies;
+
+    @org.springframework.beans.factory.annotation.Value("${app.cookies.same-site:Lax}")
+    private String cookieSameSite;
 
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
@@ -54,6 +65,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
+
     public AuthService(
             UserRepository userRepository,
             UserProfileRepository profileRepository,
@@ -81,14 +93,14 @@ public class AuthService {
         }
 
         User user = userRepository.save(
-            User.builder()
-                .email(email)
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .accountType(request.getAccountType())
-                .status(AccountStatus.ACTIVE)
-                .active(true)
-                .verified(false)
-                .build());
+                User.builder()
+                        .email(email)
+                        .passwordHash(passwordEncoder.encode(request.getPassword()))
+                        .accountType(request.getAccountType())
+                        .status(AccountStatus.ACTIVE)
+                        .active(true)
+                        .verified(false)
+                        .build());
         profileRepository.save(UserProfile.builder()
                 .userId(user.getId())
                 .firstName(request.getFirstName().trim())
@@ -110,8 +122,7 @@ public class AuthService {
         return issueTokens(user);
     }
 
-    public AuthResponse refresh(RefreshTokenRequest request) {
-        String refreshToken = request.getRefreshToken();
+    public AuthResponse refresh(String refreshToken) {
         String userId = jwtService.parseAndValidate(refreshToken, "refresh").getSubject();
         RefreshToken storedToken = refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(hash(refreshToken))
                 .filter(token -> token.getExpiresAt().isAfter(Instant.now()))
@@ -127,19 +138,53 @@ public class AuthService {
         return issueTokens(user);
     }
 
-    public void logout(String authenticatedUserId, LogoutRequest request) {
-        String token = request.getRefreshToken();
-        String tokenUserId = jwtService.parseAndValidate(token, "refresh").getSubject();
+    public void logout(String authenticatedUserId, String refreshToken) {
+        String tokenUserId = jwtService.parseAndValidate(refreshToken, "refresh").getSubject();
         if (!authenticatedUserId.equals(tokenUserId)) {
             throw new AuthenticationServiceException("Invalid refresh token");
         }
-        refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(hash(token)).ifPresent(storedToken -> {
+        refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(hash(refreshToken)).ifPresent(storedToken -> {
             if (!authenticatedUserId.equals(storedToken.getUserId())) {
                 throw new AuthenticationServiceException("Invalid refresh token");
             }
             storedToken.setRevokedAt(Instant.now());
             refreshTokenRepository.save(storedToken);
         });
+    }
+
+    public void setRefreshCookie(HttpServletResponse response, String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+        ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
+                .httpOnly(true)
+                .sameSite(cookieSameSite)
+                .secure(secureCookies)
+                .path("/")
+                .maxAge(java.time.Duration.ofDays(7))
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    public void clearRefreshCookie(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, "")
+                .httpOnly(true)
+                .sameSite(cookieSameSite)
+                .secure(secureCookies)
+                .path("/")
+                .maxAge(0)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    public void setCsrfCookie(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from("XSRF-TOKEN", UUID.randomUUID().toString())
+                .httpOnly(false)
+                .sameSite(cookieSameSite)
+                .secure(secureCookies)
+                .path("/")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     public AuthResponse authenticateOAuth(
