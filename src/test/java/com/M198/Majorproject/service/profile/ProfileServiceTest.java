@@ -18,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import com.M198.Majorproject.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.entity.identity.AccountStatus;
 import com.M198.Majorproject.entity.identity.AccountType;
+import com.M198.Majorproject.entity.identity.ProfileLink;
 import com.M198.Majorproject.entity.identity.ProfileVisibility;
 import com.M198.Majorproject.entity.identity.User;
 import com.M198.Majorproject.entity.identity.UserProfile;
@@ -207,12 +208,35 @@ class ProfileServiceTest {
     @Test
     void updatingProfileSavesCustomLinks() {
         UpdateUserProfileRequest request = new UpdateUserProfileRequest();
-        request.setLinks(java.util.List.of("https://github.com/test", "https://linkedin.com/in/test"));
+        request.setLinks(java.util.List.of(
+                ProfileLink.builder().name("GitHub").url("https://github.com/test").build(),
+                ProfileLink.builder().name("LinkedIn").url("https://linkedin.com/in/test").build()));
 
         var response = profileService.updateMyProfile(authentication, request);
 
         assertEquals(2, response.getLinks().size());
-        assertEquals("https://github.com/test", response.getLinks().get(0));
+        assertEquals("GitHub", response.getLinks().get(0).getName());
+        assertEquals("https://github.com/test", response.getLinks().get(0).getUrl());
+    }
+
+    @Test
+    void updatingProfileSavesPersonalInformation() {
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest();
+        request.setPhone("+1234567890");
+        request.setGender("Female");
+        request.setDateOfBirth("2002-05-15");
+        request.setAddress("123 Main Street");
+        request.setCity("Siliguri");
+        request.setCountry("India");
+
+        var response = profileService.updateMyProfile(authentication, request);
+
+        assertEquals("+1234567890", response.getPhone());
+        assertEquals("Female", response.getGender());
+        assertEquals("2002-05-15", response.getDateOfBirth());
+        assertEquals("123 Main Street", response.getAddress());
+        assertEquals("Siliguri", response.getCity());
+        assertEquals("India", response.getCountry());
     }
 
     @Test

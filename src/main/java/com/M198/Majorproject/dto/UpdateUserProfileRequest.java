@@ -45,11 +45,20 @@ public class UpdateUserProfileRequest {
     @Size(max = 100)
     private String country;
 
-    @Size(max = 100)
-    @JsonAlias("batchYear")
-    private String gradeLevel;
+    @Size(max = 20)
+    private String phone;
+
+    @Size(max = 50)
+    private String gender;
+
+    @Size(max = 50)
+    @JsonAlias({"dob", "birthday"})
+    private String dateOfBirth;
+
+    @Size(max = 250)
+    private String address;
 
     private com.M198.Majorproject.entity.identity.ProfileVisibility profileVisibility;
 
-    private java.util.List<String> links;
+    private java.util.List<com.M198.Majorproject.entity.identity.ProfileLink> links;
 }

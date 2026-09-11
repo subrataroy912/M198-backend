@@ -21,8 +21,11 @@ public class UserProfileResponse {
     private String about;
     private String city;
     private String country;
+    private String phone;
+    private String gender;
+    private String dateOfBirth;
+    private String address;
     private ProfileVisibility profileVisibility;
-    private String gradeLevel;
-    private java.util.List<String> links;
+    private java.util.List<com.M198.Majorproject.entity.identity.ProfileLink> links;
     private boolean canCreateCourses;
 }

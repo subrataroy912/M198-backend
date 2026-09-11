@@ -56,6 +56,15 @@ public class UserProfile {
 
     private String country;
 
+    private String phone;
+
+    private String gender;
+
+    @Field("date_of_birth")
+    private String dateOfBirth;
+
+    private String address;
+
     @Field("profile_visibility")
     @Builder.Default
     private ProfileVisibility profileVisibility = ProfileVisibility.PRIVATE;
@@ -68,12 +77,9 @@ public class UserProfile {
     @Builder.Default
     private boolean canCreateCourses = false;
 
-    @Field("grade_level")
-    private String gradeLevel;
-
     @Field("links")
     @Builder.Default
-    private java.util.List<String> links = new java.util.ArrayList<>();
+    private java.util.List<ProfileLink> links = new java.util.ArrayList<>();
 
     @Field("handle_updated_timestamps")
     @Builder.Default

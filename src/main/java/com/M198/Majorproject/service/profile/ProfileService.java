@@ -27,6 +27,7 @@ import com.M198.Majorproject.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.dto.UserProfileResponse;
 import com.M198.Majorproject.entity.identity.AccountStatus;
 import com.M198.Majorproject.entity.identity.AccountType;
+import com.M198.Majorproject.entity.identity.ProfileLink;
 import com.M198.Majorproject.entity.identity.ProfileVisibility;
 import com.M198.Majorproject.entity.identity.User;
 import com.M198.Majorproject.entity.identity.UserProfile;
@@ -233,16 +234,28 @@ public class ProfileService {
         if (request.getCountry() != null) {
             profile.setCountry(request.getCountry().trim());
         }
-        if (request.getGradeLevel() != null) {
-            profile.setGradeLevel(request.getGradeLevel().trim());
+        if (request.getPhone() != null) {
+            profile.setPhone(request.getPhone().trim());
+        }
+        if (request.getGender() != null) {
+            profile.setGender(request.getGender().trim());
+        }
+        if (request.getDateOfBirth() != null) {
+            profile.setDateOfBirth(request.getDateOfBirth().trim());
+        }
+        if (request.getAddress() != null) {
+            profile.setAddress(request.getAddress().trim());
         }
         if (request.getProfileVisibility() != null) {
             profile.setProfileVisibility(request.getProfileVisibility());
         }
         if (request.getLinks() != null) {
             profile.setLinks(request.getLinks().stream()
-                    .filter(link -> link != null && !link.isBlank())
-                    .map(String::trim)
+                    .filter(link -> link != null && link.getUrl() != null && !link.getUrl().isBlank())
+                    .map(link -> ProfileLink.builder()
+                            .name(link.getName() != null && !link.getName().isBlank() ? link.getName().trim() : null)
+                            .url(link.getUrl().trim())
+                            .build())
                     .toList());
         }
     }
@@ -295,8 +308,11 @@ public class ProfileService {
         response.setAbout(profile.getAbout());
         response.setCity(profile.getCity());
         response.setCountry(profile.getCountry());
+        response.setPhone(profile.getPhone());
+        response.setGender(profile.getGender());
+        response.setDateOfBirth(profile.getDateOfBirth());
+        response.setAddress(profile.getAddress());
         response.setProfileVisibility(profile.getProfileVisibility());
-        response.setGradeLevel(profile.getGradeLevel());
         response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks()) : java.util.Collections.emptyList());
         response.setCanCreateCourses(profile.isCanCreateCourses());
     }
@@ -313,7 +329,6 @@ public class ProfileService {
         response.setCity(profile.getCity());
         response.setCountry(profile.getCountry());
         response.setProfileVisibility(profile.getProfileVisibility());
-        response.setGradeLevel(profile.getGradeLevel());
         response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks()) : java.util.Collections.emptyList());
         response.setAccountType(profile.getAccountType() != null ? profile.getAccountType() : AccountType.STUDENT);
         response.setCanCreateCourses(profile.isCanCreateCourses());

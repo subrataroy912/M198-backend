@@ -20,8 +20,7 @@ public class PublicUserProfileResponse {
     private String city;
     private String country;
     private ProfileVisibility profileVisibility;
-    private String gradeLevel;
-    private java.util.List<String> links;
+    private java.util.List<com.M198.Majorproject.entity.identity.ProfileLink> links;
     private com.M198.Majorproject.entity.identity.AccountType accountType;
     private boolean canCreateCourses;
 
@@ -36,10 +35,6 @@ public class PublicUserProfileResponse {
     }
 
     public String getDepartment() {
-        return headline != null && !headline.isBlank() ? headline : gradeLevel;
-    }
-
-    public String getBatchYear() {
-        return gradeLevel;
+        return headline != null && !headline.isBlank() ? headline : "";
     }
 }
