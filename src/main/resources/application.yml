@@ -1,7 +1,4 @@
 spring:
-  # Render terminates TLS before proxying requests to the application. OAuth's
-  # default redirect URI is built from the incoming request, so honor Render's
-  # Forwarded/X-Forwarded-* headers and keep the URI HTTPS and publicly routable.
   forward-headers-strategy: framework
   config:
     import: optional:file:./local.env[.properties]
@@ -34,12 +31,13 @@ spring:
 server:
   # Render supplies PORT dynamically; binding to it keeps the application reachable.
   port: ${PORT:8080}
+  address: ${SERVER_ADDRESS:0.0.0.0}
 app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
   cookies:
-    secure: ${APP_COOKIE_SECURE:false}
-    same-site: ${APP_COOKIE_SAME_SITE:Lax}
+    secure: ${APP_COOKIE_SECURE:true}
+    same-site: ${APP_COOKIE_SAME_SITE:None}
   oauth2:
     frontend-callback-url: ${APP_OAUTH2_FRONTEND_CALLBACK_URL:http://localhost:5173/auth/callback}
     github-api-base-url: ${APP_GITHUB_API_BASE_URL:https://api.github.com}
