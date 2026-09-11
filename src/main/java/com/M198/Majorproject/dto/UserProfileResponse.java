@@ -23,4 +23,5 @@ public class UserProfileResponse {
     private String country;
     private ProfileVisibility profileVisibility;
     private String gradeLevel;
+    private java.util.List<String> links;
 }

@@ -213,9 +213,20 @@ public class CourseService {
         return response;
     }
 
+    public CourseResponse enrollByCode(Authentication authentication, String code) {
+        if (code == null || code.isBlank()) {
+            throw new CourseAccessException("Enrollment code is required");
+        }
+        EnrollmentCode enrollmentCode = enrollmentCodeRepository.findByCodeAndActiveTrue(code.trim().toUpperCase())
+                .filter(value -> value.getExpiresAt() == null || value.getExpiresAt().isAfter(Instant.now()))
+                .orElseThrow(() -> new CourseAccessException("Invalid enrollment code"));
+
+        return enroll(enrollmentCode.getCourseId(), authentication, new EnrollCourseRequest(code.trim().toUpperCase()));
+    }
+
     public CourseResponse enroll(String courseId, Authentication authentication, EnrollCourseRequest request) {
         String userId = authenticatedUserId(authentication);
-        requireRole(authentication, AccountType.STUDENT);
+        requireAnyRole(authentication, AccountType.STUDENT, AccountType.TEACHER, AccountType.ADMIN);
         Course course = activeCourse(courseId);
         if (!course.isEnrollmentEnabled()) {
             throw new CourseAccessException("Enrollment is disabled");
@@ -402,6 +413,10 @@ public class CourseService {
         }
         if (membershipRepository != null && course.getId() != null) {
             response.setMemberCount(membershipRepository.countByCourseIdAndStatus(course.getId(), MembershipStatus.ACTIVE));
+        }
+        if (enrollmentCodeRepository != null && course.getId() != null) {
+            enrollmentCodeRepository.findByCourseIdAndActiveTrue(course.getId())
+                    .ifPresent(ec -> response.setEnrollmentCode(ec.getCode()));
         }
         response.setTitle(course.getTitle());
         response.setSection(course.getSection());

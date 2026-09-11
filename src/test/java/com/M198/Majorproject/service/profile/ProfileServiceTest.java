@@ -184,4 +184,50 @@ class ProfileServiceTest {
         verify(uploader).upload(any(byte[].class), argThat(options -> "user_avatars".equals(options.get("folder"))));
         verify(uploader).upload(any(byte[].class), argThat(options -> "user_banners".equals(options.get("folder"))));
     }
+
+    @Test
+    void handleUpdateEnforcesFourteenDayRateLimit() {
+        UpdateUserProfileRequest request1 = new UpdateUserProfileRequest();
+        request1.setHandle("handle_one");
+        profileService.updateMyProfile(authentication, request1);
+        assertEquals("handle_one", profile.getHandle());
+
+        UpdateUserProfileRequest request2 = new UpdateUserProfileRequest();
+        request2.setHandle("handle_two");
+        profileService.updateMyProfile(authentication, request2);
+        assertEquals("handle_two", profile.getHandle());
+
+        UpdateUserProfileRequest request3 = new UpdateUserProfileRequest();
+        request3.setHandle("handle_three");
+        var ex = assertThrows(IllegalArgumentException.class,
+                () -> profileService.updateMyProfile(authentication, request3));
+        assertEquals("You can only change your handle twice within a 14-day period.", ex.getMessage());
+    }
+
+    @Test
+    void updatingProfileSavesCustomLinks() {
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest();
+        request.setLinks(java.util.List.of("https://github.com/test", "https://linkedin.com/in/test"));
+
+        var response = profileService.updateMyProfile(authentication, request);
+
+        assertEquals(2, response.getLinks().size());
+        assertEquals("https://github.com/test", response.getLinks().get(0));
+    }
+
+    @Test
+    void getPublicProfilesReturnsOnlyPublicProfiles() {
+        UserProfile publicProfile = UserProfile.builder()
+                .userId("user-2")
+                .displayName("Public User")
+                .profileVisibility(ProfileVisibility.PUBLIC)
+                .build();
+        when(profileRepository.findAllByProfileVisibility(ProfileVisibility.PUBLIC))
+                .thenReturn(java.util.List.of(publicProfile));
+
+        var publicProfiles = profileService.getPublicProfiles();
+
+        assertEquals(1, publicProfiles.size());
+        assertEquals("Public User", publicProfiles.get(0).getName());
+    }
 }

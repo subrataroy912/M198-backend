@@ -10,7 +10,10 @@
 package com.M198.Majorproject.service.profile;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.security.core.Authentication;
@@ -43,6 +46,13 @@ public class ProfileService {
         User user = activeUser(userId);
         UserProfile profile = profile(userId);
         return toOwnerResponse(user, profile);
+    }
+
+    public List<PublicUserProfileResponse> getPublicProfiles() {
+        return profileRepository.findAllByProfileVisibility(ProfileVisibility.PUBLIC).stream()
+                .filter(profile -> profile.getDeletedAt() == null)
+                .map(this::toPublicResponse)
+                .toList();
     }
 
     public PublicUserProfileResponse getUserProfile(String userId, Authentication authentication) {
@@ -147,13 +157,29 @@ public class ProfileService {
             throw new IllegalArgumentException("COURSE_MEMBERS visibility is not available yet");
         }
         if (request.getHandle() != null) {
-            String handle = request.getHandle().trim();
-            if (!handle.isEmpty() && profileRepository.findByHandle(handle)
-                    .filter(existing -> !existing.getUserId().equals(profile.getUserId()))
-                    .isPresent()) {
-                throw new IllegalArgumentException("Handle is already taken");
+            String newHandle = request.getHandle().trim();
+            String currentHandle = profile.getHandle() != null ? profile.getHandle().trim() : "";
+            if (!newHandle.equalsIgnoreCase(currentHandle)) {
+                if (!newHandle.isEmpty() && profileRepository.findByHandle(newHandle)
+                        .filter(existing -> !existing.getUserId().equals(profile.getUserId()))
+                        .isPresent()) {
+                    throw new IllegalArgumentException("Handle is already taken");
+                }
+                Instant fourteenDaysAgo = Instant.now().minus(Duration.ofDays(14));
+                List<Instant> timestamps = profile.getHandleUpdatedTimestamps();
+                if (timestamps == null) {
+                    timestamps = new java.util.ArrayList<>();
+                    profile.setHandleUpdatedTimestamps(timestamps);
+                }
+                List<Instant> recentUpdates = timestamps.stream()
+                        .filter(ts -> ts != null && ts.isAfter(fourteenDaysAgo))
+                        .toList();
+                if (recentUpdates.size() >= 2) {
+                    throw new IllegalArgumentException("You can only change your handle twice within a 14-day period.");
+                }
+                timestamps.add(Instant.now());
+                profile.setHandle(newHandle.isEmpty() ? null : newHandle);
             }
-            profile.setHandle(handle.isEmpty() ? null : handle);
         }
         if (request.getFirstName() != null) {
             profile.setFirstName(request.getFirstName().trim());
@@ -189,6 +215,12 @@ public class ProfileService {
         }
         if (request.getProfileVisibility() != null) {
             profile.setProfileVisibility(request.getProfileVisibility());
+        }
+        if (request.getLinks() != null) {
+            profile.setLinks(request.getLinks().stream()
+                    .filter(link -> link != null && !link.isBlank())
+                    .map(String::trim)
+                    .toList());
         }
     }
 
@@ -239,6 +271,7 @@ public class ProfileService {
         response.setCountry(profile.getCountry());
         response.setProfileVisibility(profile.getProfileVisibility());
         response.setGradeLevel(profile.getGradeLevel());
+        response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks()) : java.util.Collections.emptyList());
     }
 
     private void copyProfileFields(UserProfile profile, PublicUserProfileResponse response) {
@@ -254,6 +287,7 @@ public class ProfileService {
         response.setCountry(profile.getCountry());
         response.setProfileVisibility(profile.getProfileVisibility());
         response.setGradeLevel(profile.getGradeLevel());
+        response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks()) : java.util.Collections.emptyList());
     }
 
     public static class ProfileNotFoundException extends RuntimeException {

@@ -50,4 +50,6 @@ public class UpdateUserProfileRequest {
     private String gradeLevel;
 
     private com.M198.Majorproject.entity.identity.ProfileVisibility profileVisibility;
+
+    private java.util.List<String> links;
 }

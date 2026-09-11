@@ -84,6 +84,11 @@ public class ProfileController {
 		this.profileService = profileService;
 	}
 
+	@GetMapping
+	public java.util.List<PublicUserProfileResponse> getPublicProfiles() {
+		return profileService.getPublicProfiles();
+	}
+
 	@GetMapping("/me")
 	public UserProfileResponse getMyProfile(Authentication authentication) {
 		return profileService.getMyProfile(authentication);

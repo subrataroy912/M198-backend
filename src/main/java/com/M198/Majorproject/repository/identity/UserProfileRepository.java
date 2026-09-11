@@ -21,4 +21,8 @@ public interface UserProfileRepository extends MongoRepository<UserProfile, Stri
     Optional<UserProfile> findByHandle(String handle);
 
     java.util.List<UserProfile> findAllByUserIdIn(java.util.Collection<String> userIds);
+
+    java.util.List<UserProfile> findAllByProfileVisibility(com.M198.Majorproject.entity.identity.ProfileVisibility profileVisibility);
+
+    java.util.List<UserProfile> findAllByProfileVisibilityAndDeletedAtIsNull(com.M198.Majorproject.entity.identity.ProfileVisibility profileVisibility);
 }

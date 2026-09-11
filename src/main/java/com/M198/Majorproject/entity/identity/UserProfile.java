@@ -63,6 +63,14 @@ public class UserProfile {
     @Field("grade_level")
     private String gradeLevel;
 
+    @Field("links")
+    @Builder.Default
+    private java.util.List<String> links = new java.util.ArrayList<>();
+
+    @Field("handle_updated_timestamps")
+    @Builder.Default
+    private java.util.List<Instant> handleUpdatedTimestamps = new java.util.ArrayList<>();
+
     @Field("created_at")
     @CreatedDate
     private Instant createdAt;

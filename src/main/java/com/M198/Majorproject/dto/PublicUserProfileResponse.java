@@ -21,4 +21,23 @@ public class PublicUserProfileResponse {
     private String country;
     private ProfileVisibility profileVisibility;
     private String gradeLevel;
+    private java.util.List<String> links;
+
+    public String getName() {
+        return displayName != null && !displayName.isBlank()
+                ? displayName
+                : ((firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "")).trim();
+    }
+
+    public String getAvatar() {
+        return avatarUrl;
+    }
+
+    public String getDepartment() {
+        return headline != null && !headline.isBlank() ? headline : gradeLevel;
+    }
+
+    public String getBatchYear() {
+        return gradeLevel;
+    }
 }

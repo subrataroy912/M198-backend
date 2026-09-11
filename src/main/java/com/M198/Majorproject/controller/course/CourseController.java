@@ -87,6 +87,13 @@ public class CourseController {
         return courseService.roster(courseId, authentication);
     }
 
+    @PostMapping("/join")
+    public CourseResponse join(
+            @Valid @RequestBody EnrollCourseRequest request,
+            Authentication authentication) {
+        return courseService.enrollByCode(authentication, request.getCode());
+    }
+
     @PostMapping("/{courseId}/enrollment")
     public CourseResponse enroll(
             @PathVariable String courseId,

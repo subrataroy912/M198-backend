@@ -172,4 +172,35 @@ class CourseServiceTest {
 
         assertEquals("https://images.example/course.png", response.getCoverUrl());
     }
+
+    @Test
+    void enrollByCodeFindsCourseAndEnrollsMember() {
+        Course course = Course.builder().id("course-1").status(CourseStatus.ACTIVE).enrollmentEnabled(true).build();
+        EnrollmentCode code = EnrollmentCode.builder().courseId("course-1").code("JOIN1234").active(true).build();
+        when(enrollmentCodeRepository.findByCodeAndActiveTrue("JOIN1234")).thenReturn(Optional.of(code));
+        when(courseRepository.findByIdAndStatus("course-1", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
+        when(membershipRepository.findByCourseIdAndUserId("course-1", "student-1")).thenReturn(Optional.empty());
+
+        var response = courseService.enrollByCode(student, "JOIN1234");
+
+        org.junit.jupiter.api.Assertions.assertNotNull(response);
+        assertEquals("course-1", response.getId());
+        verify(membershipRepository).save(any(CourseMembership.class));
+    }
+
+    @Test
+    void getCoursePopulatesEnrollmentCode() {
+        Course course = Course.builder().id("course-1").title("Biology").status(CourseStatus.ACTIVE).build();
+        EnrollmentCode code = EnrollmentCode.builder().courseId("course-1").code("BIO12345").active(true).build();
+        when(courseRepository.findById("course-1")).thenReturn(Optional.of(course));
+        when(membershipRepository.findByCourseIdAndUserId("course-1", "student-1"))
+                .thenReturn(Optional.of(CourseMembership.builder()
+                        .courseId("course-1").userId("student-1")
+                        .status(MembershipStatus.ACTIVE).build()));
+        when(enrollmentCodeRepository.findByCourseIdAndActiveTrue("course-1")).thenReturn(Optional.of(code));
+
+        var response = courseService.getCourse("course-1", student);
+
+        assertEquals("BIO12345", response.getEnrollmentCode());
+    }
 }
