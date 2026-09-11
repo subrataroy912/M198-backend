@@ -62,7 +62,8 @@ public class SecurityConfig {
                                 "/v1/auth/register",
                                 "/v1/auth/login",
                                 "/v1/auth/refresh",
-                                "/v1/auth/logout"))
+                                "/v1/auth/logout",
+                                "/v1/courses/cover-upload"))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
