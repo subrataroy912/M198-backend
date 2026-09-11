@@ -97,7 +97,7 @@ public class CourseController {
     @PostMapping("/{courseId}/enrollment")
     public CourseResponse enroll(
             @PathVariable String courseId,
-            @Valid @RequestBody EnrollCourseRequest request,
+            @Valid @RequestBody(required = false) EnrollCourseRequest request,
             Authentication authentication) {
         return courseService.enroll(courseId, authentication, request);
     }

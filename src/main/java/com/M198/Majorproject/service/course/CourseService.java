@@ -29,6 +29,7 @@ import com.M198.Majorproject.dto.EnrollCourseRequest;
 import com.M198.Majorproject.dto.PublicCourseResponse;
 import com.M198.Majorproject.dto.UpdateCourseRequest;
 import com.M198.Majorproject.entity.course.Course;
+import com.M198.Majorproject.entity.course.CourseAccessType;
 import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.CourseStatus;
 import com.M198.Majorproject.entity.course.CourseVisibility;
@@ -125,6 +126,24 @@ public class CourseService {
         String userId = authenticatedUserId(authentication);
         requireCanCreateCourse(authentication, userId);
 
+        CourseAccessType accessType = request.getAccessType();
+        CourseVisibility visibility = request.getVisibility();
+
+        if (accessType == null) {
+            if (visibility == CourseVisibility.PUBLIC) {
+                accessType = CourseAccessType.OPEN;
+            } else {
+                accessType = CourseAccessType.CODE;
+                visibility = CourseVisibility.PRIVATE;
+            }
+        } else {
+            if (visibility == null) {
+                visibility = accessType == CourseAccessType.OPEN ? CourseVisibility.PUBLIC : CourseVisibility.PRIVATE;
+            }
+        }
+        boolean isInvite = accessType == CourseAccessType.INVITE;
+        boolean enrollmentEnabled = !isInvite;
+
         Course course = courseRepository.save(Course.builder()
                 .ownerId(userId)
                 .title(normalizeRequired(request.getTitle()))
@@ -132,7 +151,9 @@ public class CourseService {
                 .subject(normalize(request.getSubject()))
                 .description(normalize(request.getDescription()))
                 .coverUrl(normalize(request.getCoverUrl()))
-                .visibility(request.getVisibility() == null ? CourseVisibility.PRIVATE : request.getVisibility())
+                .accessType(accessType)
+                .visibility(visibility)
+                .enrollmentEnabled(enrollmentEnabled)
                 .status(CourseStatus.ACTIVE)
                 .build());
 
@@ -145,14 +166,18 @@ public class CourseService {
                 .build();
         try {
             membershipRepository.save(ownerMembership);
-            EnrollmentCode enrollmentCode = enrollmentCodeRepository.save(EnrollmentCode.builder()
-                    .courseId(course.getId())
-                    .code(generateEnrollmentCode())
-                    .createdBy(userId)
-                    .active(true)
-                    .build());
+            String enrollmentCodeValue = null;
+            if (!isInvite) {
+                EnrollmentCode enrollmentCode = enrollmentCodeRepository.save(EnrollmentCode.builder()
+                        .courseId(course.getId())
+                        .code(generateEnrollmentCode())
+                        .createdBy(userId)
+                        .active(true)
+                        .build());
+                enrollmentCodeValue = enrollmentCode.getCode();
+            }
             CourseResponse response = toResponse(course);
-            response.setEnrollmentCode(enrollmentCode.getCode());
+            response.setEnrollmentCode(enrollmentCodeValue);
             syncDiscovery(course);
             return response;
         } catch (RuntimeException exception) {
@@ -231,10 +256,31 @@ public class CourseService {
         if (!course.isEnrollmentEnabled()) {
             throw new CourseAccessException("Enrollment is disabled");
         }
-        enrollmentCodeRepository.findByCodeAndActiveTrue(request.getCode().trim())
-                .filter(value -> value.getCourseId().equals(courseId))
-                .filter(value -> value.getExpiresAt() == null || value.getExpiresAt().isAfter(Instant.now()))
-                .orElseThrow(() -> new CourseAccessException("Invalid enrollment code"));
+        CourseAccessType accessType = course.getAccessType() != null
+                ? course.getAccessType()
+                : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.OPEN : CourseAccessType.CODE);
+
+        if (accessType == CourseAccessType.INVITE) {
+            throw new CourseAccessException("This class is invite-only. Please request an invitation from the instructor.");
+        }
+
+        if (accessType == CourseAccessType.CODE) {
+            String code = request != null && request.getCode() != null ? request.getCode().trim() : "";
+            if (code.isEmpty()) {
+                throw new CourseAccessException("Enrollment code is required");
+            }
+            enrollmentCodeRepository.findByCodeAndActiveTrue(code.toUpperCase())
+                    .filter(value -> value.getCourseId().equals(courseId))
+                    .filter(value -> value.getExpiresAt() == null || value.getExpiresAt().isAfter(Instant.now()))
+                    .orElseThrow(() -> new CourseAccessException("Invalid enrollment code"));
+        } else if (accessType == CourseAccessType.OPEN) {
+            if (request != null && request.getCode() != null && !request.getCode().trim().isEmpty()) {
+                enrollmentCodeRepository.findByCodeAndActiveTrue(request.getCode().trim().toUpperCase())
+                        .filter(value -> value.getCourseId().equals(courseId))
+                        .filter(value -> value.getExpiresAt() == null || value.getExpiresAt().isAfter(Instant.now()))
+                        .orElseThrow(() -> new CourseAccessException("Invalid enrollment code"));
+            }
+        }
         var existingMembership = membershipRepository.findByCourseIdAndUserId(courseId, userId);
         if (existingMembership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE).isPresent()) {
             throw new CourseConflictException("User already has membership in this course");
@@ -294,6 +340,19 @@ public class CourseService {
         }
         if (request.getDescription() != null) {
             course.setDescription(normalize(request.getDescription()));
+        }
+        if (request.getAccessType() != null) {
+            course.setAccessType(request.getAccessType());
+            if (request.getAccessType() == CourseAccessType.INVITE) {
+                course.setVisibility(CourseVisibility.PRIVATE);
+                course.setEnrollmentEnabled(false);
+            } else if (request.getAccessType() == CourseAccessType.OPEN) {
+                course.setVisibility(CourseVisibility.PUBLIC);
+                course.setEnrollmentEnabled(true);
+            } else if (request.getAccessType() == CourseAccessType.CODE) {
+                course.setVisibility(CourseVisibility.PRIVATE);
+                course.setEnrollmentEnabled(true);
+            }
         }
         if (request.getVisibility() != null) {
             course.setVisibility(request.getVisibility());
@@ -449,6 +508,10 @@ public class CourseService {
         response.setSubject(course.getSubject());
         response.setDescription(course.getDescription());
         response.setCoverUrl(course.getCoverUrl());
+        CourseAccessType accessType = course.getAccessType() != null
+                ? course.getAccessType()
+                : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.OPEN : CourseAccessType.CODE);
+        response.setAccessType(accessType);
         response.setVisibility(course.getVisibility());
         response.setStatus(course.getStatus());
         response.setEnrollmentEnabled(course.isEnrollmentEnabled());

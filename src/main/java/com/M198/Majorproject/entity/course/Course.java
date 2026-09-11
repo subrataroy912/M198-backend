@@ -50,6 +50,10 @@ public class Course {
     @Builder.Default
     private CourseVisibility visibility = CourseVisibility.PRIVATE;
 
+    @Field("access_type")
+    @Builder.Default
+    private CourseAccessType accessType = CourseAccessType.CODE;
+
     @Builder.Default
     private CourseStatus status = CourseStatus.ACTIVE;
 

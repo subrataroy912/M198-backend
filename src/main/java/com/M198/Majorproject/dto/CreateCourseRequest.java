@@ -25,7 +25,9 @@ public class CreateCourseRequest {
     @Size(max = 2000)
     private String description;
 
-    private CourseVisibility visibility = CourseVisibility.PRIVATE;
+    private CourseVisibility visibility;
+
+    private com.M198.Majorproject.entity.course.CourseAccessType accessType;
 
     @Size(max = 2048)
     private String coverUrl;

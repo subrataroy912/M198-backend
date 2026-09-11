@@ -23,6 +23,7 @@ public class CourseResponse {
     private String description;
     private String coverUrl;
     private CourseVisibility visibility;
+    private com.M198.Majorproject.entity.course.CourseAccessType accessType;
     private CourseStatus status;
     private boolean enrollmentEnabled;
     private String enrollmentCode;

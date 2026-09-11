@@ -19,6 +19,7 @@ import com.M198.Majorproject.dto.CreateCourseRequest;
 import com.M198.Majorproject.dto.EnrollCourseRequest;
 import com.M198.Majorproject.dto.UpdateCourseRequest;
 import com.M198.Majorproject.entity.course.Course;
+import com.M198.Majorproject.entity.course.CourseAccessType;
 import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.CourseStatus;
 import com.M198.Majorproject.entity.course.CourseVisibility;
@@ -221,5 +222,54 @@ class CourseServiceTest {
         var response = courseService.getCourse("course-1", student);
 
         assertEquals("BIO12345", response.getEnrollmentCode());
+    }
+
+    @Test
+    void inviteCourseCreationDoesNotGenerateEnrollmentCode() {
+        CreateCourseRequest request = new CreateCourseRequest();
+        request.setTitle("Private Seminar");
+        request.setAccessType(CourseAccessType.INVITE);
+
+        var response = courseService.createCourse(teacher, request);
+
+        assertEquals("course-1", response.getId());
+        assertEquals(CourseAccessType.INVITE, response.getAccessType());
+        org.junit.jupiter.api.Assertions.assertFalse(response.isEnrollmentEnabled());
+        org.junit.jupiter.api.Assertions.assertNull(response.getEnrollmentCode());
+        verify(membershipRepository).save(any(CourseMembership.class));
+    }
+
+    @Test
+    void enrollmentInInviteCourseThrowsAccessException() {
+        Course course = Course.builder()
+                .id("course-invite")
+                .status(CourseStatus.ACTIVE)
+                .accessType(CourseAccessType.INVITE)
+                .enrollmentEnabled(true)
+                .build();
+        when(courseRepository.findByIdAndStatus("course-invite", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
+
+        EnrollCourseRequest request = new EnrollCourseRequest("ANYCODE");
+        var ex = assertThrows(CourseService.CourseAccessException.class,
+                () -> courseService.enroll("course-invite", student, request));
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("invite-only"));
+    }
+
+    @Test
+    void openCourseEnrollmentSucceedsWithoutCode() {
+        Course course = Course.builder()
+                .id("course-open")
+                .status(CourseStatus.ACTIVE)
+                .accessType(CourseAccessType.OPEN)
+                .enrollmentEnabled(true)
+                .build();
+        when(courseRepository.findByIdAndStatus("course-open", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
+        when(membershipRepository.findByCourseIdAndUserId("course-open", "student-1")).thenReturn(Optional.empty());
+
+        var response = courseService.enroll("course-open", student, new EnrollCourseRequest());
+
+        org.junit.jupiter.api.Assertions.assertNotNull(response);
+        assertEquals("course-open", response.getId());
+        verify(membershipRepository).save(any(CourseMembership.class));
     }
 }

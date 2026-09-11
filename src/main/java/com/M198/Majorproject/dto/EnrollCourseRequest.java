@@ -14,7 +14,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class EnrollCourseRequest {
 
-    @NotBlank
     @Size(max = 32)
     private String code;
 }

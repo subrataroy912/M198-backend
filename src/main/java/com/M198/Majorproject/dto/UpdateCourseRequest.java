@@ -2,6 +2,7 @@ package com.M198.Majorproject.dto;
 
 import jakarta.validation.constraints.Size;
 
+import com.M198.Majorproject.entity.course.CourseAccessType;
 import com.M198.Majorproject.entity.course.CourseVisibility;
 
 import lombok.Getter;
@@ -20,6 +21,7 @@ public class UpdateCourseRequest {
     private String description;
     @Size(max = 2048)
     private String coverUrl;
+    private CourseAccessType accessType;
     private CourseVisibility visibility;
     private Boolean enrollmentEnabled;
 }
