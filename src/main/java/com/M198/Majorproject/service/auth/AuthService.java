@@ -92,6 +92,8 @@ public class AuthService {
                 .lastName(request.getLastName().trim())
                 .displayName((request.getFirstName().trim() + " " + request.getLastName().trim()).trim())
                 .profileVisibility(ProfileVisibility.PRIVATE)
+                .accountType(request.getAccountType())
+                .canCreateCourses(false)
                 .build());
         return issueTokens(user);
     }
@@ -236,6 +238,8 @@ public class AuthService {
                 .displayName(displayName == null || displayName.isBlank() ? names[0] : displayName)
                 .avatarUrl(avatarUrl)
                 .profileVisibility(ProfileVisibility.PRIVATE)
+                .accountType(AccountType.STUDENT)
+                .canCreateCourses(false)
                 .build());
         return user;
     }

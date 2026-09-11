@@ -230,4 +230,17 @@ class ProfileServiceTest {
         assertEquals(1, publicProfiles.size());
         assertEquals("Public User", publicProfiles.get(0).getName());
     }
+
+    @Test
+    void unlockCreatorSetsCanCreateCoursesOnUserAndProfile() {
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(profileRepository.save(any(UserProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = profileService.unlockCreator(authentication);
+
+        org.junit.jupiter.api.Assertions.assertTrue(response.isCanCreateCourses());
+        assertEquals(AccountType.STUDENT, response.getAccountType());
+        verify(userRepository).save(argThat(User::isCanCreateCourses));
+        verify(profileRepository).save(argThat(UserProfile::isCanCreateCourses));
+    }
 }

@@ -46,6 +46,10 @@ public class User {
     @Builder.Default
     private AccountStatus status = AccountStatus.PENDING;
 
+    @Field("can_create_courses")
+    @Builder.Default
+    private boolean canCreateCourses = false;
+
     @Field("is_active")
     private boolean active;
     @Field("is_verified")

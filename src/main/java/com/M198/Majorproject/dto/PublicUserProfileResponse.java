@@ -22,6 +22,8 @@ public class PublicUserProfileResponse {
     private ProfileVisibility profileVisibility;
     private String gradeLevel;
     private java.util.List<String> links;
+    private com.M198.Majorproject.entity.identity.AccountType accountType;
+    private boolean canCreateCourses;
 
     public String getName() {
         return displayName != null && !displayName.isBlank()

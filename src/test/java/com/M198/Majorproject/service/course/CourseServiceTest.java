@@ -105,6 +105,25 @@ class CourseServiceTest {
     }
 
     @Test
+    void studentWithCreatorRoleCanCreateCourse() {
+        Authentication creatorStudent = mock(Authentication.class);
+        when(creatorStudent.isAuthenticated()).thenReturn(true);
+        when(creatorStudent.getName()).thenReturn("student-creator-1");
+        doReturn(java.util.List.of(
+                new SimpleGrantedAuthority("ROLE_STUDENT"),
+                new SimpleGrantedAuthority("ROLE_CREATOR")))
+                .when(creatorStudent).getAuthorities();
+
+        CreateCourseRequest request = new CreateCourseRequest();
+        request.setTitle("Physics Study Group");
+
+        var response = courseService.createCourse(creatorStudent, request);
+
+        org.junit.jupiter.api.Assertions.assertNotNull(response);
+        org.junit.jupiter.api.Assertions.assertEquals("Physics Study Group", response.getTitle());
+    }
+
+    @Test
     void enrollmentRejectsCodeFromAnotherCourse() {
         Course course = Course.builder().id("course-1").status(CourseStatus.ACTIVE).enrollmentEnabled(true).build();
         EnrollmentCode code = EnrollmentCode.builder().courseId("course-2").code("ABCD1234").active(true).build();

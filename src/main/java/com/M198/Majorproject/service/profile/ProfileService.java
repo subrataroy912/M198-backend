@@ -26,6 +26,7 @@ import com.M198.Majorproject.dto.PublicUserProfileResponse;
 import com.M198.Majorproject.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.dto.UserProfileResponse;
 import com.M198.Majorproject.entity.identity.AccountStatus;
+import com.M198.Majorproject.entity.identity.AccountType;
 import com.M198.Majorproject.entity.identity.ProfileVisibility;
 import com.M198.Majorproject.entity.identity.User;
 import com.M198.Majorproject.entity.identity.UserProfile;
@@ -56,13 +57,35 @@ public class ProfileService {
     }
 
     public PublicUserProfileResponse getUserProfile(String userId, Authentication authentication) {
-        activeUser(userId);
+        User user = activeUser(userId);
         UserProfile profile = profile(userId);
         String authenticatedUserId = authenticatedUserId(authentication);
         if (!userId.equals(authenticatedUserId) && profile.getProfileVisibility() != ProfileVisibility.PUBLIC) {
             throw new ProfileNotFoundException();
         }
-        return toPublicResponse(profile);
+        PublicUserProfileResponse response = toPublicResponse(profile);
+        if (response.getAccountType() == null) {
+            response.setAccountType(user.getAccountType());
+        }
+        if (user.isCanCreateCourses()) {
+            response.setCanCreateCourses(true);
+        }
+        return response;
+    }
+
+    public UserProfileResponse unlockCreator(Authentication authentication) {
+        String userId = authenticatedUserId(authentication);
+        User user = activeUser(userId);
+        user.setCanCreateCourses(true);
+        userRepository.save(user);
+
+        UserProfile profile = profile(userId);
+        profile.setCanCreateCourses(true);
+        if (profile.getAccountType() == null) {
+            profile.setAccountType(user.getAccountType());
+        }
+        UserProfile saved = profileRepository.save(profile);
+        return toOwnerResponse(user, saved);
     }
 
     public UserProfileResponse updateMyProfile(Authentication authentication, UpdateUserProfileRequest request) {
@@ -248,12 +271,15 @@ public class ProfileService {
         response.setEmail(user.getEmail());
         response.setAccountType(user.getAccountType());
         copyProfileFields(profile, response);
+        response.setCanCreateCourses(user.isCanCreateCourses() || profile.isCanCreateCourses());
         return response;
     }
 
     private PublicUserProfileResponse toPublicResponse(UserProfile profile) {
         PublicUserProfileResponse response = new PublicUserProfileResponse();
         response.setId(profile.getUserId());
+        response.setAccountType(profile.getAccountType() != null ? profile.getAccountType() : AccountType.STUDENT);
+        response.setCanCreateCourses(profile.isCanCreateCourses());
         copyProfileFields(profile, response);
         return response;
     }
@@ -272,6 +298,7 @@ public class ProfileService {
         response.setProfileVisibility(profile.getProfileVisibility());
         response.setGradeLevel(profile.getGradeLevel());
         response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks()) : java.util.Collections.emptyList());
+        response.setCanCreateCourses(profile.isCanCreateCourses());
     }
 
     private void copyProfileFields(UserProfile profile, PublicUserProfileResponse response) {
@@ -288,6 +315,8 @@ public class ProfileService {
         response.setProfileVisibility(profile.getProfileVisibility());
         response.setGradeLevel(profile.getGradeLevel());
         response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks()) : java.util.Collections.emptyList());
+        response.setAccountType(profile.getAccountType() != null ? profile.getAccountType() : AccountType.STUDENT);
+        response.setCanCreateCourses(profile.isCanCreateCourses());
     }
 
     public static class ProfileNotFoundException extends RuntimeException {

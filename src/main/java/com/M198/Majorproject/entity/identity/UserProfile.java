@@ -60,6 +60,14 @@ public class UserProfile {
     @Builder.Default
     private ProfileVisibility profileVisibility = ProfileVisibility.PRIVATE;
 
+    @Field("account_type")
+    @Builder.Default
+    private AccountType accountType = AccountType.STUDENT;
+
+    @Field("can_create_courses")
+    @Builder.Default
+    private boolean canCreateCourses = false;
+
     @Field("grade_level")
     private String gradeLevel;
 

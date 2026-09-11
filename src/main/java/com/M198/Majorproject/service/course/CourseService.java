@@ -123,7 +123,7 @@ public class CourseService {
 
     public CourseResponse createCourse(Authentication authentication, CreateCourseRequest request) {
         String userId = authenticatedUserId(authentication);
-        requireAnyRole(authentication, AccountType.TEACHER, AccountType.ADMIN);
+        requireCanCreateCourse(authentication, userId);
 
         Course course = courseRepository.save(Course.builder()
                 .ownerId(userId)
@@ -385,6 +385,32 @@ public class CourseService {
         if (!permitted) {
             throw new CourseAccessException("Teacher role required");
         }
+    }
+
+    private void requireCanCreateCourse(Authentication authentication, String userId) {
+        if (hasRole(authentication, AccountType.TEACHER) || hasRole(authentication, AccountType.ADMIN)) {
+            return;
+        }
+        if (hasAuthority(authentication, "ROLE_CREATOR")) {
+            return;
+        }
+        if (userProfileRepository != null && userId != null) {
+            boolean canCreate = userProfileRepository.findByUserId(userId)
+                    .map(UserProfile::isCanCreateCourses)
+                    .orElse(false);
+            if (canCreate) {
+                return;
+            }
+        }
+        throw new CourseAccessException("Course creation privileges required");
+    }
+
+    private boolean hasAuthority(Authentication authentication, String authorityName) {
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals(authorityName));
     }
 
     private void requireAnyRole(Authentication authentication, AccountType... roles) {

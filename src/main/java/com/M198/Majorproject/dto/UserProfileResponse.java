@@ -24,4 +24,5 @@ public class UserProfileResponse {
     private ProfileVisibility profileVisibility;
     private String gradeLevel;
     private java.util.List<String> links;
+    private boolean canCreateCourses;
 }

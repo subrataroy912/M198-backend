@@ -42,10 +42,16 @@ public class AppUserDetailsService implements UserDetailsService {
     }
 
     private UserDetails toUserDetails(User user, String username) {
+        java.util.List<String> roles = new java.util.ArrayList<>();
+        roles.add(user.getAccountType().name());
+        if (user.isCanCreateCourses()) {
+            roles.add("CREATOR");
+        }
+
         var builder = org.springframework.security.core.userdetails.User
                 .withUsername(username)
                 .password(user.getPasswordHash() == null ? "" : user.getPasswordHash())
-                .roles(user.getAccountType().name());
+                .roles(roles.toArray(new String[0]));
 
         if (user.getPasswordHash() == null) {
             builder.credentialsExpired(true);

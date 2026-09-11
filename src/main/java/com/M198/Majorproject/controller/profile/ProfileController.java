@@ -60,6 +60,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -115,6 +116,11 @@ public class ProfileController {
 			@RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile,
 			Authentication authentication) {
 		return profileService.updateMyProfile(authentication, request, avatarFile, bannerFile);
+	}
+
+	@PostMapping("/me/unlock-creator")
+	public UserProfileResponse unlockCreator(Authentication authentication) {
+		return profileService.unlockCreator(authentication);
 	}
 
 }
