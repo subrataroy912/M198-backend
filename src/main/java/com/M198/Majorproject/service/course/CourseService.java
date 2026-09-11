@@ -41,6 +41,8 @@ import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.course.CourseRepository;
 import com.M198.Majorproject.repository.course.EnrollmentCodeRepository;
 import com.M198.Majorproject.repository.explore.CourseDiscoveryRepository;
+import com.M198.Majorproject.entity.identity.UserProfile;
+import com.M198.Majorproject.repository.identity.UserProfileRepository;
 import com.cloudinary.Cloudinary;
 
 @Service
@@ -53,6 +55,7 @@ public class CourseService {
     private final CourseMembershipRepository membershipRepository;
     private final EnrollmentCodeRepository enrollmentCodeRepository;
     private final CourseDiscoveryRepository courseDiscoveryRepository;
+    private final UserProfileRepository userProfileRepository;
     private final Cloudinary cloudinary;
     private final String cloudName;
     private final String apiKey;
@@ -64,6 +67,7 @@ public class CourseService {
             CourseMembershipRepository membershipRepository,
             EnrollmentCodeRepository enrollmentCodeRepository,
             CourseDiscoveryRepository courseDiscoveryRepository,
+            UserProfileRepository userProfileRepository,
             Cloudinary cloudinary,
             @Value("${cloudinary.cloud-name:}") String cloudName,
             @Value("${cloudinary.api-key:}") String apiKey,
@@ -72,6 +76,7 @@ public class CourseService {
         this.membershipRepository = membershipRepository;
         this.enrollmentCodeRepository = enrollmentCodeRepository;
         this.courseDiscoveryRepository = courseDiscoveryRepository;
+        this.userProfileRepository = userProfileRepository;
         this.cloudinary = cloudinary;
         this.cloudName = cloudName;
         this.apiKey = apiKey;
@@ -81,8 +86,20 @@ public class CourseService {
     public CourseService(
             CourseRepository courseRepository,
             CourseMembershipRepository membershipRepository,
+            EnrollmentCodeRepository enrollmentCodeRepository,
+            CourseDiscoveryRepository courseDiscoveryRepository,
+            Cloudinary cloudinary,
+            String cloudName,
+            String apiKey,
+            String apiSecret) {
+        this(courseRepository, membershipRepository, enrollmentCodeRepository, courseDiscoveryRepository, null, cloudinary, cloudName, apiKey, apiSecret);
+    }
+
+    public CourseService(
+            CourseRepository courseRepository,
+            CourseMembershipRepository membershipRepository,
             EnrollmentCodeRepository enrollmentCodeRepository) {
-        this(courseRepository, membershipRepository, enrollmentCodeRepository, null, null, "", "", "");
+        this(courseRepository, membershipRepository, enrollmentCodeRepository, null, null, null, "", "", "");
     }
 
     public CourseCoverUploadResponse requestCoverUpload(Authentication authentication) {
@@ -297,12 +314,25 @@ public class CourseService {
         if (!hasRole(authentication, AccountType.ADMIN)) {
             requireActiveMember(courseId, userId);
         }
-        return membershipRepository.findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE).stream()
+        List<CourseMembership> memberships = membershipRepository.findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE);
+        Map<String, UserProfile> profileMap = new HashMap<>();
+        if (userProfileRepository != null) {
+            List<String> userIds = memberships.stream().map(CourseMembership::getUserId).toList();
+            if (!userIds.isEmpty()) {
+                userProfileRepository.findAllByUserIdIn(userIds).forEach(p -> profileMap.put(p.getUserId(), p));
+            }
+        }
+        return memberships.stream()
                 .map(membership -> {
                     CourseMemberResponse response = new CourseMemberResponse();
                     response.setUserId(membership.getUserId());
                     response.setRole(membership.getRole());
                     response.setJoinedAt(membership.getJoinedAt());
+                    UserProfile profile = profileMap.get(membership.getUserId());
+                    if (profile != null) {
+                        response.setName(profile.getDisplayName());
+                        response.setAvatarUrl(profile.getAvatarUrl());
+                    }
                     return response;
                 }).toList();
     }
@@ -364,6 +394,15 @@ public class CourseService {
         CourseResponse response = new CourseResponse();
         response.setId(course.getId());
         response.setOwnerId(course.getOwnerId());
+        if (userProfileRepository != null && course.getOwnerId() != null) {
+            userProfileRepository.findByUserId(course.getOwnerId()).ifPresent(p -> {
+                response.setOwnerName(p.getDisplayName());
+                response.setOwnerAvatarUrl(p.getAvatarUrl());
+            });
+        }
+        if (membershipRepository != null && course.getId() != null) {
+            response.setMemberCount(membershipRepository.countByCourseIdAndStatus(course.getId(), MembershipStatus.ACTIVE));
+        }
         response.setTitle(course.getTitle());
         response.setSection(course.getSection());
         response.setSubject(course.getSubject());

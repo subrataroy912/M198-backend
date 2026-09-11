@@ -14,6 +14,9 @@ public class CourseResponse {
 
     private String id;
     private String ownerId;
+    private String ownerName;
+    private String ownerAvatarUrl;
+    private long memberCount;
     private String title;
     private String section;
     private String subject;
