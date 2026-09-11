@@ -38,7 +38,7 @@ class AuthControllerCookieTest {
 
         when(authService.refresh(eq("cookie-refresh-token"))).thenReturn(issued);
 
-        ResponseEntity<?> result = controller.refresh(request, response);
+        ResponseEntity<?> result = controller.refresh(null, request, response);
 
         assertEquals(200, result.getStatusCode().value());
 
