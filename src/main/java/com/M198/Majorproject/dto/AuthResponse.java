@@ -14,19 +14,19 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-@ Getter 
+@Getter
 
-    @Setter
-    @Builder
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public class AuthResponse {
+@Setter
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class AuthResponse {
 
-        // Security Tokens
-        private String accessToken;
-        private String refreshToken;
+    // Security Tokens
+    private String accessToken;
+    private String refreshToken;
 
-        private String userId;
-        private String email;
-        private String displayName;
-        private String avatarUrl;
-    }
+    private String userId;
+    private String email;
+    private String displayName;
+    private String avatarUrl;
+}
