@@ -145,10 +145,19 @@ public class AuthService {
                 .httpOnly(true)
                 .sameSite(cookieSameSite)
                 .secure(secureCookies)
-                .path("/")
+                .path("/v1/auth")
                 .maxAge(java.time.Duration.ofDays(7))
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        ResponseCookie legacyCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, "")
+                .httpOnly(true)
+                .sameSite(cookieSameSite)
+                .secure(secureCookies)
+                .path("/")
+                .maxAge(0)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, legacyCookie.toString());
     }
 
     public void clearRefreshCookie(HttpServletResponse response) {
@@ -156,10 +165,19 @@ public class AuthService {
                 .httpOnly(true)
                 .sameSite(cookieSameSite)
                 .secure(secureCookies)
-                .path("/")
+                .path("/v1/auth")
                 .maxAge(0)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        ResponseCookie legacyCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, "")
+                .httpOnly(true)
+                .sameSite(cookieSameSite)
+                .secure(secureCookies)
+                .path("/")
+                .maxAge(0)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, legacyCookie.toString());
     }
 
     public void setCsrfCookie(HttpServletResponse response) {

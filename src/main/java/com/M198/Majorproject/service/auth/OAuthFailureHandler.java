@@ -36,7 +36,10 @@ public class OAuthFailureHandler implements AuthenticationFailureHandler {
         log.warn("OAuth authentication failed for {}: {}", request.getRequestURI(), exception.getMessage(), exception);
         String targetUrl = UriComponentsBuilder
                 .fromUriString(frontendCallbackUrl)
-                .queryParam("error", "oauth_failed")
+                .fragment(UriComponentsBuilder.newInstance()
+                        .queryParam("error", "oauth_failed")
+                        .build()
+                        .getQuery())
                 .build()
                 .toUriString();
         response.sendRedirect(targetUrl);

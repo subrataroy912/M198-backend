@@ -22,7 +22,7 @@ class OAuthFailureHandlerTest {
 
         assertThat(response.getStatus()).isEqualTo(302);
         assertThat(response.getRedirectedUrl())
-                .isEqualTo("http://localhost:5173/auth/callback?source=oauth&error=oauth_failed");
+                .isEqualTo("http://localhost:5173/auth/callback?source=oauth#error=oauth_failed");
         assertThat(response.getContentAsString()).isEmpty();
     }
 }

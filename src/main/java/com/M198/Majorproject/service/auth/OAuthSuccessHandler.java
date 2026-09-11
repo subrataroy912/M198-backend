@@ -71,11 +71,14 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
 
         String targetUrl = UriComponentsBuilder
                 .fromUriString(frontendCallbackUrl)
-                .queryParam("accessToken", result.getAccessToken())
-                .queryParam("userId", result.getUserId())
-                .queryParam("email", result.getEmail())
-                .queryParam("displayName", result.getDisplayName())
-                .queryParam("avatarUrl", result.getAvatarUrl())
+                .fragment(UriComponentsBuilder.newInstance()
+                        .queryParam("accessToken", result.getAccessToken())
+                        .queryParam("userId", result.getUserId())
+                        .queryParam("email", result.getEmail())
+                        .queryParam("displayName", result.getDisplayName())
+                        .queryParam("avatarUrl", result.getAvatarUrl())
+                        .build()
+                        .getQuery())
                 .build()
                 .toUriString();
         authService.setRefreshCookie(response, result.getRefreshToken());
