@@ -185,6 +185,19 @@ public class CourseworkService {
         response.setMaximumPoints(coursework.getMaximumPoints());
         response.setCreatedAt(coursework.getCreatedAt());
         response.setUpdatedAt(coursework.getUpdatedAt());
+
+        if (coursework.getDueAt() == null) {
+            response.setTemporalStatus("NO_DUE_DATE");
+        } else {
+            Instant now = Instant.now();
+            if (coursework.getDueAt().isBefore(now)) {
+                response.setTemporalStatus("PAST");
+            } else if (coursework.getDueAt().isBefore(now.plusSeconds(7 * 24 * 3600))) {
+                response.setTemporalStatus("THIS_WEEK");
+            } else {
+                response.setTemporalStatus("UPCOMING");
+            }
+        }
         return response;
     }
 

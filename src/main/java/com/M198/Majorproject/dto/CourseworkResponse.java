@@ -22,6 +22,17 @@ public class CourseworkResponse {
     private Instant publishedAt;
     private Instant dueAt;
     private Integer maximumPoints;
+    private String temporalStatus;
+    private long submittedCount;
+    private long totalCount;
     private Instant createdAt;
     private Instant updatedAt;
+
+    public String getDueDate() {
+        return dueAt != null ? dueAt.toString() : null;
+    }
+
+    public Integer getPointsPossible() {
+        return maximumPoints;
+    }
 }
