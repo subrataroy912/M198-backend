@@ -1,7 +1,7 @@
 package com.M198.Majorproject.controller.auth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -37,11 +37,16 @@ class AuthControllerCookieTest {
 
         when(authService.refresh(eq("cookie-refresh-token"))).thenReturn(issued);
 
-        ResponseEntity<AuthResponse> result = controller.refresh(request, response);
+        ResponseEntity<?> result = controller.refresh(request, response);
 
         assertEquals(200, result.getStatusCode().value());
-        assertEquals("new-access-token", result.getBody().getAccessToken());
-        verify(authService).setRefreshCookie(response, null);
+
+        AuthResponse body = (AuthResponse) result.getBody();
+
+        assertNotNull(body);
+        assertEquals("new-access-token", body.getAccessToken());
+
+        verify(authService).setRefreshCookie(eq(response), eq("new-cookie-refresh-token"));
         verify(authService).refresh(eq("cookie-refresh-token"));
     }
 }
