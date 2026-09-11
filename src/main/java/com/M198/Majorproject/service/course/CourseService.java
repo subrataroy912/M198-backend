@@ -233,6 +233,9 @@ public class CourseService {
         response.setDescription(course.getDescription());
         response.setCoverUrl(course.getCoverUrl());
         response.setVisibility(course.getVisibility());
+        response.setAccessType(course.getAccessType() != null
+                ? course.getAccessType()
+                : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.OPEN : CourseAccessType.CODE));
         response.setEnrollmentEnabled(course.isEnrollmentEnabled());
         response.setMemberCount(membershipRepository.countByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE));
         return response;
@@ -555,6 +558,7 @@ public class CourseService {
         discovery.setTitle(course.getTitle());
         discovery.setSubject(course.getSubject());
         discovery.setVisibility(course.getVisibility());
+        discovery.setAccessType(course.getAccessType() != null ? course.getAccessType() : CourseAccessType.OPEN);
         discovery.setStatus(course.getStatus());
         discovery.setEnrollmentCount(
                 membershipRepository.countByCourseIdAndStatus(course.getId(), MembershipStatus.ACTIVE));

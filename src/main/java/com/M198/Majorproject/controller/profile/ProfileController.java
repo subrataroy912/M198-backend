@@ -111,11 +111,12 @@ public class ProfileController {
 
 	@PatchMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public UserProfileResponse updateProfileWithAssets(
-			@Valid @RequestPart("profile") UpdateUserProfileRequest request,
+			@Valid @RequestPart(value = "profile", required = false) UpdateUserProfileRequest request,
 			@RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile,
 			@RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile,
 			Authentication authentication) {
-		return profileService.updateMyProfile(authentication, request, avatarFile, bannerFile);
+		UpdateUserProfileRequest effectiveRequest = request != null ? request : new UpdateUserProfileRequest();
+		return profileService.updateMyProfile(authentication, effectiveRequest, avatarFile, bannerFile);
 	}
 
 	@PostMapping("/me/unlock-creator")

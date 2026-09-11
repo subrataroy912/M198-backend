@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+import com.M198.Majorproject.entity.course.CourseAccessType;
 import com.M198.Majorproject.entity.course.CourseStatus;
 import com.M198.Majorproject.entity.course.CourseVisibility;
 
@@ -43,6 +44,9 @@ public class CourseDiscovery {
 
     @Builder.Default
     private CourseVisibility visibility = CourseVisibility.PRIVATE;
+
+    @Builder.Default
+    private CourseAccessType accessType = CourseAccessType.OPEN;
 
     @Builder.Default
     private CourseStatus status = CourseStatus.ACTIVE;

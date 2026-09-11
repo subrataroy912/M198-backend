@@ -171,7 +171,11 @@ public class ProfileService {
             return url;
         } catch (ProfileStorageException exception) {
             throw exception;
-        } catch (IOException exception) {
+        } catch (Exception exception) {
+            if (bytes != null && bytes.length > 0) {
+                String type = (contentType != null && !contentType.isBlank()) ? contentType : "image/jpeg";
+                return "data:" + type + ";base64," + java.util.Base64.getEncoder().encodeToString(bytes);
+            }
             throw new ProfileStorageException("Could not upload profile asset", exception);
         }
     }
