@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import com.M198.Majorproject.entity.course.Course;
@@ -24,7 +25,7 @@ public class MongoDiagnostics {
   public void logMongoStatus() {
     try {
       String databaseName = mongoTemplate.getDb().getName();
-      long courseCount = mongoTemplate.count(null, Course.class);
+      long courseCount = mongoTemplate.count(new Query(), Course.class);
       logger.info("MongoDB status=CONNECTED database={} collection=courses courseCount={}",
           databaseName, courseCount);
     } catch (RuntimeException exception) {

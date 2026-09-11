@@ -58,7 +58,11 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository())
-                        .ignoringRequestMatchers("/v1/**"))
+                        .ignoringRequestMatchers(
+                                "/v1/auth/register",
+                                "/v1/auth/login",
+                                "/v1/auth/refresh",
+                                "/v1/auth/logout"))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
