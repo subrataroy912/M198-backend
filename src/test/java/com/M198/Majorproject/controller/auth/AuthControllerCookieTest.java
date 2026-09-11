@@ -30,6 +30,7 @@ class AuthControllerCookieTest {
 
         AuthResponse issued = AuthResponse.builder()
                 .accessToken("new-access-token")
+                .refreshToken("new-cookie-refresh-token")
                 .userId("user-1")
                 .email("student@example.com")
                 .displayName("Student User")

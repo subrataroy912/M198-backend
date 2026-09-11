@@ -55,7 +55,7 @@ class AuthSecurityIntegrationTest {
     @Test
     void refreshWithoutCookieFailsAuthentication() throws Exception {
         mockMvc.perform(post("/v1/auth/refresh"))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("Refresh token is required"));
     }
 
