@@ -57,48 +57,48 @@ public class SecurityConfig {
             OAuthUserService oauthUserService) throws Exception {
         http
                 .csrf(csrf -> csrf
-                .csrfTokenRepository(csrfTokenRepository())
-                .ignoringRequestMatchers(
-                        "/v1/auth/register",
-                        "/v1/auth/login",
-                        "/v1/auth/refresh",
-                        "/v1/auth/logout",
-                        "/v1/auth/oauth/**",
-                        "/oauth2/**",
-                        "/login/**"))
+                        .csrfTokenRepository(csrfTokenRepository())
+                        .ignoringRequestMatchers(
+                                "/v1/auth/register",
+                                "/v1/auth/login",
+                                "/v1/auth/refresh",
+                                "/v1/auth/logout",
+                                "/v1/auth/oauth/**",
+                                "/oauth2/**",
+                                "/login/**"))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(
-                        "/v1/auth/register",
-                        "/v1/auth/login",
-                        "/v1/auth/refresh",
-                        "/v1/auth/oauth/**",
-                        "/oauth2/**",
-                        "/login/**",
-                        "/v1/explore/feed",
-                        "/v1/explore/courses/search",
-                        "/error")
-                .permitAll()
-                .requestMatchers("/v1/auth/logout").authenticated()
-                .anyRequest().authenticated())
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(
+                                "/v1/auth/register",
+                                "/v1/auth/login",
+                                "/v1/auth/refresh",
+                                "/v1/auth/oauth/**",
+                                "/oauth2/**",
+                                "/login/**",
+                                "/v1/explore/feed",
+                                "/v1/explore/courses/search",
+                                "/error")
+                        .permitAll()
+                        .requestMatchers("/v1/auth/logout").authenticated()
+                        .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .oauth2Login(oauth -> oauth
-                .authorizationEndpoint(auth -> auth.baseUri("/v1/auth/oauth"))
-                .userInfoEndpoint(userInfo -> userInfo.userService(oauthUserService))
-                .successHandler(oauthSuccessHandler)
-                .failureHandler(oauthFailureHandler))
+                        .authorizationEndpoint(auth -> auth.baseUri("/v1/auth/oauth"))
+                        .userInfoEndpoint(userInfo -> userInfo.userService(oauthUserService))
+                        .successHandler(oauthSuccessHandler)
+                        .failureHandler(oauthFailureHandler))
                 .exceptionHandling(exceptions -> exceptions
-                .authenticationEntryPoint((request, response, exception) -> {
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.setContentType("application/json");
-                    response.getWriter().write("{\"error\":\"Authentication required\"}");
-                })
-                .accessDeniedHandler((request, response, exception) -> {
-                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    response.setContentType("application/json");
-                    response.getWriter().write("{\"error\":\"Access denied\"}");
-                }))
+                        .authenticationEntryPoint((request, response, exception) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\":\"Authentication required\"}");
+                        })
+                        .accessDeniedHandler((request, response, exception) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\":\"Access denied\"}");
+                        }))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
@@ -111,7 +111,7 @@ public class SecurityConfig {
                 .filter(origin -> !origin.isEmpty())
                 .toList());
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-CSRF-TOKEN"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
         configuration.setAllowCredentials(true);
 

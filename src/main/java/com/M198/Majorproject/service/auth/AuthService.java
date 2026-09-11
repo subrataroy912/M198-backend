@@ -295,9 +295,11 @@ public class AuthService {
     }
 
     private String[] splitDisplayName(String displayName, String email) {
-        String value = displayName == null || displayName.isBlank() ? email.substring(0, email.indexOf('@')) : displayName.trim();
+        String value = displayName == null || displayName.isBlank() ? email.substring(0, email.indexOf('@'))
+                : displayName.trim();
         int separator = value.indexOf(' ');
-        return separator < 0 ? new String[]{value, ""} : new String[]{value.substring(0, separator), value.substring(separator + 1).trim()};
+        return separator < 0 ? new String[] { value, "" }
+                : new String[] { value.substring(0, separator), value.substring(separator + 1).trim() };
     }
 
     private static class AuthenticationServiceException extends AuthenticationException {
