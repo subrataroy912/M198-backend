@@ -58,7 +58,8 @@ class CourseServiceTest {
             course.setId("course-1");
             return course;
         });
-        when(enrollmentCodeRepository.save(any(EnrollmentCode.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(enrollmentCodeRepository.save(any(EnrollmentCode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -95,17 +96,12 @@ class CourseServiceTest {
     }
 
     @Test
-    void authenticatedStudentCanCreateCourse() {
+    void studentCannotCreateCourse() {
         CreateCourseRequest request = new CreateCourseRequest();
         request.setTitle("Mathematics");
 
-        var response = courseService.createCourse(student, request);
-
-        assertEquals("course-1", response.getId());
-        assertEquals("student-1", response.getOwnerId());
-        org.junit.jupiter.api.Assertions.assertNotNull(response.getEnrollmentCode());
-        verify(membershipRepository).save(any(CourseMembership.class));
-        verify(enrollmentCodeRepository).save(any(EnrollmentCode.class));
+        assertThrows(CourseService.CourseAccessException.class,
+                () -> courseService.createCourse(student, request));
     }
 
     @Test
@@ -125,12 +121,26 @@ class CourseServiceTest {
     @Test
     void memberCanReadActiveCourse() {
         Course course = Course.builder().id("course-1").title("Mathematics").status(CourseStatus.ACTIVE).build();
-        when(courseRepository.findByIdAndStatus("course-1", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
-        when(membershipRepository.findByCourseIdAndUserIdAndStatus(
-                "course-1", "student-1", MembershipStatus.ACTIVE))
-                .thenReturn(Optional.of(CourseMembership.builder().courseId("course-1").userId("student-1").build()));
+        when(courseRepository.findById("course-1")).thenReturn(Optional.of(course));
+        when(membershipRepository.findByCourseIdAndUserId("course-1", "student-1"))
+                .thenReturn(Optional.of(CourseMembership.builder()
+                        .courseId("course-1").userId("student-1")
+                        .status(MembershipStatus.ACTIVE).build()));
 
         assertEquals("Mathematics", courseService.getCourse("course-1", student).getTitle());
+    }
+
+    @Test
+    void publicActiveCourseCanBeReadWithoutMembership() {
+        Course course = Course.builder().id("course-1").title("Mathematics")
+                .visibility(CourseVisibility.PUBLIC).status(CourseStatus.ACTIVE).build();
+        when(courseRepository.findByIdAndStatus("course-1", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
+        when(membershipRepository.countByCourseIdAndStatus("course-1", MembershipStatus.ACTIVE)).thenReturn(3L);
+
+        var response = courseService.getPublicCourse("course-1");
+
+        assertEquals("Mathematics", response.getTitle());
+        assertEquals(3L, response.getMemberCount());
     }
 
     @Test

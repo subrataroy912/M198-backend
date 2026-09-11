@@ -26,6 +26,7 @@ import com.M198.Majorproject.dto.CourseMemberResponse;
 import com.M198.Majorproject.dto.CourseResponse;
 import com.M198.Majorproject.dto.CreateCourseRequest;
 import com.M198.Majorproject.dto.EnrollCourseRequest;
+import com.M198.Majorproject.dto.PublicCourseResponse;
 import com.M198.Majorproject.dto.UpdateCourseRequest;
 import com.M198.Majorproject.entity.course.Course;
 import com.M198.Majorproject.entity.course.CourseMembership;
@@ -45,6 +46,8 @@ import com.cloudinary.Cloudinary;
 @Service
 
 public class CourseService {
+
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CourseService.class);
 
     private final CourseRepository courseRepository;
     private final CourseMembershipRepository membershipRepository;
@@ -103,6 +106,7 @@ public class CourseService {
 
     public CourseResponse createCourse(Authentication authentication, CreateCourseRequest request) {
         String userId = authenticatedUserId(authentication);
+        requireAnyRole(authentication, AccountType.TEACHER, AccountType.ADMIN);
 
         Course course = courseRepository.save(Course.builder()
                 .ownerId(userId)
@@ -160,9 +164,36 @@ public class CourseService {
     public CourseResponse getCourse(String courseId, Authentication authentication) {
         validateCourseId(courseId);
         String userId = authenticatedUserId(authentication);
-        Course course = activeCourse(courseId);
-        requireActiveMember(courseId, userId);
+        Course course = courseRepository.findById(courseId).orElse(null);
+        var membership = membershipRepository.findByCourseIdAndUserId(courseId, userId);
+        if (course == null || course.getStatus() != CourseStatus.ACTIVE
+                || membership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE).isEmpty()) {
+            logger.warn(
+                    "Course access denied: courseId={}, userId={}, courseExists={}, courseStatus={}, membershipExists={}, membershipStatus={}",
+                    courseId, userId, course != null, course == null ? null : course.getStatus(),
+                    membership.isPresent(),
+                    membership.map(CourseMembership::getStatus).orElse(null));
+            throw new CourseNotFoundException();
+        }
         return toResponse(course);
+    }
+
+    public PublicCourseResponse getPublicCourse(String courseId) {
+        validateCourseId(courseId);
+        Course course = courseRepository.findByIdAndStatus(courseId, CourseStatus.ACTIVE)
+                .filter(value -> value.getVisibility() == CourseVisibility.PUBLIC)
+                .orElseThrow(CourseNotFoundException::new);
+        PublicCourseResponse response = new PublicCourseResponse();
+        response.setId(course.getId());
+        response.setTitle(course.getTitle());
+        response.setSection(course.getSection());
+        response.setSubject(course.getSubject());
+        response.setDescription(course.getDescription());
+        response.setCoverUrl(course.getCoverUrl());
+        response.setVisibility(course.getVisibility());
+        response.setEnrollmentEnabled(course.isEnrollmentEnabled());
+        response.setMemberCount(membershipRepository.countByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE));
+        return response;
     }
 
     public CourseResponse enroll(String courseId, Authentication authentication, EnrollCourseRequest request) {
@@ -313,6 +344,15 @@ public class CourseService {
         if (!permitted) {
             throw new CourseAccessException("Teacher role required");
         }
+    }
+
+    private void requireAnyRole(Authentication authentication, AccountType... roles) {
+        for (AccountType role : roles) {
+            if (hasRole(authentication, role)) {
+                return;
+            }
+        }
+        throw new CourseAccessException("Teacher or administrator role required");
     }
 
     private boolean hasRole(Authentication authentication, AccountType role) {

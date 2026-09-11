@@ -44,7 +44,7 @@ The project is designed around these goals:
 
 ### Course admission and enrollment
 
-1. An authenticated user creates a course and receives an enrollment code.
+1. An authenticated teacher or administrator creates a course and receives an enrollment code.
 2. The course owner can update or archive the course, request a cover upload,
    and view its roster.
 3. A student submits the enrollment code to join the course.
@@ -145,18 +145,45 @@ the same HTTPS URI during the authorization request.
 All routes use the `/v1` version prefix. See [docs/APIs.MD](docs/APIs.MD) for
 request/response intent and access rules.
 
-| Area | Implemented routes |
-| --- | --- |
-| Authentication | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`; `GET /auth/oauth/google`, `/auth/oauth/github` |
-| Courses | `POST /courses`, `/courses/cover-upload`, `/{courseId}/enrollment`; `GET /courses`, `/{courseId}`, `/{courseId}/roster`; `PATCH /courses/{courseId}`; `DELETE /courses/{courseId}`, `/{courseId}/enrollment` |
-| Coursework | `POST`, `GET /courses/{courseId}/coursework`; `GET`, `PATCH`, `DELETE /courses/{courseId}/coursework/{courseworkId}` |
-| Submissions | `POST`, `GET /coursework/{courseworkId}/submissions`; `GET`, `PATCH /coursework/{courseworkId}/submissions/me`; `PATCH /coursework/{courseworkId}/submissions/{submissionId}/grade` |
-| Attachments | `POST /attachments/upload-url`, `/{attachmentId}/complete`; `GET /attachments`, `/{attachmentId}/download-url`; `DELETE /attachments/{attachmentId}` |
-| Comments | `POST`, `GET /coursework/{courseworkId}/comments`; `POST`, `GET /submissions/{submissionId}/comments` |
-| Analytics | `GET /analytics/courses/{courseId}/summary`; `GET /analytics/courses/{courseId}/students/{studentId}/gradebook` |
-| Notifications | `GET /notifications`, `/notifications/settings`; `PATCH /notifications/{notificationId}/read`, `/notifications/settings` |
-| Profiles | `GET /users/me`, `/users/{userId}`; `PATCH /users/me` (JSON or multipart form data) |
-| Explore | `GET /explore/feed`, `/explore/courses/search`, `/explore/recommendations` |
+| Area           | Implemented routes                                                                                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Authentication | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`; `GET /auth/oauth/google`, `/auth/oauth/github`                                                                                        |
+| Courses        | `POST /courses`, `/courses/cover-upload`, `/{courseId}/enrollment`; `GET /courses`, `/{courseId}`, `/{courseId}/roster`; `PATCH /courses/{courseId}`; `DELETE /courses/{courseId}`, `/{courseId}/enrollment` |
+| Coursework     | `POST`, `GET /courses/{courseId}/coursework`; `GET`, `PATCH`, `DELETE /courses/{courseId}/coursework/{courseworkId}`                                                                                         |
+| Submissions    | `POST`, `GET /coursework/{courseworkId}/submissions`; `GET`, `PATCH /coursework/{courseworkId}/submissions/me`; `PATCH /coursework/{courseworkId}/submissions/{submissionId}/grade`                          |
+| Attachments    | `POST /attachments/upload-url`, `/{attachmentId}/complete`; `GET /attachments`, `/{attachmentId}/download-url`; `DELETE /attachments/{attachmentId}`                                                         |
+| Comments       | `POST`, `GET /coursework/{courseworkId}/comments`; `POST`, `GET /submissions/{submissionId}/comments`                                                                                                        |
+| Analytics      | `GET /analytics/courses/{courseId}/summary`; `GET /analytics/courses/{courseId}/students/{studentId}/gradebook`                                                                                              |
+| Notifications  | `GET /notifications`, `/notifications/settings`; `PATCH /notifications/{notificationId}/read`, `/notifications/settings`                                                                                     |
+| Profiles       | `GET /users/me`, `/users/{userId}`; `PATCH /users/me` (JSON or multipart form data)                                                                                                                          |
+| Explore        | `GET /explore/feed`, `/explore/courses/search`, `/explore/courses/{courseId}`, `/explore/recommendations`                                                                                                    |
+
+### Course access contract
+
+The backend uses the separate discovery-detail contract (Option B). Explore cards
+must open `GET /v1/explore/courses/{courseId}`. That endpoint is public and
+returns only public active-course fields plus the active member count. The
+member-only `GET /v1/courses/{courseId}` remains the classroom detail endpoint
+and returns `404` for a missing, archived, or unauthorized course to avoid
+revealing membership state.
+
+Course creation is restricted to `TEACHER` and `ADMIN` accounts. Classroom
+mutations require an active course membership with an appropriate staff role;
+authorization is enforced by backend services rather than frontend role flags.
+
+Private profile access uses the existing privacy-preserving `404` contract for
+non-owners. A private profile is not returned to a non-owner, and inactive or
+missing users are indistinguishable from an unavailable profile.
+
+### Production verification
+
+Render must provide `MONGODB_URI`, `MONGODB_DATABASE`, a 32-character-or-longer
+`JWT_SECRET`, the deployed frontend in `APP_CORS_ALLOWED_ORIGINS`,
+`APP_COOKIE_SECURE=true`, and the agreed production `APP_COOKIE_SAME_SITE`
+value. Startup logs emit only the connected Mongo database name and active
+course count; they never emit connection strings or tokens. To diagnose a
+course ID, query the reported production database and compare the course
+status and membership record without inserting fallback data.
 
 ## Build, Test, and Run
 
@@ -164,6 +191,7 @@ Use the Maven Wrapper on Windows:
 
 ```powershell
 .\mvnw.cmd test
+.\mvnw.cmd clean package
 .\mvnw.cmd spring-boot:run
 ```
 
