@@ -15,6 +15,7 @@ import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -59,11 +60,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository())
                         .ignoringRequestMatchers(
-                                "/v1/auth/register",
-                                "/v1/auth/login",
-                                "/v1/auth/refresh",
-                                "/v1/auth/logout",
-                                "/v1/courses/cover-upload"))
+                                request -> {
+                                    String auth = request.getHeader(HttpHeaders.AUTHORIZATION);
+                                    if (auth != null && auth.startsWith("Bearer ")) {
+                                        return true;
+                                    }
+                                    String uri = request.getRequestURI();
+                                    return uri.startsWith("/v1/auth/") || uri.equals("/v1/courses/cover-upload");
+                                }))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
