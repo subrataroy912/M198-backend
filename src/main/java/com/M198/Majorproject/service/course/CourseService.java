@@ -158,6 +158,7 @@ public class CourseService {
     }
 
     public CourseResponse getCourse(String courseId, Authentication authentication) {
+        validateCourseId(courseId);
         String userId = authenticatedUserId(authentication);
         Course course = activeCourse(courseId);
         requireActiveMember(courseId, userId);
@@ -280,6 +281,12 @@ public class CourseService {
                 .orElseThrow(CourseNotFoundException::new);
     }
 
+    private void validateCourseId(String courseId) {
+        if (courseId == null || courseId.isBlank() || !courseId.matches("[A-Za-z0-9_-]{1,64}")) {
+            throw new CourseIdFormatException();
+        }
+    }
+
     private void requireActiveMember(String courseId, String userId) {
         membershipRepository.findByCourseIdAndUserIdAndStatus(courseId, userId, MembershipStatus.ACTIVE)
                 .orElseThrow(CourseNotFoundException::new);
@@ -373,6 +380,11 @@ public class CourseService {
     }
 
     public static class CourseNotFoundException extends RuntimeException {
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    public static class CourseIdFormatException extends RuntimeException {
 
         private static final long serialVersionUID = 1L;
     }

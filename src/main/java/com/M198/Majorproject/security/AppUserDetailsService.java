@@ -17,14 +17,13 @@ import com.M198.Majorproject.entity.identity.AccountStatus;
 import com.M198.Majorproject.entity.identity.User;
 import com.M198.Majorproject.repository.identity.UserRepository;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class AppUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
-
-    public AppUserDetailsService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
