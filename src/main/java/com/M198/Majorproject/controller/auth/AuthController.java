@@ -95,7 +95,6 @@ public class AuthController {
         csrfToken.getToken();
         AuthResponse authResponse = authService.register(request);
         authService.setRefreshCookie(response, authResponse.getRefreshToken());
-        authResponse.setRefreshToken(null);
         return ResponseEntity.status(HttpStatus.CREATED).body(authResponse);
     }
 
@@ -105,22 +104,20 @@ public class AuthController {
         csrfToken.getToken();
         AuthResponse authResponse = authService.login(request);
         authService.setRefreshCookie(response, authResponse.getRefreshToken());
-        authResponse.setRefreshToken(null);
         return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(
+            @RequestBody(required = false) java.util.Map<String, String> body,
             HttpServletRequest request,
             HttpServletResponse response) {
         try {
-            String refreshToken = resolveRefreshToken(request);
+            String refreshToken = resolveRefreshToken(request, body);
             AuthResponse authResponse = authService.refresh(refreshToken);
             authService.setRefreshCookie(response, authResponse.getRefreshToken());
-            authResponse.setRefreshToken(null);
             return ResponseEntity.ok(authResponse);
         } catch (IllegalArgumentException e) {
-            // Return a clean 401 instead of letting a 400 bubble up
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("{\"error\":\"" + e.getMessage() + "\"}");
         }
@@ -128,16 +125,27 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
+            @RequestBody(required = false) java.util.Map<String, String> body,
             Authentication authentication,
             HttpServletRequest request,
             HttpServletResponse response) {
-        String refreshToken = resolveRefreshToken(request);
-        authService.logout(authentication.getName(), refreshToken);
+        String refreshToken = null;
+        try {
+            refreshToken = resolveRefreshToken(request, body);
+        } catch (IllegalArgumentException e) {
+            // Logout shouldn't fail if token is missing
+        }
+        if (refreshToken != null) {
+            authService.logout(authentication.getName(), refreshToken);
+        }
         authService.clearRefreshCookie(response);
         return ResponseEntity.noContent().build();
     }
 
-    private String resolveRefreshToken(HttpServletRequest servletRequest) {
+    private String resolveRefreshToken(HttpServletRequest servletRequest, java.util.Map<String, String> body) {
+        if (body != null && body.containsKey("refreshToken") && body.get("refreshToken") != null && !body.get("refreshToken").isBlank()) {
+            return body.get("refreshToken");
+        }
         if (servletRequest.getCookies() != null) {
             for (Cookie cookie : servletRequest.getCookies()) {
                 if (AuthService.REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName()) && cookie.getValue() != null

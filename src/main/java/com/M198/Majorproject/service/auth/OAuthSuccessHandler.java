@@ -73,6 +73,7 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
                 .fromUriString(frontendCallbackUrl)
                 .fragment(UriComponentsBuilder.newInstance()
                         .queryParam("accessToken", result.getAccessToken())
+                        .queryParam("refreshToken", result.getRefreshToken())
                         .queryParam("userId", result.getUserId())
                         .queryParam("email", result.getEmail())
                         .queryParam("displayName", result.getDisplayName())
