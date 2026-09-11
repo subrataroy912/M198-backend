@@ -12,41 +12,41 @@
 	 * 3. logoutUser   - Invalidates the current authenticated session
  */
 
- /*
- * =================================================================================
- * AUTH CONTROLLER ENDPOINT DOCUMENTATION
- * =================================================================================
- *
- * 1. registerUser
- *    - Route: POST /v1/auth/register
- *    - Role Allowed: Public; the caller must not already be authenticated.
- *    - Request Body: Name, email, password, and account role (TEACHER or STUDENT).
- *    - How it works: Validates the registration data, checks that the email is not
- *      already registered, hashes the password, and stores the new user account.
- *    - Response: Returns the created user's safe profile data. Never return the
- *      password or its hash.
- *    - Why it's used: Creates an account before the user joins or creates courses.
- *
- * 2. loginUser
- *    - Route: POST /v1/auth/login
- *    - Role Allowed: Public.
- *    - Request Body: Registered email and password.
- *    - How it works: Looks up the account, verifies the password hash, and issues
- *      an access token containing the authenticated user's identity and role.
- *    - Response: Returns an access token and the minimum user information required
- *      by the client. Invalid credentials must produce the same generic error.
- *    - Why it's used: Establishes the authenticated session for protected APIs.
- *
- * 3. logoutUser
- *    - Route: POST /v1/auth/logout
- *    - Role Allowed: Authenticated users.
- *    - Request: The current access token, normally supplied in the Authorization
- *      header. A refresh token may also need to be revoked if one is implemented.
- *    - How it works: Invalidates the current session or adds the token to a
- *      server-side blocklist until it expires.
- *    - Response: Returns a successful empty response after the session is closed.
- *    - Why it's used: Prevents a logged-in client from continuing to use its token.
- */
+/*
+* =================================================================================
+* AUTH CONTROLLER ENDPOINT DOCUMENTATION
+* =================================================================================
+*
+* 1. registerUser
+*    - Route: POST /v1/auth/register
+*    - Role Allowed: Public; the caller must not already be authenticated.
+*    - Request Body: Name, email, password, and account role (TEACHER or STUDENT).
+*    - How it works: Validates the registration data, checks that the email is not
+*      already registered, hashes the password, and stores the new user account.
+*    - Response: Returns the created user's safe profile data. Never return the
+*      password or its hash.
+*    - Why it's used: Creates an account before the user joins or creates courses.
+*
+* 2. loginUser
+*    - Route: POST /v1/auth/login
+*    - Role Allowed: Public.
+*    - Request Body: Registered email and password.
+*    - How it works: Looks up the account, verifies the password hash, and issues
+*      an access token containing the authenticated user's identity and role.
+*    - Response: Returns an access token and the minimum user information required
+*      by the client. Invalid credentials must produce the same generic error.
+*    - Why it's used: Establishes the authenticated session for protected APIs.
+*
+* 3. logoutUser
+*    - Route: POST /v1/auth/logout
+*    - Role Allowed: Authenticated users.
+*    - Request: The current access token, normally supplied in the Authorization
+*      header. A refresh token may also need to be revoked if one is implemented.
+*    - How it works: Invalidates the current session or adds the token to a
+*      server-side blocklist until it expires.
+*    - Response: Returns a successful empty response after the session is closed.
+*    - Why it's used: Prevents a logged-in client from continuing to use its token.
+*/
 /**
  * CREATED BY : SUBRATA ROY
  * CONTROLLER : AuthController
@@ -90,7 +90,8 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterUserRequest request, HttpServletResponse response, CsrfToken csrfToken) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterUserRequest request,
+            HttpServletResponse response, CsrfToken csrfToken) {
         csrfToken.getToken();
         AuthResponse authResponse = authService.register(request);
         authService.setRefreshCookie(response, authResponse.getRefreshToken());
@@ -99,7 +100,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response, CsrfToken csrfToken) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response,
+            CsrfToken csrfToken) {
         csrfToken.getToken();
         AuthResponse authResponse = authService.login(request);
         authService.setRefreshCookie(response, authResponse.getRefreshToken());
@@ -108,14 +110,20 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(
+    public ResponseEntity<?> refresh(
             HttpServletRequest request,
             HttpServletResponse response) {
-        String refreshToken = resolveRefreshToken(request);
-        AuthResponse authResponse = authService.refresh(refreshToken);
-        authService.setRefreshCookie(response, authResponse.getRefreshToken());
-        authResponse.setRefreshToken(null);
-        return ResponseEntity.ok(authResponse);
+        try {
+            String refreshToken = resolveRefreshToken(request);
+            AuthResponse authResponse = authService.refresh(refreshToken);
+            authService.setRefreshCookie(response, authResponse.getRefreshToken());
+            authResponse.setRefreshToken(null);
+            return ResponseEntity.ok(authResponse);
+        } catch (IllegalArgumentException e) {
+            // Return a clean 401 instead of letting a 400 bubble up
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
     }
 
     @PostMapping("/logout")
@@ -132,7 +140,8 @@ public class AuthController {
     private String resolveRefreshToken(HttpServletRequest servletRequest) {
         if (servletRequest.getCookies() != null) {
             for (Cookie cookie : servletRequest.getCookies()) {
-                if (AuthService.REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                if (AuthService.REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName()) && cookie.getValue() != null
+                        && !cookie.getValue().isBlank()) {
                     return cookie.getValue();
                 }
             }

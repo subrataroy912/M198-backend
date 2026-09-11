@@ -54,10 +54,10 @@ public class AuthService {
 
     public static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
 
-    @org.springframework.beans.factory.annotation.Value("${app.cookies.secure:false}")
+    @org.springframework.beans.factory.annotation.Value("${app.cookies.secure:true}")
     private boolean secureCookies;
 
-    @org.springframework.beans.factory.annotation.Value("${app.cookies.same-site:Lax}")
+    @org.springframework.beans.factory.annotation.Value("${app.cookies.same-site:None}")
     private String cookieSameSite;
 
     private final UserRepository userRepository;
@@ -141,23 +141,16 @@ public class AuthService {
         if (refreshToken == null || refreshToken.isBlank()) {
             return;
         }
+
         ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
-                .sameSite(cookieSameSite)
-                .secure(secureCookies)
-                .path("/v1/auth")
+                .sameSite(cookieSameSite) // 👈 Ensure this is set to "None" in your properties file!
+                .secure(secureCookies) // 👈 Ensure this evaluates to true!
+                .path("/") // 👈 Standardize path to root so all auth calls can see it
                 .maxAge(java.time.Duration.ofDays(7))
                 .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        ResponseCookie legacyCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, "")
-                .httpOnly(true)
-                .sameSite(cookieSameSite)
-                .secure(secureCookies)
-                .path("/")
-                .maxAge(0)
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, legacyCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     public void clearRefreshCookie(HttpServletResponse response) {
@@ -165,7 +158,7 @@ public class AuthService {
                 .httpOnly(true)
                 .sameSite(cookieSameSite)
                 .secure(secureCookies)
-                .path("/v1/auth")
+                .path("/")
                 .maxAge(0)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
