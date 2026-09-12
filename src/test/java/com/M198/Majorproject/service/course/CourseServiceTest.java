@@ -24,6 +24,7 @@ import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.CourseStatus;
 import com.M198.Majorproject.entity.course.CourseVisibility;
 import com.M198.Majorproject.entity.course.EnrollmentCode;
+import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
 import com.M198.Majorproject.entity.explore.CourseDiscovery;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
@@ -311,5 +312,31 @@ class CourseServiceTest {
         org.junit.jupiter.api.Assertions.assertNotNull(response);
         assertEquals("6aa437aecbe563688e22b18d", response.getId());
         verify(membershipRepository).save(any(CourseMembership.class));
+    }
+
+    @Test
+    void activeMemberEnrollmentIsIdempotent() {
+        Course course = Course.builder()
+                .id("6aa451d330db1c61fdfc3ab5")
+                .status(CourseStatus.ACTIVE)
+                .visibility(CourseVisibility.PUBLIC)
+                .accessType(CourseAccessType.OPEN)
+                .enrollmentEnabled(true)
+                .build();
+        CourseMembership activeMembership = CourseMembership.builder()
+                .courseId("6aa451d330db1c61fdfc3ab5")
+                .userId("student-1")
+                .role(MembershipRole.STUDENT)
+                .status(MembershipStatus.ACTIVE)
+                .build();
+        when(courseRepository.findByIdAndStatus("6aa451d330db1c61fdfc3ab5", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
+        when(membershipRepository.findByCourseIdAndUserId("6aa451d330db1c61fdfc3ab5", "student-1")).thenReturn(Optional.of(activeMembership));
+
+        var response = courseService.enroll("6aa451d330db1c61fdfc3ab5", student, new EnrollCourseRequest());
+
+        org.junit.jupiter.api.Assertions.assertNotNull(response);
+        assertEquals("6aa451d330db1c61fdfc3ab5", response.getId());
+        org.junit.jupiter.api.Assertions.assertTrue(response.isEnrolled());
+        assertEquals("STUDENT", response.getRole());
     }
 }

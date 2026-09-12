@@ -306,7 +306,12 @@ public class CourseService {
         }
         var existingMembership = membershipRepository.findByCourseIdAndUserId(courseId, userId);
         if (existingMembership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE).isPresent()) {
-            throw new CourseConflictException("User already has membership in this course");
+            CourseResponse res = toResponse(course);
+            if (existingMembership.get().getRole() != null) {
+                res.setRole(existingMembership.get().getRole().name());
+            }
+            res.setEnrolled(true);
+            return res;
         }
         if (existingMembership.isPresent()) {
             CourseMembership membership = existingMembership.get();
@@ -327,7 +332,10 @@ public class CourseService {
                     .joinedAt(Instant.now())
                     .build());
         } catch (DuplicateKeyException exception) {
-            throw new CourseConflictException("User already has membership in this course");
+            CourseResponse res = toResponse(course);
+            res.setRole("STUDENT");
+            res.setEnrolled(true);
+            return res;
         }
         syncDiscovery(course);
         return toResponse(course);
