@@ -233,6 +233,9 @@ public class AuthService {
         if (existingLink.isPresent()) {
             user = userRepository.findById(existingLink.get().getUserId())
                     .orElseThrow(() -> new AuthenticationServiceException("OAuth account is unavailable"));
+            if (user.getDeletedAt() != null) {
+                throw new AuthenticationServiceException("OAuth account is unavailable");
+            }
             if (!user.isActive() || user.getStatus() != AccountStatus.ACTIVE || !user.isVerified()) {
                 user.setActive(true);
                 user.setStatus(AccountStatus.ACTIVE);
@@ -244,6 +247,9 @@ public class AuthService {
             var existingUser = userRepository.findByEmail(normalizedEmail);
             if (existingUser.isPresent()) {
                 user = existingUser.get();
+                if (user.getDeletedAt() != null) {
+                    throw new AuthenticationServiceException("OAuth account is unavailable");
+                }
                 if (!user.isActive() || user.getStatus() != AccountStatus.ACTIVE || !user.isVerified()) {
                     user.setActive(true);
                     user.setStatus(AccountStatus.ACTIVE);
@@ -323,6 +329,8 @@ public class AuthService {
                 .displayName(displayName == null || displayName.isBlank() ? names[0] : displayName)
                 .avatarUrl(avatarUrl)
                 .profileVisibility(ProfileVisibility.PRIVATE)
+                .accountType(user.getAccountType())
+                .canCreateCourses(user.isCanCreateCourses())
                 .build());
     }
 
