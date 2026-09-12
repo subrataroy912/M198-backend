@@ -272,4 +272,25 @@ class CourseServiceTest {
         assertEquals("course-open", response.getId());
         verify(membershipRepository).save(any(CourseMembership.class));
     }
+
+    @Test
+    void getCourseAllowsUnenrolledUserToViewPublicCourse() {
+        Course course = Course.builder()
+                .id("6aa4583ab463bdd7707f1556")
+                .status(CourseStatus.ACTIVE)
+                .visibility(CourseVisibility.PUBLIC)
+                .accessType(CourseAccessType.OPEN)
+                .title("Public Open Class")
+                .build();
+        when(courseRepository.findById("6aa4583ab463bdd7707f1556")).thenReturn(Optional.of(course));
+        when(membershipRepository.findByCourseIdAndUserId("6aa4583ab463bdd7707f1556", "student-1")).thenReturn(Optional.empty());
+
+        var response = courseService.getCourse("6aa4583ab463bdd7707f1556", student);
+
+        org.junit.jupiter.api.Assertions.assertNotNull(response);
+        assertEquals("6aa4583ab463bdd7707f1556", response.getId());
+        assertEquals("VIEWER", response.getRole());
+        org.junit.jupiter.api.Assertions.assertFalse(response.isEnrolled());
+        org.junit.jupiter.api.Assertions.assertNull(response.getEnrollmentCode());
+    }
 }

@@ -27,6 +27,8 @@ public class CourseResponse {
     private CourseStatus status;
     private boolean enrollmentEnabled;
     private String enrollmentCode;
+    private String role;
+    private boolean enrolled;
     private Instant createdAt;
     private Instant updatedAt;
 

@@ -197,9 +197,16 @@ public class CourseService {
     public List<CourseResponse> listMyCourses(Authentication authentication) {
         String userId = authenticatedUserId(authentication);
         return membershipRepository.findAllByUserIdAndStatus(userId, MembershipStatus.ACTIVE).stream()
-                .map(membership -> courseRepository.findByIdAndStatus(membership.getCourseId(), CourseStatus.ACTIVE))
-                .flatMap(optionalCourse -> optionalCourse.stream())
-                .map(this::toResponse)
+                .map(membership -> courseRepository.findByIdAndStatus(membership.getCourseId(), CourseStatus.ACTIVE)
+                        .map(c -> {
+                            CourseResponse res = toResponse(c);
+                            if (membership.getRole() != null) {
+                                res.setRole(membership.getRole().name());
+                            }
+                            res.setEnrolled(true);
+                            return res;
+                        }))
+                .flatMap(java.util.Optional::stream)
                 .toList();
     }
 
@@ -208,8 +215,10 @@ public class CourseService {
         String userId = authenticatedUserId(authentication);
         Course course = courseRepository.findById(courseId).orElse(null);
         var membership = membershipRepository.findByCourseIdAndUserId(courseId, userId);
-        if (course == null || course.getStatus() != CourseStatus.ACTIVE
-                || membership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE).isEmpty()) {
+        boolean isStaffOrEnrolled = membership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE).isPresent();
+        boolean isPublicCourse = course != null && (course.getVisibility() == CourseVisibility.PUBLIC || course.getAccessType() == CourseAccessType.OPEN);
+
+        if (course == null || course.getStatus() != CourseStatus.ACTIVE || (!isStaffOrEnrolled && !isPublicCourse)) {
             logger.warn(
                     "Course access denied: courseId={}, userId={}, courseExists={}, courseStatus={}, membershipExists={}, membershipStatus={}",
                     courseId, userId, course != null, course == null ? null : course.getStatus(),
@@ -217,7 +226,16 @@ public class CourseService {
                     membership.map(CourseMembership::getStatus).orElse(null));
             throw new CourseNotFoundException();
         }
-        return toResponse(course);
+        CourseResponse response = toResponse(course);
+        if (isStaffOrEnrolled) {
+            response.setRole(membership.get().getRole() != null ? membership.get().getRole().name() : "STUDENT");
+            response.setEnrolled(true);
+        } else {
+            response.setRole("VIEWER");
+            response.setEnrolled(false);
+            response.setEnrollmentCode(null);
+        }
+        return response;
     }
 
     public PublicCourseResponse getPublicCourse(String courseId) {
@@ -493,6 +511,8 @@ public class CourseService {
         CourseResponse response = new CourseResponse();
         response.setId(course.getId());
         response.setOwnerId(course.getOwnerId());
+        response.setRole("STUDENT");
+        response.setEnrolled(true);
         if (userProfileRepository != null && course.getOwnerId() != null) {
             userProfileRepository.findByUserId(course.getOwnerId()).ifPresent(p -> {
                 response.setOwnerName(p.getDisplayName());
