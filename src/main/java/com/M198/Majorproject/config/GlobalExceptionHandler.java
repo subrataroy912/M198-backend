@@ -1,4 +1,4 @@
-package com.M198.Majorproject.controller.auth;
+package com.M198.Majorproject.config;
 
 import java.util.Map;
 
@@ -37,7 +37,7 @@ import com.M198.Majorproject.service.analytics.AnalyticsService.AnalyticsNotFoun
 import io.jsonwebtoken.JwtException;
 
 @RestControllerAdvice
-public class AuthExceptionHandler {
+public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     ResponseEntity<Map<String, String>> handleBadCredentialsException(BadCredentialsException exception) {

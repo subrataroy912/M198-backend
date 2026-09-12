@@ -17,12 +17,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import com.M198.Majorproject.controller.auth.AuthExceptionHandler;
+import com.M198.Majorproject.config.GlobalExceptionHandler;
 import com.M198.Majorproject.dto.NotificationResponse;
 import com.M198.Majorproject.service.notification.NotificationService;
 
 @ExtendWith(MockitoExtension.class)
-class NotificationApiControllerTest {
+class NotificationControllerTest {
 
     @Mock
     private NotificationService service;
@@ -32,8 +32,8 @@ class NotificationApiControllerTest {
     @BeforeEach
     @SuppressWarnings("unused")
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new NotificationApiController(service))
-                .setControllerAdvice(new AuthExceptionHandler())
+        mockMvc = MockMvcBuilders.standaloneSetup(new NotificationController(service))
+                .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
 

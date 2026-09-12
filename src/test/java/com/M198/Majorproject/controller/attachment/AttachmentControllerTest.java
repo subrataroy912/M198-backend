@@ -17,13 +17,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import com.M198.Majorproject.controller.auth.AuthExceptionHandler;
+import com.M198.Majorproject.config.GlobalExceptionHandler;
 import com.M198.Majorproject.dto.CompleteAttachmentRequest;
 import com.M198.Majorproject.dto.CreateAttachmentRequest;
 import com.M198.Majorproject.service.attachment.AttachmentService;
 
 @ExtendWith(MockitoExtension.class)
-class AttachmentApiControllerTest {
+class AttachmentControllerTest {
 
     @Mock
     private AttachmentService service;
@@ -32,8 +32,8 @@ class AttachmentApiControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AttachmentApiController(service))
-                .setControllerAdvice(new AuthExceptionHandler())
+        mockMvc = MockMvcBuilders.standaloneSetup(new AttachmentController(service))
+                .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
 

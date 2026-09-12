@@ -10,4 +10,6 @@ public interface StudentGradebookEntryRepository extends MongoRepository<Student
 
     List<StudentGradebookEntry> findAllByCourseIdAndStudentIdOrderByDueAtAsc(
             String courseId, String studentId);
+
+    List<StudentGradebookEntry> findAllByCourseIdOrderByDueAtAsc(String courseId);
 }

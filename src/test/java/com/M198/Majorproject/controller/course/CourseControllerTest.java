@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
-import com.M198.Majorproject.controller.auth.AuthExceptionHandler;
+import com.M198.Majorproject.config.GlobalExceptionHandler;
 import com.M198.Majorproject.dto.CourseCoverUploadResponse;
 import com.M198.Majorproject.dto.CourseResponse;
 import com.M198.Majorproject.dto.CreateCourseRequest;
@@ -38,7 +38,7 @@ class CourseControllerTest {
                 LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
                 validator.afterPropertiesSet();
                 mockMvc = MockMvcBuilders.standaloneSetup(new CourseController(courseService))
-                                .setControllerAdvice(new AuthExceptionHandler())
+                                .setControllerAdvice(new GlobalExceptionHandler())
                                 .setValidator(validator)
                                 .build();
         }

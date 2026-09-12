@@ -9,11 +9,11 @@ import com.M198.Majorproject.service.comment.CommentService;
 
 @RestController
 @RequestMapping("/v1")
-public class CommentApiController {
+public class CommentController {
 
     private final CommentService service;
 
-    public CommentApiController(CommentService service) {
+    public CommentController(CommentService service) {
         this.service = service;
     }
 

@@ -14,11 +14,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import com.M198.Majorproject.controller.auth.AuthExceptionHandler;
+import com.M198.Majorproject.config.GlobalExceptionHandler;
 import com.M198.Majorproject.service.analytics.AnalyticsService;
 
 @ExtendWith(MockitoExtension.class)
-class AnalyticsApiControllerTest {
+class AnalyticsControllerTest {
 
     @Mock
     private AnalyticsService service;
@@ -28,8 +28,8 @@ class AnalyticsApiControllerTest {
     @BeforeEach
     @SuppressWarnings("unused")
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AnalyticsApiController(service))
-                .setControllerAdvice(new AuthExceptionHandler())
+        mockMvc = MockMvcBuilders.standaloneSetup(new AnalyticsController(service))
+                .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
 

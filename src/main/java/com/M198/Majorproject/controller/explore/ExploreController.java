@@ -10,12 +10,12 @@ import com.M198.Majorproject.service.explore.ExploreService;
 
 @RestController
 @RequestMapping("/v1/explore")
-public class ExploreApiController {
+public class ExploreController {
 
     private final ExploreService service;
     private final CourseService courseService;
 
-    public ExploreApiController(ExploreService service, CourseService courseService) {
+    public ExploreController(ExploreService service, CourseService courseService) {
         this.service = service;
         this.courseService = courseService;
     }

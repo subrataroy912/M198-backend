@@ -17,12 +17,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
-import com.M198.Majorproject.controller.auth.AuthExceptionHandler;
+import com.M198.Majorproject.config.GlobalExceptionHandler;
 import com.M198.Majorproject.dto.CreateCommentRequest;
 import com.M198.Majorproject.service.comment.CommentService;
 
 @ExtendWith(MockitoExtension.class)
-class CommentApiControllerTest {
+class CommentControllerTest {
 
     @Mock
     private CommentService service;
@@ -33,8 +33,8 @@ class CommentApiControllerTest {
     void setUp() {
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
-        mockMvc = MockMvcBuilders.standaloneSetup(new CommentApiController(service))
-                .setControllerAdvice(new AuthExceptionHandler())
+        mockMvc = MockMvcBuilders.standaloneSetup(new CommentController(service))
+                .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(validator)
                 .build();
     }

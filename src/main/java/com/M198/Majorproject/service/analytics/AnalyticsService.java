@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,10 @@ public class AnalyticsService {
             userProfileRepository.findAllByUserIdIn(studentIds).forEach(p -> profiles.put(p.getUserId(), p));
         }
 
+        Map<String, List<StudentGradebookEntry>> entriesByStudent = gradebookRepository
+                .findAllByCourseIdOrderByDueAtAsc(courseId).stream()
+                .collect(Collectors.groupingBy(StudentGradebookEntry::getStudentId));
+
         return students.stream().map(m -> {
             String sId = m.getUserId();
             TeacherGradebookResponse res = new TeacherGradebookResponse();
@@ -63,7 +68,7 @@ public class AnalyticsService {
                 res.setStudentName("Student (" + (sId.length() > 4 ? sId.substring(sId.length() - 4) : sId) + ")");
             }
 
-            List<StudentGradebookEntry> entries = gradebookRepository.findAllByCourseIdAndStudentIdOrderByDueAtAsc(courseId, sId);
+            List<StudentGradebookEntry> entries = entriesByStudent.getOrDefault(sId, List.of());
             long missing = entries.stream().filter(e -> e.getStatus() == SubmissionStatus.MISSING).count();
             res.setMissingCount(missing);
             res.setSubmittedCount(entries.stream().filter(e -> e.getStatus() == SubmissionStatus.TURNED_IN || e.getStatus() == SubmissionStatus.GRADED).count());

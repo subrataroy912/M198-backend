@@ -19,12 +19,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import com.M198.Majorproject.controller.auth.AuthExceptionHandler;
+import com.M198.Majorproject.config.GlobalExceptionHandler;
 import com.M198.Majorproject.dto.CourseworkResponse;
 import com.M198.Majorproject.service.coursework.CourseworkService;
 
 @ExtendWith(MockitoExtension.class)
-class CourseworkApiControllerTest {
+class CourseworkControllerTest {
 
     @Mock
     private CourseworkService courseworkService;
@@ -33,8 +33,8 @@ class CourseworkApiControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new CourseworkApiController(courseworkService))
-                .setControllerAdvice(new AuthExceptionHandler())
+        mockMvc = MockMvcBuilders.standaloneSetup(new CourseworkController(courseworkService))
+                .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
 

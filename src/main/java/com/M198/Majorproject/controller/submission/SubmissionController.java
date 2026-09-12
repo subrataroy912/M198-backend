@@ -20,11 +20,11 @@ import com.M198.Majorproject.service.submission.SubmissionService;
 
 @RestController
 @RequestMapping("/v1/coursework/{courseworkId}/submissions")
-public class SubmissionApiController {
+public class SubmissionController {
 
     private final SubmissionService submissionService;
 
-    public SubmissionApiController(SubmissionService submissionService) {
+    public SubmissionController(SubmissionService submissionService) {
         this.submissionService = submissionService;
     }
 
