@@ -293,4 +293,23 @@ class CourseServiceTest {
         org.junit.jupiter.api.Assertions.assertFalse(response.isEnrolled());
         org.junit.jupiter.api.Assertions.assertNull(response.getEnrollmentCode());
     }
+
+    @Test
+    void publicCourseWithCodeAccessTypeEnrollmentSucceedsWithoutCode() {
+        Course course = Course.builder()
+                .id("6aa437aecbe563688e22b18d")
+                .status(CourseStatus.ACTIVE)
+                .visibility(CourseVisibility.PUBLIC)
+                .accessType(CourseAccessType.CODE)
+                .enrollmentEnabled(true)
+                .build();
+        when(courseRepository.findByIdAndStatus("6aa437aecbe563688e22b18d", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
+        when(membershipRepository.findByCourseIdAndUserId("6aa437aecbe563688e22b18d", "student-1")).thenReturn(Optional.empty());
+
+        var response = courseService.enroll("6aa437aecbe563688e22b18d", student, new EnrollCourseRequest());
+
+        org.junit.jupiter.api.Assertions.assertNotNull(response);
+        assertEquals("6aa437aecbe563688e22b18d", response.getId());
+        verify(membershipRepository).save(any(CourseMembership.class));
+    }
 }

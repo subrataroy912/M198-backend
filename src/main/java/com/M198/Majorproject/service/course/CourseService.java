@@ -285,7 +285,9 @@ public class CourseService {
             throw new CourseAccessException("This class is invite-only. Please request an invitation from the instructor.");
         }
 
-        if (accessType == CourseAccessType.CODE) {
+        boolean isPublicCourse = course.getVisibility() == CourseVisibility.PUBLIC;
+
+        if (accessType == CourseAccessType.CODE && !isPublicCourse) {
             String code = request != null && request.getCode() != null ? request.getCode().trim() : "";
             if (code.isEmpty()) {
                 throw new CourseAccessException("Enrollment code is required");
@@ -294,7 +296,7 @@ public class CourseService {
                     .filter(value -> value.getCourseId().equals(courseId))
                     .filter(value -> value.getExpiresAt() == null || value.getExpiresAt().isAfter(Instant.now()))
                     .orElseThrow(() -> new CourseAccessException("Invalid enrollment code"));
-        } else if (accessType == CourseAccessType.OPEN) {
+        } else if (accessType == CourseAccessType.OPEN || isPublicCourse) {
             if (request != null && request.getCode() != null && !request.getCode().trim().isEmpty()) {
                 enrollmentCodeRepository.findByCodeAndActiveTrue(request.getCode().trim().toUpperCase())
                         .filter(value -> value.getCourseId().equals(courseId))
