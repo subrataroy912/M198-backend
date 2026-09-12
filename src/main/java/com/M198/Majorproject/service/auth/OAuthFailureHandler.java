@@ -31,13 +31,16 @@ public class OAuthFailureHandler implements AuthenticationFailureHandler {
             HttpServletRequest request,
             HttpServletResponse response,
             AuthenticationException exception) throws IOException, ServletException {
-        // Keep the browser-facing error generic so provider and account details
-        // are not exposed in the URL, but retain the actual failure in server logs.
         log.warn("OAuth authentication failed for {}: {}", request.getRequestURI(), exception.getMessage(), exception);
+        String errorCode = "oauth_failed";
+        if (exception instanceof org.springframework.security.oauth2.core.OAuth2AuthenticationException oauth2Ex
+                && "unverified_email".equals(oauth2Ex.getError().getErrorCode())) {
+            errorCode = "unverified_email";
+        }
         String targetUrl = UriComponentsBuilder
                 .fromUriString(frontendCallbackUrl)
                 .fragment(UriComponentsBuilder.newInstance()
-                        .queryParam("error", "oauth_failed")
+                        .queryParam("error", errorCode)
                         .build()
                         .getQuery())
                 .build()

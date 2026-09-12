@@ -62,6 +62,9 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
         try {
             result = authService.authenticateOAuth(
                     provider, providerUserId, email, emailVerified, displayName, avatarUrl);
+        } catch (org.springframework.security.oauth2.core.OAuth2AuthenticationException exception) {
+            failureHandler.onAuthenticationFailure(request, response, exception);
+            return;
         } catch (RuntimeException exception) {
             failureHandler.onAuthenticationFailure(request, response,
                     new org.springframework.security.authentication.AuthenticationServiceException(

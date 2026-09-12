@@ -56,15 +56,34 @@ public class OAuthUserService implements OAuth2UserService<OAuth2UserRequest, OA
                     .headers(headers -> headers.setBearerAuth(userRequest.getAccessToken().getTokenValue()))
                     .retrieve()
                     .body(String.class);
-            if (response == null) {
+            if (response == null || response.isBlank()) {
                 return;
             }
             JsonNode emails = objectMapper.readTree(response);
-            for (JsonNode email : emails) {
-                if (email.path("primary").asBoolean(false) && email.path("verified").asBoolean(false)) {
-                    attributes.put("email", email.path("email").asText());
+            if (emails.isArray()) {
+                String verifiedPrimaryEmail = null;
+                String verifiedBackupEmail = null;
+
+                for (JsonNode email : emails) {
+                    boolean isVerified = email.path("verified").asBoolean(false);
+                    boolean isPrimary = email.path("primary").asBoolean(false);
+                    String emailAddress = email.path("email").asText(null);
+
+                    if (isVerified && emailAddress != null && !emailAddress.isBlank()) {
+                        if (isPrimary && verifiedPrimaryEmail == null) {
+                            verifiedPrimaryEmail = emailAddress;
+                        } else if (verifiedBackupEmail == null) {
+                            verifiedBackupEmail = emailAddress;
+                        }
+                    }
+                }
+
+                String chosenEmail = verifiedPrimaryEmail != null ? verifiedPrimaryEmail : verifiedBackupEmail;
+                if (chosenEmail != null) {
+                    attributes.put("email", chosenEmail);
                     attributes.put("email_verified", true);
-                    return;
+                } else {
+                    attributes.put("email_verified", false);
                 }
             }
         } catch (RestClientException | java.io.IOException ignored) {

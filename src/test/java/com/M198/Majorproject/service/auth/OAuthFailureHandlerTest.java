@@ -25,4 +25,23 @@ class OAuthFailureHandlerTest {
                 .isEqualTo("http://localhost:5173/auth/callback?source=oauth#error=oauth_failed");
         assertThat(response.getContentAsString()).isEmpty();
     }
+
+    @Test
+    void redirectsToFrontendCallbackWithUnverifiedEmailError() throws Exception {
+        OAuthFailureHandler handler = new OAuthFailureHandler(
+                "http://localhost:5173/auth/callback?source=oauth");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        handler.onAuthenticationFailure(
+                new MockHttpServletRequest(),
+                response,
+                new org.springframework.security.oauth2.core.OAuth2AuthenticationException(
+                        new org.springframework.security.oauth2.core.OAuth2Error("unverified_email"),
+                        "Provider email is missing or unverified"));
+
+        assertThat(response.getStatus()).isEqualTo(302);
+        assertThat(response.getRedirectedUrl())
+                .isEqualTo("http://localhost:5173/auth/callback?source=oauth#error=unverified_email");
+        assertThat(response.getContentAsString()).isEmpty();
+    }
 }

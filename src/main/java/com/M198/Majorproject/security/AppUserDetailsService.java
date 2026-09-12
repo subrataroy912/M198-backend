@@ -48,13 +48,15 @@ public class AppUserDetailsService implements UserDetailsService {
             roles.add("CREATOR");
         }
 
+        boolean hasPassword = user.getPasswordHash() != null && !user.getPasswordHash().isBlank();
         var builder = org.springframework.security.core.userdetails.User
                 .withUsername(username)
-                .password(user.getPasswordHash() == null ? "" : user.getPasswordHash())
+                .password(hasPassword ? user.getPasswordHash() : "{noop}__NO_PASSWORD_SET_USE_SOCIAL_LOGIN__")
                 .roles(roles.toArray(new String[0]));
 
-        if (user.getPasswordHash() == null) {
+        if (!hasPassword) {
             builder.credentialsExpired(true);
+            builder.accountLocked(true);
         }
 
         return builder.build();

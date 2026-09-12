@@ -5,6 +5,7 @@ import java.util.Map;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -38,6 +39,15 @@ import io.jsonwebtoken.JwtException;
 @RestControllerAdvice
 public class AuthExceptionHandler {
 
+    @ExceptionHandler(BadCredentialsException.class)
+    ResponseEntity<Map<String, String>> handleBadCredentialsException(BadCredentialsException exception) {
+        String message = exception.getMessage() != null && !exception.getMessage().isBlank()
+                ? exception.getMessage()
+                : "Invalid credentials";
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", message));
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     ResponseEntity<Map<String, String>> handleAuthenticationException(AuthenticationException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -46,8 +56,11 @@ public class AuthExceptionHandler {
 
     @ExceptionHandler(DuplicateKeyException.class)
     ResponseEntity<Map<String, String>> handleDuplicateKeyException(DuplicateKeyException exception) {
+        String message = exception.getMessage() != null && !exception.getMessage().isBlank()
+                ? exception.getMessage()
+                : "Email is already registered";
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", "Email is already registered"));
+                .body(Map.of("error", message));
     }
 
     @ExceptionHandler(HandleConflictException.class)

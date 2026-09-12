@@ -14,13 +14,17 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -73,7 +77,20 @@ public class AuthService {
             throw new IllegalArgumentException("Public registration requires a teacher or student account");
         }
         String email = normalizeEmail(request.getEmail());
-        if (userRepository.existsByEmail(email)) {
+        Optional<User> existingUserOpt = userRepository.findByEmail(email);
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+            if (existingUser.getPasswordHash() == null || existingUser.getPasswordHash().isBlank()) {
+                List<UserOAuth> oauths = oauthRepository.findAllByUserId(existingUser.getId());
+                String providers = oauths.stream()
+                        .map(o -> formatProviderName(o.getProvider()))
+                        .distinct()
+                        .collect(Collectors.joining(", "));
+                String message = providers.isBlank()
+                        ? "An account with this email already exists via social login. Please sign in using your social account."
+                        : "An account with this email already exists via " + providers + ". Please sign in with " + providers + ".";
+                throw new DuplicateKeyException(message);
+            }
             throw new DuplicateKeyException("Email is already registered");
         }
 
@@ -100,6 +117,19 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         String email = normalizeEmail(request.getEmail());
+        User existingUser = userRepository.findByEmail(email).orElse(null);
+        if (existingUser != null && (existingUser.getPasswordHash() == null || existingUser.getPasswordHash().isBlank())) {
+            List<UserOAuth> oauths = oauthRepository.findAllByUserId(existingUser.getId());
+            String providers = oauths.stream()
+                    .map(o -> formatProviderName(o.getProvider()))
+                    .distinct()
+                    .collect(Collectors.joining(", "));
+            String message = providers.isBlank()
+                    ? "This account does not have a local password set. Please sign in using social login."
+                    : "This account was registered with " + providers + ". Please sign in with " + providers + ".";
+            throw new BadCredentialsException(message);
+        }
+
         authenticationManager.authenticate(
                 UsernamePasswordAuthenticationToken.unauthenticated(email, request.getPassword()));
         User user = userRepository.findByEmailAndActiveTrueAndStatus(email, AccountStatus.ACTIVE)
@@ -197,25 +227,47 @@ public class AuthService {
                     new OAuth2Error("unverified_email"), "Provider email is missing or unverified");
         }
 
+        String normalizedEmail = normalizeEmail(email);
         User user;
         var existingLink = oauthRepository.findByProviderAndProviderUserId(provider, providerUserId);
         if (existingLink.isPresent()) {
-            user = userRepository.findByIdAndActiveTrueAndStatus(existingLink.get().getUserId(), AccountStatus.ACTIVE)
+            user = userRepository.findById(existingLink.get().getUserId())
                     .orElseThrow(() -> new AuthenticationServiceException("OAuth account is unavailable"));
+            if (!user.isActive() || user.getStatus() != AccountStatus.ACTIVE || !user.isVerified()) {
+                user.setActive(true);
+                user.setStatus(AccountStatus.ACTIVE);
+                user.setVerified(true);
+                userRepository.save(user);
+            }
         } else {
-            user = userRepository.findByEmailAndActiveTrueAndStatus(normalizeEmail(email), AccountStatus.ACTIVE)
-                    .orElseGet(() -> createOAuthUserIfEmailIsAvailable(email, displayName, avatarUrl));
+            // Unified identity lookup: match account by verified email
+            var existingUser = userRepository.findByEmail(normalizedEmail);
+            if (existingUser.isPresent()) {
+                user = existingUser.get();
+                if (!user.isActive() || user.getStatus() != AccountStatus.ACTIVE || !user.isVerified()) {
+                    user.setActive(true);
+                    user.setStatus(AccountStatus.ACTIVE);
+                    user.setVerified(true);
+                    userRepository.save(user);
+                }
+            } else {
+                user = createOAuthUser(normalizedEmail, displayName, avatarUrl);
+            }
+
+            if (oauthRepository.findByUserIdAndProvider(user.getId(), provider).isEmpty()) {
+                try {
+                    oauthRepository.save(UserOAuth.builder()
+                            .userId(user.getId())
+                            .provider(provider)
+                            .providerUserId(providerUserId)
+                            .build());
+                } catch (DuplicateKeyException ignored) {
+                    // Handled idempotently for concurrent requests
+                }
+            }
         }
 
         ensureProfileExists(user, displayName, avatarUrl);
-
-        if (oauthRepository.findByUserIdAndProvider(user.getId(), provider).isEmpty()) {
-            oauthRepository.save(UserOAuth.builder()
-                    .userId(user.getId())
-                    .provider(provider)
-                    .providerUserId(providerUserId)
-                    .build());
-        }
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
         return issueTokens(user);
@@ -244,21 +296,22 @@ public class AuthService {
         return user;
     }
 
-    private User createOAuthUserIfEmailIsAvailable(String email, String displayName, String avatarUrl) {
-        if (userRepository.findByEmail(normalizeEmail(email)).isPresent()) {
-            throw new AuthenticationServiceException("An account already exists for this email");
-        }
-        return createOAuthUser(email, displayName, avatarUrl);
-    }
-
     private void ensureProfileExists(User user, String displayName, String avatarUrl) {
         var existingProfile = profileRepository.findByUserId(user.getId());
         if (existingProfile.filter(profile -> profile.getDeletedAt() == null).isPresent()) {
+            UserProfile profile = existingProfile.get();
+            if ((profile.getAvatarUrl() == null || profile.getAvatarUrl().isBlank()) && avatarUrl != null && !avatarUrl.isBlank()) {
+                profile.setAvatarUrl(avatarUrl);
+                profileRepository.save(profile);
+            }
             return;
         }
         if (existingProfile.isPresent()) {
             UserProfile profile = existingProfile.get();
             profile.setDeletedAt(null);
+            if ((profile.getAvatarUrl() == null || profile.getAvatarUrl().isBlank()) && avatarUrl != null && !avatarUrl.isBlank()) {
+                profile.setAvatarUrl(avatarUrl);
+            }
             profileRepository.save(profile);
             return;
         }
@@ -271,6 +324,17 @@ public class AuthService {
                 .avatarUrl(avatarUrl)
                 .profileVisibility(ProfileVisibility.PRIVATE)
                 .build());
+    }
+
+    private String formatProviderName(OAuthProvider provider) {
+        if (provider == null) {
+            return "Social Login";
+        }
+        return switch (provider) {
+            case GOOGLE -> "Google";
+            case GITHUB -> "GitHub";
+            case MICROSOFT -> "Microsoft";
+        };
     }
 
     private AuthResponse issueTokens(User user) {
