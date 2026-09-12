@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import com.M198.Majorproject.controller.auth.AuthExceptionHandler;
+import com.M198.Majorproject.dto.CourseCoverUploadResponse;
 import com.M198.Majorproject.dto.CourseResponse;
 import com.M198.Majorproject.dto.CreateCourseRequest;
 import com.M198.Majorproject.service.course.CourseService;
@@ -95,5 +96,23 @@ class CourseControllerTest {
         void archiveReturnsNoContent() throws Exception {
                 mockMvc.perform(delete("/v1/courses/course-1"))
                                 .andExpect(status().isNoContent());
+        }
+
+        @Test
+        void requestCoverUploadReturnsUploadConfig() throws Exception {
+                when(courseService.requestCoverUpload(org.mockito.ArgumentMatchers.nullable(Authentication.class)))
+                                .thenReturn(new CourseCoverUploadResponse());
+
+                mockMvc.perform(post("/v1/courses/cover-upload"))
+                                .andExpect(status().isOk());
+        }
+
+        @Test
+        void requestLogoUploadReturnsUploadConfig() throws Exception {
+                when(courseService.requestLogoUpload(org.mockito.ArgumentMatchers.nullable(Authentication.class)))
+                                .thenReturn(new CourseCoverUploadResponse());
+
+                mockMvc.perform(post("/v1/courses/logo-upload"))
+                                .andExpect(status().isOk());
         }
 }
