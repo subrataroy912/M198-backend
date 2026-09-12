@@ -339,4 +339,80 @@ class CourseServiceTest {
         org.junit.jupiter.api.Assertions.assertTrue(response.isEnrolled());
         assertEquals("STUDENT", response.getRole());
     }
+
+    @Test
+    void removeMemberSuccessfully() {
+        Course course = Course.builder().id("course-1").status(CourseStatus.ACTIVE).build();
+        when(courseRepository.findByIdAndStatus("course-1", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
+
+        CourseMembership teacherMembership = CourseMembership.builder()
+                .courseId("course-1")
+                .userId("teacher-1")
+                .role(MembershipRole.TEACHER)
+                .status(MembershipStatus.ACTIVE)
+                .build();
+        when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-1", "teacher-1", MembershipStatus.ACTIVE))
+                .thenReturn(Optional.of(teacherMembership));
+
+        CourseMembership studentMembership = CourseMembership.builder()
+                .courseId("course-1")
+                .userId("student-2")
+                .role(MembershipRole.STUDENT)
+                .status(MembershipStatus.ACTIVE)
+                .build();
+        when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-1", "student-2", MembershipStatus.ACTIVE))
+                .thenReturn(Optional.of(studentMembership));
+
+        courseService.removeMember("course-1", "student-2", teacher);
+
+        assertEquals(MembershipStatus.REMOVED, studentMembership.getStatus());
+        org.junit.jupiter.api.Assertions.assertNotNull(studentMembership.getRemovedAt());
+        verify(membershipRepository).save(studentMembership);
+    }
+
+    @Test
+    void removeMemberFailsWhenTargetIsOwner() {
+        Course course = Course.builder().id("course-1").status(CourseStatus.ACTIVE).build();
+        when(courseRepository.findByIdAndStatus("course-1", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
+
+        CourseMembership teacherMembership = CourseMembership.builder()
+                .courseId("course-1")
+                .userId("teacher-1")
+                .role(MembershipRole.TEACHER)
+                .status(MembershipStatus.ACTIVE)
+                .build();
+        when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-1", "teacher-1", MembershipStatus.ACTIVE))
+                .thenReturn(Optional.of(teacherMembership));
+
+        CourseMembership ownerMembership = CourseMembership.builder()
+                .courseId("course-1")
+                .userId("owner-1")
+                .role(MembershipRole.OWNER)
+                .status(MembershipStatus.ACTIVE)
+                .build();
+        when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-1", "owner-1", MembershipStatus.ACTIVE))
+                .thenReturn(Optional.of(ownerMembership));
+
+        assertThrows(CourseService.CourseConflictException.class,
+                () -> courseService.removeMember("course-1", "owner-1", teacher));
+    }
+
+    @Test
+    void removeMemberFailsWhenCallerNotTeacherOrOwner() {
+        Course course = Course.builder().id("course-1").status(CourseStatus.ACTIVE).build();
+        when(courseRepository.findByIdAndStatus("course-1", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
+
+        CourseMembership studentMembership = CourseMembership.builder()
+                .courseId("course-1")
+                .userId("student-1")
+                .role(MembershipRole.STUDENT)
+                .status(MembershipStatus.ACTIVE)
+                .build();
+        when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-1", "student-1", MembershipStatus.ACTIVE))
+                .thenReturn(Optional.of(studentMembership));
+
+        assertThrows(CourseService.CourseAccessException.class,
+                () -> courseService.removeMember("course-1", "student-2", student));
+    }
 }
+

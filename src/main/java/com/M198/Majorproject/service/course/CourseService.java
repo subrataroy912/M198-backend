@@ -379,6 +379,22 @@ public class CourseService {
         syncDiscovery(activeCourse(courseId));
     }
 
+    public void removeMember(String courseId, String memberUserId, Authentication authentication) {
+        String currentUserId = authenticatedUserId(authentication);
+        Course course = activeCourse(courseId);
+        requireOwnerOrTeacher(courseId, currentUserId);
+        CourseMembership membership = membershipRepository.findByCourseIdAndUserIdAndStatus(
+                courseId, memberUserId, MembershipStatus.ACTIVE)
+                .orElseThrow(CourseNotFoundException::new);
+        if (membership.getRole() == MembershipRole.OWNER) {
+            throw new CourseConflictException("Course owner cannot be removed");
+        }
+        membership.setStatus(MembershipStatus.REMOVED);
+        membership.setRemovedAt(Instant.now());
+        membershipRepository.save(membership);
+        syncDiscovery(course);
+    }
+
     public CourseResponse update(String courseId, Authentication authentication, UpdateCourseRequest request) {
         String userId = authenticatedUserId(authentication);
         Course course = activeCourse(courseId);

@@ -114,4 +114,14 @@ public class CourseController {
             Authentication authentication) {
         courseService.leave(courseId, authentication);
     }
+
+    @DeleteMapping("/{courseId}/members/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeMember(
+            @PathVariable String courseId,
+            @PathVariable String userId,
+            Authentication authentication) {
+        courseService.removeMember(courseId, userId, authentication);
+    }
 }
+

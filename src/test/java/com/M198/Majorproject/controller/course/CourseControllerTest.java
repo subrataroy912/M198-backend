@@ -115,4 +115,11 @@ class CourseControllerTest {
                 mockMvc.perform(post("/v1/courses/logo-upload"))
                                 .andExpect(status().isOk());
         }
+
+        @Test
+        void removeMemberReturnsNoContent() throws Exception {
+                mockMvc.perform(delete("/v1/courses/course-1/members/user-2"))
+                                .andExpect(status().isNoContent());
+        }
 }
+
