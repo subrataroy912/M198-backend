@@ -36,3 +36,5 @@ build/
 
 # Local environment configuration
 local.env
+.env
+.env.*

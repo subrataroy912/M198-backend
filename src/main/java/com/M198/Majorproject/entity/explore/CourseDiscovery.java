@@ -41,6 +41,8 @@ public class CourseDiscovery {
     private String title;
     private String subject;
     private List<String> tags;
+    private String coverUrl;
+    private String logoUrl;
 
     @Builder.Default
     private CourseVisibility visibility = CourseVisibility.PRIVATE;

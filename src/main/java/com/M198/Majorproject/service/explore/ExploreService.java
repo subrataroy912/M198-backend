@@ -50,6 +50,8 @@ public class ExploreService {
         r.setTitle(value.getTitle());
         r.setSubject(value.getSubject());
         r.setTags(value.getTags());
+        r.setCoverUrl(value.getCoverUrl());
+        r.setLogoUrl(value.getLogoUrl());
         r.setAccessType(value.getAccessType() != null ? value.getAccessType() : com.M198.Majorproject.entity.course.CourseAccessType.OPEN);
         r.setEnrollmentCount(value.getEnrollmentCount());
         r.setPopularityScore(value.getPopularityScore());

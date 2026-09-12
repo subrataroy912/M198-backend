@@ -21,6 +21,8 @@ public class UpdateCourseRequest {
     private String description;
     @Size(max = 2048)
     private String coverUrl;
+    @Size(max = 2048)
+    private String logoUrl;
     private CourseAccessType accessType;
     private CourseVisibility visibility;
     private Boolean enrollmentEnabled;

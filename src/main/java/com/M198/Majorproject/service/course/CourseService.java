@@ -122,6 +122,25 @@ public class CourseService {
         return response;
     }
 
+    public CourseCoverUploadResponse requestLogoUpload(Authentication authentication) {
+        authenticatedUserId(authentication);
+        if (cloudName.isBlank() || apiKey.isBlank() || apiSecret.isBlank()) {
+            throw new CourseAccessException("Cloudinary is not configured");
+        }
+        String publicId = "course_logos/" + UUID.randomUUID();
+        long timestamp = Instant.now().getEpochSecond();
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("public_id", publicId);
+        parameters.put("timestamp", timestamp);
+        CourseCoverUploadResponse response = new CourseCoverUploadResponse();
+        response.setUploadUrl("https://api.cloudinary.com/v1_1/" + cloudName + "/image/upload");
+        response.setPublicId(publicId);
+        response.setUploadApiKey(apiKey);
+        response.setUploadSignature(cloudinary.apiSignRequest(parameters, apiSecret, 0));
+        response.setUploadTimestamp(timestamp);
+        return response;
+    }
+
     public CourseResponse createCourse(Authentication authentication, CreateCourseRequest request) {
         String userId = authenticatedUserId(authentication);
         requireCanCreateCourse(authentication, userId);
@@ -151,6 +170,7 @@ public class CourseService {
                 .subject(normalize(request.getSubject()))
                 .description(normalize(request.getDescription()))
                 .coverUrl(normalize(request.getCoverUrl()))
+                .logoUrl(normalize(request.getLogoUrl()))
                 .accessType(accessType)
                 .visibility(visibility)
                 .enrollmentEnabled(enrollmentEnabled)
@@ -250,6 +270,7 @@ public class CourseService {
         response.setSubject(course.getSubject());
         response.setDescription(course.getDescription());
         response.setCoverUrl(course.getCoverUrl());
+        response.setLogoUrl(course.getLogoUrl());
         response.setVisibility(course.getVisibility());
         response.setAccessType(course.getAccessType() != null
                 ? course.getAccessType()
@@ -393,6 +414,9 @@ public class CourseService {
         }
         if (request.getCoverUrl() != null) {
             course.setCoverUrl(normalize(request.getCoverUrl()));
+        }
+        if (request.getLogoUrl() != null) {
+            course.setLogoUrl(normalize(request.getLogoUrl()));
         }
         Course savedCourse = courseRepository.save(course);
         syncDiscovery(savedCourse);
@@ -541,6 +565,7 @@ public class CourseService {
         response.setSubject(course.getSubject());
         response.setDescription(course.getDescription());
         response.setCoverUrl(course.getCoverUrl());
+        response.setLogoUrl(course.getLogoUrl());
         CourseAccessType accessType = course.getAccessType() != null
                 ? course.getAccessType()
                 : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.OPEN : CourseAccessType.CODE);
@@ -587,6 +612,8 @@ public class CourseService {
         discovery.setCourseId(course.getId());
         discovery.setTitle(course.getTitle());
         discovery.setSubject(course.getSubject());
+        discovery.setCoverUrl(course.getCoverUrl());
+        discovery.setLogoUrl(course.getLogoUrl());
         discovery.setVisibility(course.getVisibility());
         discovery.setAccessType(course.getAccessType() != null ? course.getAccessType() : CourseAccessType.OPEN);
         discovery.setStatus(course.getStatus());

@@ -16,6 +16,7 @@ public class PublicCourseResponse {
   private String subject;
   private String description;
   private String coverUrl;
+  private String logoUrl;
   private CourseVisibility visibility;
   private CourseAccessType accessType;
   private boolean enrollmentEnabled;

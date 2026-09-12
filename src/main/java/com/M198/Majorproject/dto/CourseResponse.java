@@ -22,6 +22,7 @@ public class CourseResponse {
     private String subject;
     private String description;
     private String coverUrl;
+    private String logoUrl;
     private CourseVisibility visibility;
     private com.M198.Majorproject.entity.course.CourseAccessType accessType;
     private CourseStatus status;
@@ -34,6 +35,10 @@ public class CourseResponse {
 
     public String getName() {
         return title;
+    }
+
+    public String getLogo() {
+        return logoUrl;
     }
 
     public String getCode() {

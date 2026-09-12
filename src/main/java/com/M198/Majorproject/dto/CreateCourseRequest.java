@@ -31,4 +31,7 @@ public class CreateCourseRequest {
 
     @Size(max = 2048)
     private String coverUrl;
+
+    @Size(max = 2048)
+    private String logoUrl;
 }

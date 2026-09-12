@@ -14,6 +14,8 @@ public class CourseDiscoveryResponse {
     private String title;
     private String subject;
     private List<String> tags;
+    private String coverUrl;
+    private String logoUrl;
     private CourseAccessType accessType;
     private long enrollmentCount;
     private double popularityScore;

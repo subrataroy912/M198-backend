@@ -55,6 +55,11 @@ public class CourseController {
         return courseService.requestCoverUpload(authentication);
     }
 
+    @PostMapping("/logo-upload")
+    public CourseCoverUploadResponse requestLogoUpload(Authentication authentication) {
+        return courseService.requestLogoUpload(authentication);
+    }
+
     @GetMapping
     public List<CourseResponse> listCourses(Authentication authentication) {
         return courseService.listMyCourses(authentication);
