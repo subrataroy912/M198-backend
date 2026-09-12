@@ -171,6 +171,7 @@ public class CourseService {
                 .description(normalize(request.getDescription()))
                 .coverUrl(normalize(request.getCoverUrl()))
                 .logoUrl(normalize(request.getLogoUrl()))
+                .theme(normalize(request.getTheme()))
                 .accessType(accessType)
                 .visibility(visibility)
                 .enrollmentEnabled(enrollmentEnabled)
@@ -271,6 +272,7 @@ public class CourseService {
         response.setDescription(course.getDescription());
         response.setCoverUrl(course.getCoverUrl());
         response.setLogoUrl(course.getLogoUrl());
+        response.setTheme(course.getTheme());
         response.setVisibility(course.getVisibility());
         response.setAccessType(course.getAccessType() != null
                 ? course.getAccessType()
@@ -417,6 +419,9 @@ public class CourseService {
         }
         if (request.getLogoUrl() != null) {
             course.setLogoUrl(normalize(request.getLogoUrl()));
+        }
+        if (request.getTheme() != null) {
+            course.setTheme(normalize(request.getTheme()));
         }
         Course savedCourse = courseRepository.save(course);
         syncDiscovery(savedCourse);
@@ -566,6 +571,7 @@ public class CourseService {
         response.setDescription(course.getDescription());
         response.setCoverUrl(course.getCoverUrl());
         response.setLogoUrl(course.getLogoUrl());
+        response.setTheme(course.getTheme());
         CourseAccessType accessType = course.getAccessType() != null
                 ? course.getAccessType()
                 : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.OPEN : CourseAccessType.CODE);
@@ -614,6 +620,7 @@ public class CourseService {
         discovery.setSubject(course.getSubject());
         discovery.setCoverUrl(course.getCoverUrl());
         discovery.setLogoUrl(course.getLogoUrl());
+        discovery.setTheme(course.getTheme());
         discovery.setVisibility(course.getVisibility());
         discovery.setAccessType(course.getAccessType() != null ? course.getAccessType() : CourseAccessType.OPEN);
         discovery.setStatus(course.getStatus());

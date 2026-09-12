@@ -47,6 +47,7 @@ public class Course {
     private String description;
     private String coverUrl;
     private String logoUrl;
+    private String theme;
 
     @Builder.Default
     private CourseVisibility visibility = CourseVisibility.PRIVATE;

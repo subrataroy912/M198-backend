@@ -34,4 +34,7 @@ public class CreateCourseRequest {
 
     @Size(max = 2048)
     private String logoUrl;
+
+    @Size(max = 64)
+    private String theme;
 }

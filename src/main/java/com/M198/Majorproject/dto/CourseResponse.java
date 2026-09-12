@@ -23,6 +23,7 @@ public class CourseResponse {
     private String description;
     private String coverUrl;
     private String logoUrl;
+    private String theme;
     private CourseVisibility visibility;
     private com.M198.Majorproject.entity.course.CourseAccessType accessType;
     private CourseStatus status;

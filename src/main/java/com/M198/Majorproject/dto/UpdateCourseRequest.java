@@ -26,4 +26,6 @@ public class UpdateCourseRequest {
     private CourseAccessType accessType;
     private CourseVisibility visibility;
     private Boolean enrollmentEnabled;
+    @Size(max = 64)
+    private String theme;
 }
