@@ -1,4 +1,4 @@
-package com.M198.Majorproject.controller.attachment;
+package com.M198.Majorproject.attachment.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -18,9 +18,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.M198.Majorproject.config.GlobalExceptionHandler;
-import com.M198.Majorproject.dto.CompleteAttachmentRequest;
-import com.M198.Majorproject.dto.CreateAttachmentRequest;
-import com.M198.Majorproject.service.attachment.AttachmentService;
+import com.M198.Majorproject.attachment.dto.CompleteAttachmentRequest;
+import com.M198.Majorproject.attachment.dto.CreateAttachmentRequest;
+import com.M198.Majorproject.attachment.service.AttachmentService;
 
 @ExtendWith(MockitoExtension.class)
 class AttachmentControllerTest {

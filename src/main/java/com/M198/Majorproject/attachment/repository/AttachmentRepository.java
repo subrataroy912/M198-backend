@@ -1,13 +1,13 @@
-package com.M198.Majorproject.repository.attachment;
+package com.M198.Majorproject.attachment.repository;
 
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.M198.Majorproject.entity.attachment.Attachment;
-import com.M198.Majorproject.entity.attachment.AttachmentResourceType;
-import com.M198.Majorproject.entity.attachment.AttachmentStatus;
+import com.M198.Majorproject.attachment.entity.Attachment;
+import com.M198.Majorproject.attachment.entity.AttachmentResourceType;
+import com.M198.Majorproject.attachment.entity.AttachmentStatus;
 
 public interface AttachmentRepository extends MongoRepository<Attachment, String> {
 

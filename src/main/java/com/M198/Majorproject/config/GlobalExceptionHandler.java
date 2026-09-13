@@ -23,11 +23,11 @@ import com.M198.Majorproject.service.coursework.CourseworkService.CourseworkNotF
 import com.M198.Majorproject.service.submission.SubmissionService.SubmissionAccessException;
 import com.M198.Majorproject.service.submission.SubmissionService.SubmissionConflictException;
 import com.M198.Majorproject.service.submission.SubmissionService.SubmissionNotFoundException;
-import com.M198.Majorproject.service.attachment.AttachmentService.AttachmentAccessException;
-import com.M198.Majorproject.service.attachment.AttachmentService.AttachmentNotFoundException;
-import com.M198.Majorproject.service.attachment.AttachmentService.AttachmentConfigurationException;
-import com.M198.Majorproject.service.attachment.AttachmentService.AttachmentConflictException;
-import com.M198.Majorproject.service.attachment.AttachmentService.AttachmentStorageException;
+import com.M198.Majorproject.attachment.service.AttachmentService.AttachmentAccessException;
+import com.M198.Majorproject.attachment.service.AttachmentService.AttachmentNotFoundException;
+import com.M198.Majorproject.attachment.service.AttachmentService.AttachmentConfigurationException;
+import com.M198.Majorproject.attachment.service.AttachmentService.AttachmentConflictException;
+import com.M198.Majorproject.attachment.service.AttachmentService.AttachmentStorageException;
 import com.M198.Majorproject.service.comment.CommentService.CommentAccessException;
 import com.M198.Majorproject.service.comment.CommentService.CommentNotFoundException;
 import com.M198.Majorproject.notification.service.NotificationService.NotificationAccessException;

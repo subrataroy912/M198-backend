@@ -1,4 +1,4 @@
-package com.M198.Majorproject.entity.attachment;
+package com.M198.Majorproject.attachment.entity;
 
 public enum AttachmentStatus {
     PENDING,

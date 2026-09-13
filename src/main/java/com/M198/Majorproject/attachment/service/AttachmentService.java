@@ -1,4 +1,4 @@
-package com.M198.Majorproject.service.attachment;
+package com.M198.Majorproject.attachment.service;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -11,15 +11,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
-import com.M198.Majorproject.dto.AttachmentResponse;
-import com.M198.Majorproject.dto.CreateAttachmentRequest;
-import com.M198.Majorproject.entity.attachment.Attachment;
-import com.M198.Majorproject.entity.attachment.AttachmentResourceType;
-import com.M198.Majorproject.entity.attachment.AttachmentStatus;
+import com.M198.Majorproject.attachment.dto.AttachmentResponse;
+import com.M198.Majorproject.attachment.dto.CompleteAttachmentRequest;
+import com.M198.Majorproject.attachment.dto.CreateAttachmentRequest;
+import com.M198.Majorproject.attachment.entity.Attachment;
+import com.M198.Majorproject.attachment.entity.AttachmentResourceType;
+import com.M198.Majorproject.attachment.entity.AttachmentStatus;
+import com.M198.Majorproject.attachment.repository.AttachmentRepository;
 import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
-import com.M198.Majorproject.repository.attachment.AttachmentRepository;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.coursework.CourseworkRepository;
 import com.M198.Majorproject.repository.submission.SubmissionRepository;
@@ -90,7 +91,7 @@ public class AttachmentService {
     }
 
     public AttachmentResponse complete(
-            String attachmentId, Authentication authentication, com.M198.Majorproject.dto.CompleteAttachmentRequest request) {
+            String attachmentId, Authentication authentication, CompleteAttachmentRequest request) {
         String userId = authenticatedUserId(authentication);
         Attachment attachment = attachmentRepository.findById(attachmentId)
                 .filter(value -> value.getStatus() == AttachmentStatus.PENDING)

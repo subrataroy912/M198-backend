@@ -1,4 +1,4 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.attachment.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;

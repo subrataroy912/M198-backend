@@ -1,4 +1,4 @@
-package com.M198.Majorproject.controller.attachment;
+package com.M198.Majorproject.attachment.controller;
 
 import java.io.IOException;
 import java.util.List;
@@ -15,11 +15,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.M198.Majorproject.dto.AttachmentResponse;
-import com.M198.Majorproject.dto.CreateAttachmentRequest;
-import com.M198.Majorproject.dto.CompleteAttachmentRequest;
-import com.M198.Majorproject.entity.attachment.AttachmentResourceType;
-import com.M198.Majorproject.service.attachment.AttachmentService;
+import com.M198.Majorproject.attachment.dto.AttachmentResponse;
+import com.M198.Majorproject.attachment.dto.CreateAttachmentRequest;
+import com.M198.Majorproject.attachment.dto.CompleteAttachmentRequest;
+import com.M198.Majorproject.attachment.entity.AttachmentResourceType;
+import com.M198.Majorproject.attachment.service.AttachmentService;
 
 @RestController
 @RequestMapping("/v1/attachments")

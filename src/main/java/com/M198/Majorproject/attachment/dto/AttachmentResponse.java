@@ -1,9 +1,9 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.attachment.dto;
 
 import java.time.Instant;
 
-import com.M198.Majorproject.entity.attachment.AttachmentResourceType;
-import com.M198.Majorproject.entity.attachment.AttachmentStatus;
+import com.M198.Majorproject.attachment.entity.AttachmentResourceType;
+import com.M198.Majorproject.attachment.entity.AttachmentStatus;
 
 import lombok.Getter;
 import lombok.Setter;
