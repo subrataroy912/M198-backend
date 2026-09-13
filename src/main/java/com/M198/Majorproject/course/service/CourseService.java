@@ -41,12 +41,12 @@ import com.M198.Majorproject.course.entity.CourseVisibility;
 import com.M198.Majorproject.course.entity.EnrollmentCode;
 import com.M198.Majorproject.course.entity.MembershipRole;
 import com.M198.Majorproject.course.entity.MembershipStatus;
-import com.M198.Majorproject.explore.entity.CourseDiscovery;
-import com.M198.Majorproject.identity.entity.AccountType;
 import com.M198.Majorproject.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.course.repository.CourseRepository;
 import com.M198.Majorproject.course.repository.EnrollmentCodeRepository;
+import com.M198.Majorproject.explore.entity.CourseDiscovery;
 import com.M198.Majorproject.explore.repository.CourseDiscoveryRepository;
+import com.M198.Majorproject.identity.entity.AccountType;
 import com.M198.Majorproject.identity.entity.UserProfile;
 import com.M198.Majorproject.identity.repository.UserProfileRepository;
 import com.cloudinary.Cloudinary;
@@ -98,7 +98,8 @@ public class CourseService {
             String cloudName,
             String apiKey,
             String apiSecret) {
-        this(courseRepository, membershipRepository, enrollmentCodeRepository, courseDiscoveryRepository, null, cloudinary, cloudName, apiKey, apiSecret);
+        this(courseRepository, membershipRepository, enrollmentCodeRepository, courseDiscoveryRepository, null,
+                cloudinary, cloudName, apiKey, apiSecret);
     }
 
     public CourseService(
@@ -222,7 +223,8 @@ public class CourseService {
 
     public List<CourseResponse> listMyCourses(Authentication authentication) {
         String userId = authenticatedUserId(authentication);
-        List<CourseMembership> memberships = membershipRepository.findAllByUserIdAndStatus(userId, MembershipStatus.ACTIVE);
+        List<CourseMembership> memberships = membershipRepository.findAllByUserIdAndStatus(userId,
+                MembershipStatus.ACTIVE);
         if (memberships.isEmpty()) {
             return Collections.emptyList();
         }
@@ -260,7 +262,8 @@ public class CourseService {
         // Batch fetch member counts
         Map<String, Long> memberCountMap = Collections.emptyMap();
         if (membershipRepository != null && !activeCourseIds.isEmpty()) {
-            List<CourseMembership> allCourseMemberships = membershipRepository.findAllByCourseIdInAndStatus(activeCourseIds, MembershipStatus.ACTIVE);
+            List<CourseMembership> allCourseMemberships = membershipRepository
+                    .findAllByCourseIdInAndStatus(activeCourseIds, MembershipStatus.ACTIVE);
             memberCountMap = allCourseMemberships.stream()
                     .collect(Collectors.groupingBy(CourseMembership::getCourseId, Collectors.counting()));
         }
@@ -299,8 +302,10 @@ public class CourseService {
         String userId = authenticatedUserId(authentication);
         Course course = courseRepository.findById(courseId).orElse(null);
         var membership = membershipRepository.findByCourseIdAndUserId(courseId, userId);
-        boolean isStaffOrEnrolled = membership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE).isPresent();
-        boolean isPublicCourse = course != null && (course.getVisibility() == CourseVisibility.PUBLIC || course.getAccessType() == CourseAccessType.OPEN);
+        boolean isStaffOrEnrolled = membership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE)
+                .isPresent();
+        boolean isPublicCourse = course != null && (course.getVisibility() == CourseVisibility.PUBLIC
+                || course.getAccessType() == CourseAccessType.OPEN);
 
         if (course == null || course.getStatus() != CourseStatus.ACTIVE || (!isStaffOrEnrolled && !isPublicCourse)) {
             logger.warn(
@@ -368,7 +373,8 @@ public class CourseService {
                 : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.OPEN : CourseAccessType.CODE);
 
         if (accessType == CourseAccessType.INVITE) {
-            throw new CourseAccessException("This class is invite-only. Please request an invitation from the instructor.");
+            throw new CourseAccessException(
+                    "This class is invite-only. Please request an invitation from the instructor.");
         }
 
         boolean isPublicCourse = course.getVisibility() == CourseVisibility.PUBLIC;
@@ -476,16 +482,23 @@ public class CourseService {
         }
         if (request.getAccessType() != null) {
             course.setAccessType(request.getAccessType());
-            if (request.getAccessType() == CourseAccessType.INVITE) {
-                course.setVisibility(CourseVisibility.PRIVATE);
-                course.setEnrollmentEnabled(false);
-            } else if (request.getAccessType() == CourseAccessType.OPEN) {
-                course.setVisibility(CourseVisibility.PUBLIC);
-                course.setEnrollmentEnabled(true);
-            } else if (request.getAccessType() == CourseAccessType.CODE) {
-                course.setVisibility(CourseVisibility.PRIVATE);
-                course.setEnrollmentEnabled(true);
-            }
+            if (null != request.getAccessType())
+                switch (request.getAccessType()) {
+                    case INVITE -> {
+                        course.setVisibility(CourseVisibility.PRIVATE);
+                        course.setEnrollmentEnabled(false);
+                    }
+                    case OPEN -> {
+                        course.setVisibility(CourseVisibility.PUBLIC);
+                        course.setEnrollmentEnabled(true);
+                    }
+                    case CODE -> {
+                        course.setVisibility(CourseVisibility.PRIVATE);
+                        course.setEnrollmentEnabled(true);
+                    }
+                    default -> {
+                    }
+                }
         }
         if (request.getVisibility() != null) {
             course.setVisibility(request.getVisibility());
@@ -523,7 +536,8 @@ public class CourseService {
         if (!hasRole(authentication, AccountType.ADMIN)) {
             requireActiveMember(courseId, userId);
         }
-        List<CourseMembership> memberships = membershipRepository.findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE);
+        List<CourseMembership> memberships = membershipRepository.findAllByCourseIdAndStatus(courseId,
+                MembershipStatus.ACTIVE);
         Map<String, UserProfile> profileMap = new HashMap<>();
         if (userProfileRepository != null) {
             List<String> userIds = memberships.stream().map(CourseMembership::getUserId).toList();
@@ -578,6 +592,7 @@ public class CourseService {
         return authentication.getName();
     }
 
+    @SuppressWarnings("unused")
     private void requireRole(Authentication authentication, AccountType requiredRole) {
         boolean permitted = hasRole(authentication, requiredRole);
         if (!permitted) {
@@ -642,7 +657,8 @@ public class CourseService {
         return toResponse(course, ownerProfile, memberCount, enrollmentCode);
     }
 
-    private CourseResponse toResponse(Course course, UserProfile ownerProfile, long memberCount, String enrollmentCode) {
+    private CourseResponse toResponse(Course course, UserProfile ownerProfile, long memberCount,
+            String enrollmentCode) {
         CourseResponse response = new CourseResponse();
         response.setId(course.getId());
         response.setOwnerId(course.getOwnerId());
