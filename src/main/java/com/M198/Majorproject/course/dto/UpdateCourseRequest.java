@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import com.M198.Majorproject.course.entity.CourseAccessType;
 import com.M198.Majorproject.course.entity.CourseVisibility;
 import com.M198.Majorproject.course.entity.MeetingType;
+import com.M198.Majorproject.course.entity.SpaceLink;
 import com.M198.Majorproject.course.entity.SpaceType;
 
 import lombok.Getter;
@@ -34,6 +35,7 @@ public class UpdateCourseRequest {
     @Size(max = 500)
     private String location;
     private List<String> tags;
+    private List<SpaceLink> links;
     private Boolean enrollmentEnabled;
     @Size(max = 64)
     private String theme;

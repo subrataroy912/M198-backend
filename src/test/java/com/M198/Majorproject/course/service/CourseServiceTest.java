@@ -517,5 +517,59 @@ class CourseServiceTest {
 
         verify(courseRepository).deleteById("course-1");
     }
+
+    @Test
+    void createAndModifyCourseWithSpaceLinks() {
+        com.M198.Majorproject.course.entity.SpaceLink link1 = com.M198.Majorproject.course.entity.SpaceLink.builder()
+                .id("link-1")
+                .title("Project Repo")
+                .url("https://github.com/example/repo")
+                .category("REPOSITORY")
+                .build();
+
+        CreateCourseRequest request = new CreateCourseRequest();
+        request.setTitle("Robotics Club");
+        request.setSpaceType(com.M198.Majorproject.course.entity.SpaceType.CLUB_SOCIETY);
+        request.setLinks(java.util.List.of(link1));
+
+        var response = courseService.createCourse(teacher, request);
+        org.junit.jupiter.api.Assertions.assertNotNull(response.getLinks());
+        assertEquals(1, response.getLinks().size());
+        assertEquals("Project Repo", response.getLinks().get(0).getTitle());
+        assertEquals("https://github.com/example/repo", response.getLinks().get(0).getUrl());
+
+        Course course = Course.builder()
+                .id("course-1")
+                .ownerId("teacher-1")
+                .title("Robotics Club")
+                .status(CourseStatus.ACTIVE)
+                .links(java.util.List.of(link1))
+                .build();
+        when(courseRepository.findByIdAndStatus("course-1", CourseStatus.ACTIVE))
+                .thenReturn(Optional.of(course));
+
+        CourseMembership ownerMembership = CourseMembership.builder()
+                .courseId("course-1")
+                .userId("teacher-1")
+                .role(MembershipRole.OWNER)
+                .status(MembershipStatus.ACTIVE)
+                .build();
+        when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-1", "teacher-1", MembershipStatus.ACTIVE))
+                .thenReturn(Optional.of(ownerMembership));
+
+        com.M198.Majorproject.course.entity.SpaceLink link2 = com.M198.Majorproject.course.entity.SpaceLink.builder()
+                .id("link-2")
+                .title("Discord Server")
+                .url("https://discord.gg/example")
+                .category("COMMUNICATION")
+                .build();
+
+        UpdateCourseRequest updateRequest = new UpdateCourseRequest();
+        updateRequest.setLinks(java.util.List.of(link1, link2));
+
+        var updated = courseService.update("course-1", teacher, updateRequest);
+        org.junit.jupiter.api.Assertions.assertNotNull(updated.getLinks());
+        assertEquals(2, updated.getLinks().size());
+    }
 }
 
