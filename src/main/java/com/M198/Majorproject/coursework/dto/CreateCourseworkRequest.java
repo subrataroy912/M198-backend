@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import com.M198.Majorproject.coursework.entity.CourseworkStatus;
 import com.M198.Majorproject.coursework.entity.CourseworkType;
 
 import lombok.Getter;
@@ -30,4 +31,11 @@ public class CreateCourseworkRequest {
 
     @Min(0)
     private Integer maximumPoints;
+
+    /**
+     * Optional. When set to PUBLISHED the item is immediately visible to students
+     * and publishedAt is recorded. Defaults to DRAFT when omitted or null.
+     * ARCHIVED is not a valid value on creation.
+     */
+    private CourseworkStatus status;
 }

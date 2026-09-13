@@ -36,13 +36,21 @@ public class CourseworkService {
         requireStaff(courseId, userId);
         validateAssignmentFields(request.getType().name(), request.getDueAt(), request.getMaximumPoints());
 
+        // Honour the caller's requested initial status; guard against ARCHIVED on creation.
+        CourseworkStatus initialStatus =
+                request.getStatus() == CourseworkStatus.PUBLISHED
+                        ? CourseworkStatus.PUBLISHED
+                        : CourseworkStatus.DRAFT;
+        Instant publishedAt = initialStatus == CourseworkStatus.PUBLISHED ? Instant.now() : null;
+
         Coursework coursework = Coursework.builder()
                 .courseId(courseId)
                 .creatorId(userId)
                 .type(request.getType())
                 .title(normalizeRequired(request.getTitle()))
                 .description(normalize(request.getDescription()))
-                .status(CourseworkStatus.DRAFT)
+                .status(initialStatus)
+                .publishedAt(publishedAt)
                 .dueAt(request.getDueAt())
                 .maximumPoints(request.getMaximumPoints())
                 .build();
@@ -55,9 +63,24 @@ public class CourseworkService {
         }
         String userId = authenticatedUserId(authentication);
         requireActiveCourse(courseId);
-        activeMembership(courseId, userId);
-        return courseworkRepository.findAllByCourseIdAndStatusOrderByPublishedAtDesc(
-                courseId, CourseworkStatus.PUBLISHED, PageRequest.of(page, size)).map(this::toResponse);
+        CourseMembership membership = activeMembership(courseId, userId);
+        PageRequest pageRequest = PageRequest.of(page, size);
+
+        if (isStaff(membership)) {
+            // Staff (OWNER, TEACHER, ASSISTANT) see every non-archived item:
+            // PUBLISHED items appear first (sorted by publishedAt DESC),
+            // DRAFT items (null publishedAt) follow, sorted by createdAt DESC.
+            return courseworkRepository
+                    .findAllByCourseIdAndStatusNotOrderByPublishedAtDescCreatedAtDesc(
+                            courseId, CourseworkStatus.ARCHIVED, pageRequest)
+                    .map(this::toResponse);
+        }
+
+        // Students see only published items.
+        return courseworkRepository
+                .findAllByCourseIdAndStatusOrderByPublishedAtDesc(
+                        courseId, CourseworkStatus.PUBLISHED, pageRequest)
+                .map(this::toResponse);
     }
 
     public CourseworkResponse get(
