@@ -27,7 +27,8 @@ import jakarta.servlet.http.HttpServletResponse;
 @SpringBootTest(properties = {
     "app.jwt.secret=test-secret-that-is-long-enough-32",
     "app.cookies.secure=true",
-    "app.cookies.same-site=Lax"
+    "app.cookies.same-site=Lax",
+    "spring.data.mongodb.auto-index-creation=false"
 })
 @AutoConfigureMockMvc
 class AuthSecurityIntegrationTest {
