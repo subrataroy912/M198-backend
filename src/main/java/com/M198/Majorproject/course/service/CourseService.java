@@ -231,6 +231,7 @@ public class CourseService {
                 .meetingType(meetingType)
                 .location(normalize(request.getLocation()))
                 .tags(request.getTags() != null ? request.getTags() : Collections.emptyList())
+                .links(request.getLinks() != null ? request.getLinks() : Collections.emptyList())
                 .accessType(accessType)
                 .visibility(visibility)
                 .enrollmentEnabled(enrollmentEnabled)
@@ -583,6 +584,9 @@ public class CourseService {
         if (request.getTags() != null) {
             course.setTags(request.getTags());
         }
+        if (request.getLinks() != null) {
+            course.setLinks(request.getLinks());
+        }
         Course savedCourse = courseRepository.save(course);
         syncDiscovery(savedCourse);
         return toResponse(savedCourse);
@@ -811,6 +815,7 @@ public class CourseService {
         response.setMeetingType(course.getMeetingType() != null ? course.getMeetingType() : MeetingType.IN_PERSON);
         response.setLocation(course.getLocation());
         response.setTags(course.getTags());
+        response.setLinks(course.getLinks() != null ? course.getLinks() : Collections.emptyList());
         CourseAccessType accessType = course.getAccessType() != null
                 ? course.getAccessType()
                 : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.OPEN : CourseAccessType.CODE);

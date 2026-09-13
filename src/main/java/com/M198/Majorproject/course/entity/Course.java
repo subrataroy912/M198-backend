@@ -62,6 +62,10 @@ public class Course {
 
     private List<String> tags;
 
+    @Field("links")
+    @Builder.Default
+    private List<SpaceLink> links = new java.util.ArrayList<>();
+
     @Builder.Default
     private CourseVisibility visibility = CourseVisibility.PRIVATE;
 

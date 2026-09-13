@@ -8,6 +8,7 @@ import java.util.List;
 import com.M198.Majorproject.course.entity.CourseAccessType;
 import com.M198.Majorproject.course.entity.CourseVisibility;
 import com.M198.Majorproject.course.entity.MeetingType;
+import com.M198.Majorproject.course.entity.SpaceLink;
 import com.M198.Majorproject.course.entity.SpaceType;
 
 import lombok.Getter;
@@ -42,6 +43,8 @@ public class CreateCourseRequest {
     private String location;
 
     private List<String> tags;
+
+    private List<SpaceLink> links;
 
     @Size(max = 2048)
     private String coverUrl;

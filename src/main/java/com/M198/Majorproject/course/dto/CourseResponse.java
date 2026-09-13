@@ -7,6 +7,7 @@ import com.M198.Majorproject.course.entity.CourseAccessType;
 import com.M198.Majorproject.course.entity.CourseStatus;
 import com.M198.Majorproject.course.entity.CourseVisibility;
 import com.M198.Majorproject.course.entity.MeetingType;
+import com.M198.Majorproject.course.entity.SpaceLink;
 import com.M198.Majorproject.course.entity.SpaceType;
 
 import lombok.Getter;
@@ -32,6 +33,7 @@ public class CourseResponse {
     private MeetingType meetingType;
     private String location;
     private List<String> tags;
+    private List<SpaceLink> links;
     private CourseVisibility visibility;
     private CourseAccessType accessType;
     private CourseStatus status;
