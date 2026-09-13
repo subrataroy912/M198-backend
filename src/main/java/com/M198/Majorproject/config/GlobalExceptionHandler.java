@@ -32,8 +32,8 @@ import com.M198.Majorproject.comment.service.CommentService.CommentAccessExcepti
 import com.M198.Majorproject.comment.service.CommentService.CommentNotFoundException;
 import com.M198.Majorproject.notification.service.NotificationService.NotificationAccessException;
 import com.M198.Majorproject.notification.service.NotificationService.NotificationNotFoundException;
-import com.M198.Majorproject.service.analytics.AnalyticsService.AnalyticsAccessException;
-import com.M198.Majorproject.service.analytics.AnalyticsService.AnalyticsNotFoundException;
+import com.M198.Majorproject.analytics.service.AnalyticsService.AnalyticsAccessException;
+import com.M198.Majorproject.analytics.service.AnalyticsService.AnalyticsNotFoundException;
 import io.jsonwebtoken.JwtException;
 
 @RestControllerAdvice

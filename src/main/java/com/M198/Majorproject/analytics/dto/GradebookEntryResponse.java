@@ -1,4 +1,4 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.analytics.dto;
 
 import java.math.BigDecimal;
 import java.time.Instant;

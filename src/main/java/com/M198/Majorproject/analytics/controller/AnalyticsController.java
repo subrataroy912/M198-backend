@@ -1,12 +1,12 @@
-package com.M198.Majorproject.controller.analytics;
+package com.M198.Majorproject.analytics.controller;
 
 import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import com.M198.Majorproject.dto.CourseAnalyticsResponse;
-import com.M198.Majorproject.dto.GradebookEntryResponse;
-import com.M198.Majorproject.dto.TeacherGradebookResponse;
-import com.M198.Majorproject.service.analytics.AnalyticsService;
+import com.M198.Majorproject.analytics.dto.CourseAnalyticsResponse;
+import com.M198.Majorproject.analytics.dto.GradebookEntryResponse;
+import com.M198.Majorproject.analytics.dto.TeacherGradebookResponse;
+import com.M198.Majorproject.analytics.service.AnalyticsService;
 
 @RestController
 @RequestMapping("/v1/analytics")

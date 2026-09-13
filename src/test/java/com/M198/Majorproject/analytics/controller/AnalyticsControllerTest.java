@@ -1,4 +1,4 @@
-package com.M198.Majorproject.controller.analytics;
+package com.M198.Majorproject.analytics.controller;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.M198.Majorproject.config.GlobalExceptionHandler;
-import com.M198.Majorproject.service.analytics.AnalyticsService;
+import com.M198.Majorproject.analytics.service.AnalyticsService;
 
 @ExtendWith(MockitoExtension.class)
 class AnalyticsControllerTest {

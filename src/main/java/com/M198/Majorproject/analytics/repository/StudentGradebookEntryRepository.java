@@ -1,10 +1,10 @@
-package com.M198.Majorproject.repository.analytics;
+package com.M198.Majorproject.analytics.repository;
 
 import java.util.List;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.M198.Majorproject.entity.analytics.StudentGradebookEntry;
+import com.M198.Majorproject.analytics.entity.StudentGradebookEntry;
 
 public interface StudentGradebookEntryRepository extends MongoRepository<StudentGradebookEntry, String> {
 

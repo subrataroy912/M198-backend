@@ -1,4 +1,4 @@
-package com.M198.Majorproject.service.analytics;
+package com.M198.Majorproject.analytics.service;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -9,18 +9,18 @@ import java.util.stream.Collectors;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
-import com.M198.Majorproject.dto.CourseAnalyticsResponse;
-import com.M198.Majorproject.dto.GradebookEntryResponse;
-import com.M198.Majorproject.dto.TeacherGradebookResponse;
-import com.M198.Majorproject.entity.analytics.CourseAnalyticsSummary;
-import com.M198.Majorproject.entity.analytics.StudentGradebookEntry;
+import com.M198.Majorproject.analytics.dto.CourseAnalyticsResponse;
+import com.M198.Majorproject.analytics.dto.GradebookEntryResponse;
+import com.M198.Majorproject.analytics.dto.TeacherGradebookResponse;
+import com.M198.Majorproject.analytics.entity.CourseAnalyticsSummary;
+import com.M198.Majorproject.analytics.entity.StudentGradebookEntry;
+import com.M198.Majorproject.analytics.repository.CourseAnalyticsSummaryRepository;
+import com.M198.Majorproject.analytics.repository.StudentGradebookEntryRepository;
 import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
 import com.M198.Majorproject.entity.identity.UserProfile;
 import com.M198.Majorproject.entity.submission.SubmissionStatus;
-import com.M198.Majorproject.repository.analytics.CourseAnalyticsSummaryRepository;
-import com.M198.Majorproject.repository.analytics.StudentGradebookEntryRepository;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.identity.UserProfileRepository;
 

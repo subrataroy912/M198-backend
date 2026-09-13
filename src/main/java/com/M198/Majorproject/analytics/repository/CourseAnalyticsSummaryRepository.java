@@ -6,13 +6,13 @@
  * This repository keeps grade and performance summary records available for analytics endpoints,
  * dashboards, and progress reporting features.
  */
-package com.M198.Majorproject.repository.analytics;
+package com.M198.Majorproject.analytics.repository;
 
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.M198.Majorproject.entity.analytics.CourseAnalyticsSummary;
+import com.M198.Majorproject.analytics.entity.CourseAnalyticsSummary;
 
 public interface CourseAnalyticsSummaryRepository extends MongoRepository<CourseAnalyticsSummary, String> {
 
