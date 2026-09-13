@@ -1,4 +1,4 @@
-package com.M198.Majorproject.service.explore;
+package com.M198.Majorproject.explore.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -6,11 +6,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
-import com.M198.Majorproject.dto.CourseDiscoveryResponse;
+import com.M198.Majorproject.explore.dto.CourseDiscoveryResponse;
 import com.M198.Majorproject.entity.course.CourseStatus;
 import com.M198.Majorproject.entity.course.CourseVisibility;
-import com.M198.Majorproject.entity.explore.CourseDiscovery;
-import com.M198.Majorproject.repository.explore.CourseDiscoveryRepository;
+import com.M198.Majorproject.explore.entity.CourseDiscovery;
+import com.M198.Majorproject.explore.repository.CourseDiscoveryRepository;
 
 @Service
 @RequiredArgsConstructor

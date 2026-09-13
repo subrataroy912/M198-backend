@@ -1,4 +1,4 @@
-package com.M198.Majorproject.repository.explore;
+package com.M198.Majorproject.explore.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,7 +8,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 import com.M198.Majorproject.entity.course.CourseStatus;
 import com.M198.Majorproject.entity.course.CourseVisibility;
-import com.M198.Majorproject.entity.explore.CourseDiscovery;
+import com.M198.Majorproject.explore.entity.CourseDiscovery;
 
 public interface CourseDiscoveryRepository extends MongoRepository<CourseDiscovery, String> {
 

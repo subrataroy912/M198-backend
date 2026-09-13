@@ -1,4 +1,4 @@
-package com.M198.Majorproject.entity.explore;
+package com.M198.Majorproject.explore.entity;
 
 import java.time.Instant;
 import java.util.List;

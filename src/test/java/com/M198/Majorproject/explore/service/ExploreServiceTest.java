@@ -1,4 +1,4 @@
-package com.M198.Majorproject.service.explore;
+package com.M198.Majorproject.explore.service;
 
 import java.util.List;
 
@@ -12,8 +12,8 @@ import org.springframework.data.domain.PageRequest;
 
 import com.M198.Majorproject.entity.course.CourseStatus;
 import com.M198.Majorproject.entity.course.CourseVisibility;
-import com.M198.Majorproject.entity.explore.CourseDiscovery;
-import com.M198.Majorproject.repository.explore.CourseDiscoveryRepository;
+import com.M198.Majorproject.explore.entity.CourseDiscovery;
+import com.M198.Majorproject.explore.repository.CourseDiscoveryRepository;
 
 class ExploreServiceTest {
 

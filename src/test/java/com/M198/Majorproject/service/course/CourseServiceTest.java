@@ -26,11 +26,11 @@ import com.M198.Majorproject.entity.course.CourseVisibility;
 import com.M198.Majorproject.entity.course.EnrollmentCode;
 import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
-import com.M198.Majorproject.entity.explore.CourseDiscovery;
+import com.M198.Majorproject.explore.entity.CourseDiscovery;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.course.CourseRepository;
 import com.M198.Majorproject.repository.course.EnrollmentCodeRepository;
-import com.M198.Majorproject.repository.explore.CourseDiscoveryRepository;
+import com.M198.Majorproject.explore.repository.CourseDiscoveryRepository;
 import com.cloudinary.Cloudinary;
 
 class CourseServiceTest {
