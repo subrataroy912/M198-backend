@@ -56,6 +56,8 @@ import jakarta.servlet.http.HttpServletResponse;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AuthService.class);
+
     public static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
 
     @org.springframework.beans.factory.annotation.Value("${app.cookies.secure:true}")
@@ -63,6 +65,9 @@ public class AuthService {
 
     @org.springframework.beans.factory.annotation.Value("${app.cookies.same-site:None}")
     private String cookieSameSite;
+
+    @org.springframework.beans.factory.annotation.Value("${app.auth.max-concurrent-sessions:5}")
+    private int maxConcurrentSessions = 5;
 
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
@@ -141,15 +146,31 @@ public class AuthService {
 
     public AuthResponse refresh(String refreshToken) {
         String userId = jwtService.parseAndValidate(refreshToken, "refresh").getSubject();
-        RefreshToken storedToken = refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(hash(refreshToken))
-                .filter(token -> token.getExpiresAt().isAfter(Instant.now()))
-                .orElseThrow(() -> new AuthenticationServiceException("Invalid refresh token"));
+        String tokenHash = hash(refreshToken);
+        Optional<RefreshToken> storedTokenOpt = refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(tokenHash)
+                .filter(token -> token.getExpiresAt().isAfter(Instant.now()));
+
+        if (storedTokenOpt.isEmpty()) {
+            logger.warn("Potential refresh token reuse or stolen token detected for userId={}. Revoking all active sessions.", userId);
+            refreshTokenRepository.deleteAllByUserId(userId);
+            throw new AuthenticationServiceException("Invalid refresh token");
+        }
+
+        RefreshToken storedToken = storedTokenOpt.get();
         if (!storedToken.getUserId().equals(userId)) {
+            logger.warn("Refresh token userId mismatch for userId={}. Revoking all active sessions.", userId);
+            refreshTokenRepository.deleteAllByUserId(userId);
             throw new AuthenticationServiceException("Invalid refresh token");
         }
+
         if (refreshTokenRepository.revokeIfActive(storedToken.getTokenHash(), Instant.now()) != 1) {
+            logger.warn("Concurrent refresh token race/reuse detected for userId={}. Revoking all active sessions.", userId);
+            refreshTokenRepository.deleteAllByUserId(userId);
             throw new AuthenticationServiceException("Invalid refresh token");
         }
+
+        refreshTokenRepository.deleteByTokenHash(tokenHash);
+
         User user = userRepository.findByIdAndActiveTrueAndStatus(userId, AccountStatus.ACTIVE)
                 .orElseThrow(() -> new AuthenticationServiceException("Invalid refresh token"));
         return issueTokens(user);
@@ -160,12 +181,12 @@ public class AuthService {
         if (!authenticatedUserId.equals(tokenUserId)) {
             throw new AuthenticationServiceException("Invalid refresh token");
         }
-        refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(hash(refreshToken)).ifPresent(storedToken -> {
+        String tokenHash = hash(refreshToken);
+        refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(tokenHash).ifPresent(storedToken -> {
             if (!authenticatedUserId.equals(storedToken.getUserId())) {
                 throw new AuthenticationServiceException("Invalid refresh token");
             }
-            storedToken.setRevokedAt(Instant.now());
-            refreshTokenRepository.save(storedToken);
+            refreshTokenRepository.deleteByTokenHash(tokenHash);
         });
     }
 
@@ -347,6 +368,9 @@ public class AuthService {
 
     private AuthResponse issueTokens(User user) {
         UserProfile profile = profileRepository.findByUserId(user.getId()).orElse(null);
+
+        enforceConcurrentSessionCap(user.getId());
+
         String refreshToken = jwtService.createRefreshToken(user.getId());
         refreshTokenRepository.save(RefreshToken.builder()
                 .tokenHash(hash(refreshToken))
@@ -361,6 +385,24 @@ public class AuthService {
                 .displayName(profile == null ? null : profile.getDisplayName())
                 .avatarUrl(profile == null ? null : profile.getAvatarUrl())
                 .build();
+    }
+
+    private void enforceConcurrentSessionCap(String userId) {
+        if (maxConcurrentSessions <= 0) {
+            return;
+        }
+        List<RefreshToken> activeTokens = refreshTokenRepository.findAllByUserIdOrderByCreatedAtAsc(userId);
+        if (activeTokens != null && activeTokens.size() >= maxConcurrentSessions) {
+            int toPrune = activeTokens.size() - maxConcurrentSessions + 1;
+            for (int i = 0; i < toPrune && i < activeTokens.size(); i++) {
+                RefreshToken oldest = activeTokens.get(i);
+                if (oldest.getId() != null) {
+                    refreshTokenRepository.deleteById(oldest.getId());
+                } else if (oldest.getTokenHash() != null) {
+                    refreshTokenRepository.deleteByTokenHash(oldest.getTokenHash());
+                }
+            }
+        }
     }
 
     private String normalizeEmail(String email) {

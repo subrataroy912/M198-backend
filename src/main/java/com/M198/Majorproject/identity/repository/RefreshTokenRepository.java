@@ -23,4 +23,13 @@ public interface RefreshTokenRepository extends MongoRepository<RefreshToken, St
     @Query("{ 'token_hash': ?0, 'revoked_at': null }")
     @Update("{ '$set': { 'revoked_at': ?1 } }")
     long revokeIfActive(String tokenHash, java.time.Instant revokedAt);
+
+    long deleteByTokenHash(String tokenHash);
+
+    long deleteAllByUserId(String userId);
+
+    java.util.List<RefreshToken> findAllByUserIdOrderByCreatedAtAsc(String userId);
+
+    @Query(value = "{ '$or': [ { 'revoked_at': { '$ne': null } }, { 'expires_at': { '$lt': ?0 } } ] }", delete = true)
+    long deleteStaleOrRevokedTokens(java.time.Instant now);
 }

@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-// import java.time.Instant;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,7 +29,7 @@ import com.M198.Majorproject.auth.dto.RegisterUserRequest;
 import com.M198.Majorproject.identity.entity.AccountStatus;
 import com.M198.Majorproject.identity.entity.AccountType;
 import com.M198.Majorproject.identity.entity.OAuthProvider;
-// import com.M198.Majorproject.identity.entity.RefreshToken;
+import com.M198.Majorproject.identity.entity.RefreshToken;
 import com.M198.Majorproject.identity.entity.User;
 import com.M198.Majorproject.identity.entity.UserOAuth;
 import com.M198.Majorproject.identity.entity.UserProfile;
@@ -47,14 +47,15 @@ class AuthServiceTest {
         private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         private final AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
         private final RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
+        private final JwtService jwtService = new JwtService("test-secret-that-is-long-enough-32",
+                        java.time.Duration.ofMinutes(5), java.time.Duration.ofDays(1));
         private final AuthService authService = new AuthService(
                         userRepository,
                         profileRepository,
                         oauthRepository,
                         passwordEncoder,
                         authenticationManager,
-                        new JwtService("test-secret-that-is-long-enough-32", java.time.Duration.ofMinutes(5),
-                                        java.time.Duration.ofDays(1)),
+                        jwtService,
                         refreshTokenRepository);
 
         @Test
@@ -213,5 +214,98 @@ class AuthServiceTest {
 
                 var exception = assertThrows(DuplicateKeyException.class, () -> authService.register(request));
                 org.junit.jupiter.api.Assertions.assertTrue(exception.getMessage().contains("GitHub"));
+        }
+
+        @Test
+        void refreshDeletesOldTokenDocumentAndIssuesNewOne() {
+                User user = User.builder()
+                                .id("user-1")
+                                .email("user@example.com")
+                                .status(AccountStatus.ACTIVE)
+                                .accountType(AccountType.STUDENT)
+                                .active(true)
+                                .build();
+                when(userRepository.findByIdAndActiveTrueAndStatus("user-1", AccountStatus.ACTIVE))
+                                .thenReturn(Optional.of(user));
+
+                String rawToken = jwtService.createRefreshToken("user-1");
+                String tokenHash = ReflectionTestUtils.invokeMethod(authService, "hash", rawToken);
+
+                RefreshToken storedToken = RefreshToken.builder()
+                                .tokenHash(tokenHash)
+                                .userId("user-1")
+                                .expiresAt(Instant.now().plusSeconds(3600))
+                                .build();
+
+                when(refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(tokenHash))
+                                .thenReturn(Optional.of(storedToken));
+                when(refreshTokenRepository.revokeIfActive(eq(tokenHash), any(Instant.class)))
+                                .thenReturn(1L);
+
+                AuthResponse response = authService.refresh(rawToken);
+
+                assertNotNull(response);
+                assertEquals("user-1", response.getUserId());
+                verify(refreshTokenRepository).deleteByTokenHash(tokenHash);
+                verify(refreshTokenRepository).save(any(RefreshToken.class));
+        }
+
+        @Test
+        void logoutDeletesTokenDocumentRatherThanRevoking() {
+                String rawToken = jwtService.createRefreshToken("user-1");
+                String tokenHash = ReflectionTestUtils.invokeMethod(authService, "hash", rawToken);
+
+                RefreshToken storedToken = RefreshToken.builder()
+                                .tokenHash(tokenHash)
+                                .userId("user-1")
+                                .expiresAt(Instant.now().plusSeconds(3600))
+                                .build();
+
+                when(refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(tokenHash))
+                                .thenReturn(Optional.of(storedToken));
+
+                authService.logout("user-1", rawToken);
+
+                verify(refreshTokenRepository).deleteByTokenHash(tokenHash);
+        }
+
+        @Test
+        void refreshReuseOfAlreadyRotatedTokenTriggersFullSessionRevocation() {
+                String rawToken = jwtService.createRefreshToken("user-1");
+                String tokenHash = ReflectionTestUtils.invokeMethod(authService, "hash", rawToken);
+
+                // Token is NOT found in repository (meaning already used and deleted)
+                when(refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(tokenHash))
+                                .thenReturn(Optional.empty());
+
+                assertThrows(org.springframework.security.core.AuthenticationException.class,
+                                () -> authService.refresh(rawToken));
+
+                verify(refreshTokenRepository).deleteAllByUserId("user-1");
+        }
+
+        @Test
+        void exceedingConcurrentSessionCapPrunesOldestToken() {
+                User user = User.builder()
+                                .id("user-1")
+                                .email("user@example.com")
+                                .status(AccountStatus.ACTIVE)
+                                .accountType(AccountType.STUDENT)
+                                .active(true)
+                                .build();
+
+                RefreshToken t1 = RefreshToken.builder().id("token-1").tokenHash("h1").userId("user-1").build();
+                RefreshToken t2 = RefreshToken.builder().id("token-2").tokenHash("h2").userId("user-1").build();
+                RefreshToken t3 = RefreshToken.builder().id("token-3").tokenHash("h3").userId("user-1").build();
+                RefreshToken t4 = RefreshToken.builder().id("token-4").tokenHash("h4").userId("user-1").build();
+                RefreshToken t5 = RefreshToken.builder().id("token-5").tokenHash("h5").userId("user-1").build();
+
+                when(refreshTokenRepository.findAllByUserIdOrderByCreatedAtAsc("user-1"))
+                                .thenReturn(List.of(t1, t2, t3, t4, t5));
+
+                ReflectionTestUtils.invokeMethod(authService, "issueTokens", user);
+
+                verify(refreshTokenRepository).deleteById("token-1");
+                verify(refreshTokenRepository).save(any(RefreshToken.class));
         }
 }
