@@ -20,7 +20,7 @@ import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
 import com.M198.Majorproject.entity.identity.UserProfile;
-import com.M198.Majorproject.entity.submission.SubmissionStatus;
+import com.M198.Majorproject.submission.entity.SubmissionStatus;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.identity.UserProfileRepository;
 

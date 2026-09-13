@@ -3,7 +3,7 @@ package com.M198.Majorproject.analytics.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-import com.M198.Majorproject.entity.submission.SubmissionStatus;
+import com.M198.Majorproject.submission.entity.SubmissionStatus;
 
 import lombok.Getter;
 import lombok.Setter;

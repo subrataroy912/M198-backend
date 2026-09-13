@@ -1,4 +1,4 @@
-package com.M198.Majorproject.service.submission;
+package com.M198.Majorproject.submission.service;
 
 import java.time.Instant;
 
@@ -9,19 +9,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
-import com.M198.Majorproject.dto.GradeSubmissionRequest;
-import com.M198.Majorproject.dto.SubmissionResponse;
-import com.M198.Majorproject.dto.UpdateSubmissionRequest;
+import com.M198.Majorproject.submission.dto.GradeSubmissionRequest;
+import com.M198.Majorproject.submission.dto.SubmissionResponse;
+import com.M198.Majorproject.submission.dto.UpdateSubmissionRequest;
 import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
 import com.M198.Majorproject.entity.coursework.Coursework;
 import com.M198.Majorproject.entity.coursework.CourseworkType;
-import com.M198.Majorproject.entity.submission.Submission;
-import com.M198.Majorproject.entity.submission.SubmissionStatus;
+import com.M198.Majorproject.submission.entity.Submission;
+import com.M198.Majorproject.submission.entity.SubmissionStatus;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.coursework.CourseworkRepository;
-import com.M198.Majorproject.repository.submission.SubmissionRepository;
+import com.M198.Majorproject.submission.repository.SubmissionRepository;
 
 @Service
 @RequiredArgsConstructor

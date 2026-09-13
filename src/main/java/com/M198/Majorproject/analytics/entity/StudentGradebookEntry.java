@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import com.M198.Majorproject.entity.submission.SubmissionStatus;
+import com.M198.Majorproject.submission.entity.SubmissionStatus;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

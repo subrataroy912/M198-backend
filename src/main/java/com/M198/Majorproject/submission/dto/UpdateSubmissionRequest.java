@@ -1,8 +1,8 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.submission.dto;
 
 import jakarta.validation.constraints.Size;
 
-import com.M198.Majorproject.entity.submission.SubmissionStatus;
+import com.M198.Majorproject.submission.entity.SubmissionStatus;
 
 import lombok.Getter;
 import lombok.Setter;

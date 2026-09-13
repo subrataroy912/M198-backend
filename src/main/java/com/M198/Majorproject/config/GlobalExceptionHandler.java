@@ -20,9 +20,9 @@ import com.M198.Majorproject.service.course.CourseService.CourseIdFormatExceptio
 import com.M198.Majorproject.service.course.CourseService.CourseNotFoundException;
 import com.M198.Majorproject.service.coursework.CourseworkService.CourseworkAccessException;
 import com.M198.Majorproject.service.coursework.CourseworkService.CourseworkNotFoundException;
-import com.M198.Majorproject.service.submission.SubmissionService.SubmissionAccessException;
-import com.M198.Majorproject.service.submission.SubmissionService.SubmissionConflictException;
-import com.M198.Majorproject.service.submission.SubmissionService.SubmissionNotFoundException;
+import com.M198.Majorproject.submission.service.SubmissionService.SubmissionAccessException;
+import com.M198.Majorproject.submission.service.SubmissionService.SubmissionConflictException;
+import com.M198.Majorproject.submission.service.SubmissionService.SubmissionNotFoundException;
 import com.M198.Majorproject.attachment.service.AttachmentService.AttachmentAccessException;
 import com.M198.Majorproject.attachment.service.AttachmentService.AttachmentNotFoundException;
 import com.M198.Majorproject.attachment.service.AttachmentService.AttachmentConfigurationException;

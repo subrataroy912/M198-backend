@@ -1,4 +1,4 @@
-package com.M198.Majorproject.controller.submission;
+package com.M198.Majorproject.submission.controller;
 
 import jakarta.validation.Valid;
 
@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.M198.Majorproject.dto.GradeSubmissionRequest;
-import com.M198.Majorproject.dto.SubmissionResponse;
+import com.M198.Majorproject.submission.dto.GradeSubmissionRequest;
+import com.M198.Majorproject.submission.dto.SubmissionResponse;
 import com.M198.Majorproject.dto.PageResponse;
-import com.M198.Majorproject.dto.UpdateSubmissionRequest;
-import com.M198.Majorproject.service.submission.SubmissionService;
+import com.M198.Majorproject.submission.dto.UpdateSubmissionRequest;
+import com.M198.Majorproject.submission.service.SubmissionService;
 
 @RestController
 @RequestMapping("/v1/coursework/{courseworkId}/submissions")

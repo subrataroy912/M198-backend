@@ -6,7 +6,7 @@
  * This repository supports the grading workflow by retrieving student work in a structured manner,
  * grouped by coursework, student, and pass/fail or pending state.
  */
-package com.M198.Majorproject.repository.submission;
+package com.M198.Majorproject.submission.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,8 +15,8 @@ import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.M198.Majorproject.entity.submission.Submission;
-import com.M198.Majorproject.entity.submission.SubmissionStatus;
+import com.M198.Majorproject.submission.entity.Submission;
+import com.M198.Majorproject.submission.entity.SubmissionStatus;
 
 public interface SubmissionRepository extends MongoRepository<Submission, String> {
 

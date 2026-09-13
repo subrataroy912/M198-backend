@@ -1,4 +1,4 @@
-package com.M198.Majorproject.entity.submission;
+package com.M198.Majorproject.submission.entity;
 
 import java.math.BigDecimal;
 import java.time.Instant;

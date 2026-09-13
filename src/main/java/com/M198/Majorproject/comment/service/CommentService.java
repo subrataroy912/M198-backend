@@ -15,10 +15,10 @@ import com.M198.Majorproject.comment.repository.CommentRepository;
 import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
-import com.M198.Majorproject.entity.submission.Submission;
+import com.M198.Majorproject.submission.entity.Submission;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.coursework.CourseworkRepository;
-import com.M198.Majorproject.repository.submission.SubmissionRepository;
+import com.M198.Majorproject.submission.repository.SubmissionRepository;
 
 @Service
 @RequiredArgsConstructor
