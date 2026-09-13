@@ -36,11 +36,11 @@ public class CourseworkService {
         requireStaff(courseId, userId);
         validateAssignmentFields(request.getType().name(), request.getDueAt(), request.getMaximumPoints());
 
-        // Honour the caller's requested initial status; guard against ARCHIVED on creation.
+        // Default to PUBLISHED so newly created announcements and coursework are immediately visible to all members unless explicitly marked as DRAFT.
         CourseworkStatus initialStatus =
-                request.getStatus() == CourseworkStatus.PUBLISHED
-                        ? CourseworkStatus.PUBLISHED
-                        : CourseworkStatus.DRAFT;
+                request.getStatus() == CourseworkStatus.DRAFT
+                        ? CourseworkStatus.DRAFT
+                        : CourseworkStatus.PUBLISHED;
         Instant publishedAt = initialStatus == CourseworkStatus.PUBLISHED ? Instant.now() : null;
 
         Coursework coursework = Coursework.builder()
