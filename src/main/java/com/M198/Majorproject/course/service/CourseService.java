@@ -43,8 +43,10 @@ import com.M198.Majorproject.course.entity.CourseMembership;
 import com.M198.Majorproject.course.entity.CourseStatus;
 import com.M198.Majorproject.course.entity.CourseVisibility;
 import com.M198.Majorproject.course.entity.EnrollmentCode;
+import com.M198.Majorproject.course.entity.MeetingType;
 import com.M198.Majorproject.course.entity.MembershipRole;
 import com.M198.Majorproject.course.entity.MembershipStatus;
+import com.M198.Majorproject.course.entity.SpaceType;
 import com.M198.Majorproject.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.course.repository.CourseRepository;
 import com.M198.Majorproject.course.repository.EnrollmentCodeRepository;
@@ -213,15 +215,22 @@ public class CourseService {
         boolean isInvite = accessType == CourseAccessType.INVITE;
         boolean enrollmentEnabled = !isInvite;
 
+        SpaceType spaceType = request.getSpaceType() != null ? request.getSpaceType() : SpaceType.ACADEMIC_CLASS;
+        MeetingType meetingType = request.getMeetingType() != null ? request.getMeetingType() : MeetingType.IN_PERSON;
+
         Course course = courseRepository.save(Course.builder()
                 .ownerId(userId)
                 .title(normalizeRequired(request.getTitle()))
+                .spaceType(spaceType)
                 .section(normalize(request.getSection()))
                 .subject(normalize(request.getSubject()))
                 .description(normalize(request.getDescription()))
                 .coverUrl(normalize(request.getCoverUrl()))
                 .logoUrl(normalize(request.getLogoUrl()))
                 .theme(normalize(request.getTheme()))
+                .meetingType(meetingType)
+                .location(normalize(request.getLocation()))
+                .tags(request.getTags() != null ? request.getTags() : Collections.emptyList())
                 .accessType(accessType)
                 .visibility(visibility)
                 .enrollmentEnabled(enrollmentEnabled)
@@ -379,12 +388,16 @@ public class CourseService {
         PublicCourseResponse response = new PublicCourseResponse();
         response.setId(course.getId());
         response.setTitle(course.getTitle());
+        response.setSpaceType(course.getSpaceType() != null ? course.getSpaceType() : SpaceType.ACADEMIC_CLASS);
         response.setSection(course.getSection());
         response.setSubject(course.getSubject());
         response.setDescription(course.getDescription());
         response.setCoverUrl(course.getCoverUrl());
         response.setLogoUrl(course.getLogoUrl());
         response.setTheme(course.getTheme());
+        response.setMeetingType(course.getMeetingType() != null ? course.getMeetingType() : MeetingType.IN_PERSON);
+        response.setLocation(course.getLocation());
+        response.setTags(course.getTags());
         response.setVisibility(course.getVisibility());
         response.setAccessType(course.getAccessType() != null
                 ? course.getAccessType()
@@ -557,6 +570,18 @@ public class CourseService {
         }
         if (request.getTheme() != null) {
             course.setTheme(normalize(request.getTheme()));
+        }
+        if (request.getSpaceType() != null) {
+            course.setSpaceType(request.getSpaceType());
+        }
+        if (request.getMeetingType() != null) {
+            course.setMeetingType(request.getMeetingType());
+        }
+        if (request.getLocation() != null) {
+            course.setLocation(normalize(request.getLocation()));
+        }
+        if (request.getTags() != null) {
+            course.setTags(request.getTags());
         }
         Course savedCourse = courseRepository.save(course);
         syncDiscovery(savedCourse);
@@ -776,12 +801,16 @@ public class CourseService {
             response.setEnrollmentCode(enrollmentCode);
         }
         response.setTitle(course.getTitle());
+        response.setSpaceType(course.getSpaceType() != null ? course.getSpaceType() : SpaceType.ACADEMIC_CLASS);
         response.setSection(course.getSection());
         response.setSubject(course.getSubject());
         response.setDescription(course.getDescription());
         response.setCoverUrl(course.getCoverUrl());
         response.setLogoUrl(course.getLogoUrl());
         response.setTheme(course.getTheme());
+        response.setMeetingType(course.getMeetingType() != null ? course.getMeetingType() : MeetingType.IN_PERSON);
+        response.setLocation(course.getLocation());
+        response.setTags(course.getTags());
         CourseAccessType accessType = course.getAccessType() != null
                 ? course.getAccessType()
                 : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.OPEN : CourseAccessType.CODE);
@@ -827,7 +856,9 @@ public class CourseService {
                 .orElseGet(CourseDiscovery::new);
         discovery.setCourseId(course.getId());
         discovery.setTitle(course.getTitle());
+        discovery.setSpaceType(course.getSpaceType() != null ? course.getSpaceType() : SpaceType.ACADEMIC_CLASS);
         discovery.setSubject(course.getSubject());
+        discovery.setTags(course.getTags());
         discovery.setCoverUrl(course.getCoverUrl());
         discovery.setLogoUrl(course.getLogoUrl());
         discovery.setTheme(course.getTheme());
