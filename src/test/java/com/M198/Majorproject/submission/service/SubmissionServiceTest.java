@@ -21,13 +21,13 @@ import com.M198.Majorproject.submission.dto.UpdateSubmissionRequest;
 import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
-import com.M198.Majorproject.entity.coursework.Coursework;
-import com.M198.Majorproject.entity.coursework.CourseworkStatus;
-import com.M198.Majorproject.entity.coursework.CourseworkType;
+import com.M198.Majorproject.coursework.entity.Coursework;
+import com.M198.Majorproject.coursework.entity.CourseworkStatus;
+import com.M198.Majorproject.coursework.entity.CourseworkType;
 import com.M198.Majorproject.submission.entity.Submission;
 import com.M198.Majorproject.submission.entity.SubmissionStatus;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
-import com.M198.Majorproject.repository.coursework.CourseworkRepository;
+import com.M198.Majorproject.coursework.repository.CourseworkRepository;
 import com.M198.Majorproject.submission.repository.SubmissionRepository;
 
 class SubmissionServiceTest {

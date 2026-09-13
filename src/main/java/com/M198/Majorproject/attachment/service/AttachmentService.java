@@ -22,7 +22,7 @@ import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
-import com.M198.Majorproject.repository.coursework.CourseworkRepository;
+import com.M198.Majorproject.coursework.repository.CourseworkRepository;
 import com.M198.Majorproject.submission.repository.SubmissionRepository;
 import com.cloudinary.Cloudinary;
 

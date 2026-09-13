@@ -1,4 +1,4 @@
-package com.M198.Majorproject.service.coursework;
+package com.M198.Majorproject.coursework.service;
 
 import java.time.Instant;
 
@@ -8,18 +8,18 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
-import com.M198.Majorproject.dto.CourseworkResponse;
-import com.M198.Majorproject.dto.CreateCourseworkRequest;
-import com.M198.Majorproject.dto.UpdateCourseworkRequest;
+import com.M198.Majorproject.coursework.dto.CourseworkResponse;
+import com.M198.Majorproject.coursework.dto.CreateCourseworkRequest;
+import com.M198.Majorproject.coursework.dto.UpdateCourseworkRequest;
 import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.CourseStatus;
 import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
-import com.M198.Majorproject.entity.coursework.Coursework;
-import com.M198.Majorproject.entity.coursework.CourseworkStatus;
+import com.M198.Majorproject.coursework.entity.Coursework;
+import com.M198.Majorproject.coursework.entity.CourseworkStatus;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.course.CourseRepository;
-import com.M198.Majorproject.repository.coursework.CourseworkRepository;
+import com.M198.Majorproject.coursework.repository.CourseworkRepository;
 
 @Service
 @RequiredArgsConstructor

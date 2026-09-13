@@ -6,7 +6,7 @@
  * Coursework is the unit that connects course content with submission records,
  * grading, comments, and student progress tracking.
  */
-package com.M198.Majorproject.entity.coursework;
+package com.M198.Majorproject.coursework.entity;
 
 import java.time.Instant;
 

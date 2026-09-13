@@ -1,9 +1,9 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.coursework.dto;
 
 import java.time.Instant;
 
-import com.M198.Majorproject.entity.coursework.CourseworkStatus;
-import com.M198.Majorproject.entity.coursework.CourseworkType;
+import com.M198.Majorproject.coursework.entity.CourseworkStatus;
+import com.M198.Majorproject.coursework.entity.CourseworkType;
 
 import lombok.Getter;
 import lombok.Setter;

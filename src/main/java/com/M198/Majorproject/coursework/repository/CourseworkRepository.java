@@ -1,4 +1,4 @@
-package com.M198.Majorproject.repository.coursework;
+package com.M198.Majorproject.coursework.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -7,9 +7,9 @@ import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.M198.Majorproject.entity.coursework.Coursework;
-import com.M198.Majorproject.entity.coursework.CourseworkStatus;
-import com.M198.Majorproject.entity.coursework.CourseworkType;
+import com.M198.Majorproject.coursework.entity.Coursework;
+import com.M198.Majorproject.coursework.entity.CourseworkStatus;
+import com.M198.Majorproject.coursework.entity.CourseworkType;
 
 public interface CourseworkRepository extends MongoRepository<Coursework, String> {
 

@@ -1,4 +1,4 @@
-package com.M198.Majorproject.controller.coursework;
+package com.M198.Majorproject.coursework.controller;
 
 import jakarta.validation.Valid;
 
@@ -13,11 +13,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.M198.Majorproject.dto.CourseworkResponse;
-import com.M198.Majorproject.dto.CreateCourseworkRequest;
+import com.M198.Majorproject.coursework.dto.CourseworkResponse;
+import com.M198.Majorproject.coursework.dto.CreateCourseworkRequest;
 import com.M198.Majorproject.dto.PageResponse;
-import com.M198.Majorproject.dto.UpdateCourseworkRequest;
-import com.M198.Majorproject.service.coursework.CourseworkService;
+import com.M198.Majorproject.coursework.dto.UpdateCourseworkRequest;
+import com.M198.Majorproject.coursework.service.CourseworkService;
 
 @RestController
 @RequestMapping("/v1/courses/{courseId}/coursework")

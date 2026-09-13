@@ -1,11 +1,11 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.coursework.dto;
 
 import java.time.Instant;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
-import com.M198.Majorproject.entity.coursework.CourseworkStatus;
+import com.M198.Majorproject.coursework.entity.CourseworkStatus;
 
 import lombok.Getter;
 import lombok.Setter;

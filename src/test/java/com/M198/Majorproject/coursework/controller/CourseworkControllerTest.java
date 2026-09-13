@@ -1,4 +1,4 @@
-package com.M198.Majorproject.controller.coursework;
+package com.M198.Majorproject.coursework.controller;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -20,8 +20,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.M198.Majorproject.config.GlobalExceptionHandler;
-import com.M198.Majorproject.dto.CourseworkResponse;
-import com.M198.Majorproject.service.coursework.CourseworkService;
+import com.M198.Majorproject.coursework.dto.CourseworkResponse;
+import com.M198.Majorproject.coursework.service.CourseworkService;
 
 @ExtendWith(MockitoExtension.class)
 class CourseworkControllerTest {
