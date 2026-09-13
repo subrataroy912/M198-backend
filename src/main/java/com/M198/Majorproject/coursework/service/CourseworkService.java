@@ -17,6 +17,7 @@ import com.M198.Majorproject.course.entity.MembershipRole;
 import com.M198.Majorproject.course.entity.MembershipStatus;
 import com.M198.Majorproject.coursework.entity.Coursework;
 import com.M198.Majorproject.coursework.entity.CourseworkStatus;
+import com.M198.Majorproject.coursework.entity.CourseworkType;
 import com.M198.Majorproject.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.course.repository.CourseRepository;
 import com.M198.Majorproject.coursework.repository.CourseworkRepository;
@@ -33,7 +34,11 @@ public class CourseworkService {
             String courseId, Authentication authentication, CreateCourseworkRequest request) {
         String userId = authenticatedUserId(authentication);
         requireActiveCourse(courseId);
-        requireStaff(courseId, userId);
+        if (request.getType() == CourseworkType.ANNOUNCEMENT) {
+            activeMembership(courseId, userId);
+        } else {
+            requireStaff(courseId, userId);
+        }
         validateAssignmentFields(request.getType().name(), request.getDueAt(), request.getMaximumPoints());
 
         // Default to PUBLISHED so newly created announcements and coursework are immediately visible to all members unless explicitly marked as DRAFT.
