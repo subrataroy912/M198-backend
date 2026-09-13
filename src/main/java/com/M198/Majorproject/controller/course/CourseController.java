@@ -10,11 +10,14 @@
 package com.M198.Majorproject.controller.course;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import jakarta.validation.Valid;
 
-import org.springframework.security.core.Authentication;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -61,8 +64,11 @@ public class CourseController {
     }
 
     @GetMapping
-    public List<CourseResponse> listCourses(Authentication authentication) {
-        return courseService.listMyCourses(authentication);
+    public ResponseEntity<List<CourseResponse>> listCourses(Authentication authentication) {
+        List<CourseResponse> courses = courseService.listMyCourses(authentication);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(30, TimeUnit.SECONDS).cachePrivate().mustRevalidate())
+                .body(courses);
     }
 
     @GetMapping("/{courseId}")

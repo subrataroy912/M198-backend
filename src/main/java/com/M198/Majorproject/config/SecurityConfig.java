@@ -12,6 +12,9 @@ package com.M198.Majorproject.config;
 
 import java.util.Arrays;
 
+import jakarta.servlet.Filter;
+import org.springframework.web.filter.ShallowEtagHeaderFilter;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -82,6 +85,8 @@ public class SecurityConfig {
                                 "/v1/explore/courses/search",
                                 "/v1/explore/courses/*",
                                 "/v1/users",
+                                "/v1/health",
+                                "/health",
                                 "/error")
                         .permitAll()
                         .requestMatchers("/v1/auth/logout").authenticated()
@@ -139,6 +144,11 @@ public class SecurityConfig {
     @Bean
     public ObjectMapper objectMapper() {
         return new ObjectMapper().findAndRegisterModules();
+    }
+
+    @Bean
+    public Filter shallowEtagHeaderFilter() {
+        return new ShallowEtagHeaderFilter();
     }
 
     @Bean

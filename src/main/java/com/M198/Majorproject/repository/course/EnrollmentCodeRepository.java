@@ -22,4 +22,6 @@ public interface EnrollmentCodeRepository extends MongoRepository<EnrollmentCode
     Optional<EnrollmentCode> findByCourseIdAndActiveTrue(String courseId);
 
     List<EnrollmentCode> findAllByCourseIdOrderByCreatedAtDesc(String courseId);
+
+    List<EnrollmentCode> findAllByCourseIdInAndActiveTrue(java.util.Collection<String> courseIds);
 }

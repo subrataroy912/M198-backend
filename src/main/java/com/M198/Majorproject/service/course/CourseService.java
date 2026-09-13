@@ -10,10 +10,15 @@
 package com.M198.Majorproject.service.course;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -217,18 +222,76 @@ public class CourseService {
 
     public List<CourseResponse> listMyCourses(Authentication authentication) {
         String userId = authenticatedUserId(authentication);
-        return membershipRepository.findAllByUserIdAndStatus(userId, MembershipStatus.ACTIVE).stream()
-                .map(membership -> courseRepository.findByIdAndStatus(membership.getCourseId(), CourseStatus.ACTIVE)
-                        .map(c -> {
-                            CourseResponse res = toResponse(c);
-                            if (membership.getRole() != null) {
-                                res.setRole(membership.getRole().name());
-                            }
-                            res.setEnrolled(true);
-                            return res;
-                        }))
-                .flatMap(java.util.Optional::stream)
-                .toList();
+        List<CourseMembership> memberships = membershipRepository.findAllByUserIdAndStatus(userId, MembershipStatus.ACTIVE);
+        if (memberships.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Set<String> courseIds = memberships.stream()
+                .map(CourseMembership::getCourseId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (courseIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Course> activeCourses = courseRepository.findAllByIdInAndStatus(courseIds, CourseStatus.ACTIVE);
+        if (activeCourses.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<String, Course> courseMap = activeCourses.stream()
+                .collect(Collectors.toMap(Course::getId, c -> c, (a, b) -> a));
+
+        Set<String> activeCourseIds = courseMap.keySet();
+
+        // Batch fetch owner profiles
+        Set<String> ownerIds = activeCourses.stream()
+                .map(Course::getOwnerId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, UserProfile> profileMap = Collections.emptyMap();
+        if (userProfileRepository != null && !ownerIds.isEmpty()) {
+            profileMap = userProfileRepository.findAllByUserIdIn(ownerIds).stream()
+                    .collect(Collectors.toMap(UserProfile::getUserId, p -> p, (a, b) -> a));
+        }
+
+        // Batch fetch member counts
+        Map<String, Long> memberCountMap = Collections.emptyMap();
+        if (membershipRepository != null && !activeCourseIds.isEmpty()) {
+            List<CourseMembership> allCourseMemberships = membershipRepository.findAllByCourseIdInAndStatus(activeCourseIds, MembershipStatus.ACTIVE);
+            memberCountMap = allCourseMemberships.stream()
+                    .collect(Collectors.groupingBy(CourseMembership::getCourseId, Collectors.counting()));
+        }
+
+        // Batch fetch active enrollment codes
+        Map<String, String> enrollmentCodeMap = Collections.emptyMap();
+        if (enrollmentCodeRepository != null && !activeCourseIds.isEmpty()) {
+            List<EnrollmentCode> codes = enrollmentCodeRepository.findAllByCourseIdInAndActiveTrue(activeCourseIds);
+            enrollmentCodeMap = codes.stream()
+                    .collect(Collectors.toMap(EnrollmentCode::getCourseId, EnrollmentCode::getCode, (a, b) -> a));
+        }
+
+        // Assemble responses preserving membership order
+        List<CourseResponse> responses = new ArrayList<>();
+        for (CourseMembership membership : memberships) {
+            Course course = courseMap.get(membership.getCourseId());
+            if (course == null) {
+                continue;
+            }
+            UserProfile ownerProfile = profileMap.get(course.getOwnerId());
+            long count = memberCountMap.getOrDefault(course.getId(), 0L);
+            String enrollmentCode = enrollmentCodeMap.get(course.getId());
+
+            CourseResponse res = toResponse(course, ownerProfile, count, enrollmentCode);
+            if (membership.getRole() != null) {
+                res.setRole(membership.getRole().name());
+            }
+            res.setEnrolled(true);
+            responses.add(res);
+        }
+        return responses;
     }
 
     public CourseResponse getCourse(String courseId, Authentication authentication) {
@@ -563,23 +626,35 @@ public class CourseService {
     }
 
     private CourseResponse toResponse(Course course) {
+        UserProfile ownerProfile = null;
+        if (userProfileRepository != null && course.getOwnerId() != null) {
+            ownerProfile = userProfileRepository.findByUserId(course.getOwnerId()).orElse(null);
+        }
+        long memberCount = 0;
+        if (membershipRepository != null && course.getId() != null) {
+            memberCount = membershipRepository.countByCourseIdAndStatus(course.getId(), MembershipStatus.ACTIVE);
+        }
+        String enrollmentCode = null;
+        if (enrollmentCodeRepository != null && course.getId() != null) {
+            enrollmentCode = enrollmentCodeRepository.findByCourseIdAndActiveTrue(course.getId())
+                    .map(EnrollmentCode::getCode).orElse(null);
+        }
+        return toResponse(course, ownerProfile, memberCount, enrollmentCode);
+    }
+
+    private CourseResponse toResponse(Course course, UserProfile ownerProfile, long memberCount, String enrollmentCode) {
         CourseResponse response = new CourseResponse();
         response.setId(course.getId());
         response.setOwnerId(course.getOwnerId());
         response.setRole("STUDENT");
         response.setEnrolled(true);
-        if (userProfileRepository != null && course.getOwnerId() != null) {
-            userProfileRepository.findByUserId(course.getOwnerId()).ifPresent(p -> {
-                response.setOwnerName(p.getDisplayName());
-                response.setOwnerAvatarUrl(p.getAvatarUrl());
-            });
+        if (ownerProfile != null) {
+            response.setOwnerName(ownerProfile.getDisplayName());
+            response.setOwnerAvatarUrl(ownerProfile.getAvatarUrl());
         }
-        if (membershipRepository != null && course.getId() != null) {
-            response.setMemberCount(membershipRepository.countByCourseIdAndStatus(course.getId(), MembershipStatus.ACTIVE));
-        }
-        if (enrollmentCodeRepository != null && course.getId() != null) {
-            enrollmentCodeRepository.findByCourseIdAndActiveTrue(course.getId())
-                    .ifPresent(ec -> response.setEnrollmentCode(ec.getCode()));
+        response.setMemberCount(memberCount);
+        if (enrollmentCode != null) {
+            response.setEnrollmentCode(enrollmentCode);
         }
         response.setTitle(course.getTitle());
         response.setSection(course.getSection());
