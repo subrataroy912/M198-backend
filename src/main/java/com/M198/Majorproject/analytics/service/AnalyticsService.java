@@ -19,10 +19,10 @@ import com.M198.Majorproject.analytics.repository.StudentGradebookEntryRepositor
 import com.M198.Majorproject.course.entity.CourseMembership;
 import com.M198.Majorproject.course.entity.MembershipRole;
 import com.M198.Majorproject.course.entity.MembershipStatus;
-import com.M198.Majorproject.entity.identity.UserProfile;
+import com.M198.Majorproject.identity.entity.UserProfile;
 import com.M198.Majorproject.submission.entity.SubmissionStatus;
 import com.M198.Majorproject.course.repository.CourseMembershipRepository;
-import com.M198.Majorproject.repository.identity.UserProfileRepository;
+import com.M198.Majorproject.identity.repository.UserProfileRepository;
 
 import lombok.RequiredArgsConstructor;
 

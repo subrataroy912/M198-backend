@@ -13,9 +13,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.M198.Majorproject.entity.identity.AccountStatus;
-import com.M198.Majorproject.entity.identity.User;
-import com.M198.Majorproject.repository.identity.UserRepository;
+import com.M198.Majorproject.identity.entity.AccountStatus;
+import com.M198.Majorproject.identity.entity.User;
+import com.M198.Majorproject.identity.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 

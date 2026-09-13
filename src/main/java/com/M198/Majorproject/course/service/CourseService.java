@@ -42,13 +42,13 @@ import com.M198.Majorproject.course.entity.EnrollmentCode;
 import com.M198.Majorproject.course.entity.MembershipRole;
 import com.M198.Majorproject.course.entity.MembershipStatus;
 import com.M198.Majorproject.explore.entity.CourseDiscovery;
-import com.M198.Majorproject.entity.identity.AccountType;
+import com.M198.Majorproject.identity.entity.AccountType;
 import com.M198.Majorproject.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.course.repository.CourseRepository;
 import com.M198.Majorproject.course.repository.EnrollmentCodeRepository;
 import com.M198.Majorproject.explore.repository.CourseDiscoveryRepository;
-import com.M198.Majorproject.entity.identity.UserProfile;
-import com.M198.Majorproject.repository.identity.UserProfileRepository;
+import com.M198.Majorproject.identity.entity.UserProfile;
+import com.M198.Majorproject.identity.repository.UserProfileRepository;
 import com.cloudinary.Cloudinary;
 
 @Service

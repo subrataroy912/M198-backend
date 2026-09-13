@@ -38,9 +38,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.M198.Majorproject.security.AppUserDetailsService;
 import com.M198.Majorproject.security.JwtAuthenticationFilter;
-import com.M198.Majorproject.service.auth.OAuthFailureHandler;
-import com.M198.Majorproject.service.auth.OAuthSuccessHandler;
-import com.M198.Majorproject.service.auth.OAuthUserService;
+import com.M198.Majorproject.auth.service.OAuthFailureHandler;
+import com.M198.Majorproject.auth.service.OAuthSuccessHandler;
+import com.M198.Majorproject.auth.service.OAuthUserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletResponse;
