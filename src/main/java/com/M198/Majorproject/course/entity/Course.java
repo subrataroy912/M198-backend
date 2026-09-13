@@ -9,6 +9,7 @@
 package com.M198.Majorproject.course.entity;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -48,6 +49,18 @@ public class Course {
     private String coverUrl;
     private String logoUrl;
     private String theme;
+
+    @Field("space_type")
+    @Builder.Default
+    private SpaceType spaceType = SpaceType.ACADEMIC_CLASS;
+
+    @Field("meeting_type")
+    @Builder.Default
+    private MeetingType meetingType = MeetingType.IN_PERSON;
+
+    private String location;
+
+    private List<String> tags;
 
     @Builder.Default
     private CourseVisibility visibility = CourseVisibility.PRIVATE;

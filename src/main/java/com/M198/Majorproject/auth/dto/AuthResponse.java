@@ -29,4 +29,6 @@ public class AuthResponse {
     private String email;
     private String displayName;
     private String avatarUrl;
+    private boolean canCreateCourses;
+    private boolean isAdmin;
 }

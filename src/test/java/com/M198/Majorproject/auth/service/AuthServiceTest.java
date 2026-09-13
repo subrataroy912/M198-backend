@@ -315,4 +315,56 @@ class AuthServiceTest {
                 verify(refreshTokenRepository).deleteById("token-1");
                 verify(refreshTokenRepository).save(any(RefreshToken.class));
         }
+
+        @Test
+        void issueTokensPreservesCanCreateCoursesAndAdminFlagsFromUserAndProfile() {
+                User creatorUser = User.builder()
+                                .id("creator-1")
+                                .email("creator@example.com")
+                                .status(AccountStatus.ACTIVE)
+                                .active(true)
+                                .canCreateCourses(true)
+                                .isAdmin(false)
+                                .build();
+
+                UserProfile profile = UserProfile.builder()
+                                .userId("creator-1")
+                                .displayName("Creator Name")
+                                .avatarUrl("https://example.com/avatar.png")
+                                .canCreateCourses(true)
+                                .isAdmin(false)
+                                .build();
+
+                when(profileRepository.findByUserId("creator-1")).thenReturn(Optional.of(profile));
+
+                AuthResponse response = ReflectionTestUtils.invokeMethod(authService, "issueTokens", creatorUser);
+
+                assertNotNull(response);
+                assertEquals("creator-1", response.getUserId());
+                assertEquals("creator@example.com", response.getEmail());
+                assertEquals("Creator Name", response.getDisplayName());
+                assertEquals("https://example.com/avatar.png", response.getAvatarUrl());
+                org.junit.jupiter.api.Assertions.assertTrue(response.isCanCreateCourses());
+                org.junit.jupiter.api.Assertions.assertFalse(response.isAdmin());
+        }
+
+        @Test
+        void issueTokensPreservesAdminFlagWhenProfileOrUserIsAdmin() {
+                User adminUser = User.builder()
+                                .id("admin-1")
+                                .email("admin@example.com")
+                                .status(AccountStatus.ACTIVE)
+                                .active(true)
+                                .canCreateCourses(false)
+                                .isAdmin(true)
+                                .build();
+
+                when(profileRepository.findByUserId("admin-1")).thenReturn(Optional.empty());
+
+                AuthResponse response = ReflectionTestUtils.invokeMethod(authService, "issueTokens", adminUser);
+
+                assertNotNull(response);
+                org.junit.jupiter.api.Assertions.assertTrue(response.isAdmin());
+                org.junit.jupiter.api.Assertions.assertFalse(response.isCanCreateCourses());
+        }
 }
