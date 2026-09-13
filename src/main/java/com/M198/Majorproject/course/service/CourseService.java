@@ -636,7 +636,8 @@ public class CourseService {
 
         courseRepository.deleteById(courseId);
 
-        logger.info("Permanently deleted course {} and cascaded all associated dependents by user {}", courseId, userId);
+        logger.info("Permanently deleted course {} and cascaded all associated dependents by user {}", courseId,
+                userId);
     }
 
     public List<CourseMemberResponse> roster(String courseId, Authentication authentication) {

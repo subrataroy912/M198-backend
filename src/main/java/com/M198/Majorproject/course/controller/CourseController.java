@@ -136,4 +136,3 @@ public class CourseController {
         courseService.removeMember(courseId, userId, authentication);
     }
 }
-
