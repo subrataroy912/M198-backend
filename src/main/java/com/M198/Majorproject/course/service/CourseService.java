@@ -7,7 +7,7 @@
  * This service is responsible for teacher/student course interaction.
  * It validates memberships, enforces access control, and keeps course data consistent.
  */
-package com.M198.Majorproject.service.course;
+package com.M198.Majorproject.course.service;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -26,26 +26,26 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
-import com.M198.Majorproject.dto.CourseCoverUploadResponse;
-import com.M198.Majorproject.dto.CourseMemberResponse;
-import com.M198.Majorproject.dto.CourseResponse;
-import com.M198.Majorproject.dto.CreateCourseRequest;
-import com.M198.Majorproject.dto.EnrollCourseRequest;
-import com.M198.Majorproject.dto.PublicCourseResponse;
-import com.M198.Majorproject.dto.UpdateCourseRequest;
-import com.M198.Majorproject.entity.course.Course;
-import com.M198.Majorproject.entity.course.CourseAccessType;
-import com.M198.Majorproject.entity.course.CourseMembership;
-import com.M198.Majorproject.entity.course.CourseStatus;
-import com.M198.Majorproject.entity.course.CourseVisibility;
-import com.M198.Majorproject.entity.course.EnrollmentCode;
-import com.M198.Majorproject.entity.course.MembershipRole;
-import com.M198.Majorproject.entity.course.MembershipStatus;
+import com.M198.Majorproject.course.dto.CourseCoverUploadResponse;
+import com.M198.Majorproject.course.dto.CourseMemberResponse;
+import com.M198.Majorproject.course.dto.CourseResponse;
+import com.M198.Majorproject.course.dto.CreateCourseRequest;
+import com.M198.Majorproject.course.dto.EnrollCourseRequest;
+import com.M198.Majorproject.course.dto.PublicCourseResponse;
+import com.M198.Majorproject.course.dto.UpdateCourseRequest;
+import com.M198.Majorproject.course.entity.Course;
+import com.M198.Majorproject.course.entity.CourseAccessType;
+import com.M198.Majorproject.course.entity.CourseMembership;
+import com.M198.Majorproject.course.entity.CourseStatus;
+import com.M198.Majorproject.course.entity.CourseVisibility;
+import com.M198.Majorproject.course.entity.EnrollmentCode;
+import com.M198.Majorproject.course.entity.MembershipRole;
+import com.M198.Majorproject.course.entity.MembershipStatus;
 import com.M198.Majorproject.explore.entity.CourseDiscovery;
 import com.M198.Majorproject.entity.identity.AccountType;
-import com.M198.Majorproject.repository.course.CourseMembershipRepository;
-import com.M198.Majorproject.repository.course.CourseRepository;
-import com.M198.Majorproject.repository.course.EnrollmentCodeRepository;
+import com.M198.Majorproject.course.repository.CourseMembershipRepository;
+import com.M198.Majorproject.course.repository.CourseRepository;
+import com.M198.Majorproject.course.repository.EnrollmentCodeRepository;
 import com.M198.Majorproject.explore.repository.CourseDiscoveryRepository;
 import com.M198.Majorproject.entity.identity.UserProfile;
 import com.M198.Majorproject.repository.identity.UserProfileRepository;

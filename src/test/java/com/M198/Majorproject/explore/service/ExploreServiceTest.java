@@ -10,8 +10,8 @@ import static org.mockito.Mockito.when;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
-import com.M198.Majorproject.entity.course.CourseStatus;
-import com.M198.Majorproject.entity.course.CourseVisibility;
+import com.M198.Majorproject.course.entity.CourseStatus;
+import com.M198.Majorproject.course.entity.CourseVisibility;
 import com.M198.Majorproject.explore.entity.CourseDiscovery;
 import com.M198.Majorproject.explore.repository.CourseDiscoveryRepository;
 

@@ -2,7 +2,7 @@ package com.M198.Majorproject.explore.dto;
 
 import java.time.Instant;
 import java.util.List;
-import com.M198.Majorproject.entity.course.CourseAccessType;
+import com.M198.Majorproject.course.entity.CourseAccessType;
 
 import lombok.Getter;
 import lombok.Setter;

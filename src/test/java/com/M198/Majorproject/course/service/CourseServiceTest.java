@@ -1,4 +1,4 @@
-package com.M198.Majorproject.service.course;
+package com.M198.Majorproject.course.service;
 
 import java.util.Optional;
 
@@ -15,21 +15,21 @@ import static org.mockito.Mockito.when;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import com.M198.Majorproject.dto.CreateCourseRequest;
-import com.M198.Majorproject.dto.EnrollCourseRequest;
-import com.M198.Majorproject.dto.UpdateCourseRequest;
-import com.M198.Majorproject.entity.course.Course;
-import com.M198.Majorproject.entity.course.CourseAccessType;
-import com.M198.Majorproject.entity.course.CourseMembership;
-import com.M198.Majorproject.entity.course.CourseStatus;
-import com.M198.Majorproject.entity.course.CourseVisibility;
-import com.M198.Majorproject.entity.course.EnrollmentCode;
-import com.M198.Majorproject.entity.course.MembershipRole;
-import com.M198.Majorproject.entity.course.MembershipStatus;
+import com.M198.Majorproject.course.dto.CreateCourseRequest;
+import com.M198.Majorproject.course.dto.EnrollCourseRequest;
+import com.M198.Majorproject.course.dto.UpdateCourseRequest;
+import com.M198.Majorproject.course.entity.Course;
+import com.M198.Majorproject.course.entity.CourseAccessType;
+import com.M198.Majorproject.course.entity.CourseMembership;
+import com.M198.Majorproject.course.entity.CourseStatus;
+import com.M198.Majorproject.course.entity.CourseVisibility;
+import com.M198.Majorproject.course.entity.EnrollmentCode;
+import com.M198.Majorproject.course.entity.MembershipRole;
+import com.M198.Majorproject.course.entity.MembershipStatus;
 import com.M198.Majorproject.explore.entity.CourseDiscovery;
-import com.M198.Majorproject.repository.course.CourseMembershipRepository;
-import com.M198.Majorproject.repository.course.CourseRepository;
-import com.M198.Majorproject.repository.course.EnrollmentCodeRepository;
+import com.M198.Majorproject.course.repository.CourseMembershipRepository;
+import com.M198.Majorproject.course.repository.CourseRepository;
+import com.M198.Majorproject.course.repository.EnrollmentCodeRepository;
 import com.M198.Majorproject.explore.repository.CourseDiscoveryRepository;
 import com.cloudinary.Cloudinary;
 
@@ -185,7 +185,7 @@ class CourseServiceTest {
         when(membershipRepository.findByCourseIdAndUserIdAndStatus(
                 "course-1", "teacher-1", MembershipStatus.ACTIVE))
                 .thenReturn(Optional.of(CourseMembership.builder().courseId("course-1").userId("teacher-1")
-                        .role(com.M198.Majorproject.entity.course.MembershipRole.TEACHER).build()));
+                        .role(MembershipRole.TEACHER).build()));
         UpdateCourseRequest request = new UpdateCourseRequest();
         request.setCoverUrl(" https://images.example/course.png ");
 

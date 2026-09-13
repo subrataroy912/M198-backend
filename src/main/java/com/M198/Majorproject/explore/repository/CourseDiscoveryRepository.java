@@ -6,8 +6,8 @@ import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.M198.Majorproject.entity.course.CourseStatus;
-import com.M198.Majorproject.entity.course.CourseVisibility;
+import com.M198.Majorproject.course.entity.CourseStatus;
+import com.M198.Majorproject.course.entity.CourseVisibility;
 import com.M198.Majorproject.explore.entity.CourseDiscovery;
 
 public interface CourseDiscoveryRepository extends MongoRepository<CourseDiscovery, String> {

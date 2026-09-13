@@ -1,4 +1,4 @@
-package com.M198.Majorproject.entity.course;
+package com.M198.Majorproject.course.entity;
 
 import java.time.Instant;
 

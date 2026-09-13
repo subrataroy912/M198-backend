@@ -6,15 +6,15 @@
  * Membership records are the gatekeepers for access control in classrooms,
  * allowing teachers, owners, students, and active/inactive states to be evaluated reliably.
  */
-package com.M198.Majorproject.repository.course;
+package com.M198.Majorproject.course.repository;
 
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.M198.Majorproject.entity.course.CourseMembership;
-import com.M198.Majorproject.entity.course.MembershipStatus;
+import com.M198.Majorproject.course.entity.CourseMembership;
+import com.M198.Majorproject.course.entity.MembershipStatus;
 
 public interface CourseMembershipRepository extends MongoRepository<CourseMembership, String> {
 

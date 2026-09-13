@@ -12,11 +12,11 @@ import com.M198.Majorproject.comment.entity.Comment;
 import com.M198.Majorproject.comment.entity.CommentTargetType;
 import com.M198.Majorproject.comment.entity.CommentVisibility;
 import com.M198.Majorproject.comment.repository.CommentRepository;
-import com.M198.Majorproject.entity.course.CourseMembership;
-import com.M198.Majorproject.entity.course.MembershipRole;
-import com.M198.Majorproject.entity.course.MembershipStatus;
+import com.M198.Majorproject.course.entity.CourseMembership;
+import com.M198.Majorproject.course.entity.MembershipRole;
+import com.M198.Majorproject.course.entity.MembershipStatus;
 import com.M198.Majorproject.submission.entity.Submission;
-import com.M198.Majorproject.repository.course.CourseMembershipRepository;
+import com.M198.Majorproject.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.coursework.repository.CourseworkRepository;
 import com.M198.Majorproject.submission.repository.SubmissionRepository;
 

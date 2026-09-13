@@ -11,14 +11,14 @@ import lombok.RequiredArgsConstructor;
 import com.M198.Majorproject.coursework.dto.CourseworkResponse;
 import com.M198.Majorproject.coursework.dto.CreateCourseworkRequest;
 import com.M198.Majorproject.coursework.dto.UpdateCourseworkRequest;
-import com.M198.Majorproject.entity.course.CourseMembership;
-import com.M198.Majorproject.entity.course.CourseStatus;
-import com.M198.Majorproject.entity.course.MembershipRole;
-import com.M198.Majorproject.entity.course.MembershipStatus;
+import com.M198.Majorproject.course.entity.CourseMembership;
+import com.M198.Majorproject.course.entity.CourseStatus;
+import com.M198.Majorproject.course.entity.MembershipRole;
+import com.M198.Majorproject.course.entity.MembershipStatus;
 import com.M198.Majorproject.coursework.entity.Coursework;
 import com.M198.Majorproject.coursework.entity.CourseworkStatus;
-import com.M198.Majorproject.repository.course.CourseMembershipRepository;
-import com.M198.Majorproject.repository.course.CourseRepository;
+import com.M198.Majorproject.course.repository.CourseMembershipRepository;
+import com.M198.Majorproject.course.repository.CourseRepository;
 import com.M198.Majorproject.coursework.repository.CourseworkRepository;
 
 @Service

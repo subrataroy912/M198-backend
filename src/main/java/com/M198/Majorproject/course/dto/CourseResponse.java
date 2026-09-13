@@ -1,9 +1,10 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.course.dto;
 
 import java.time.Instant;
 
-import com.M198.Majorproject.entity.course.CourseStatus;
-import com.M198.Majorproject.entity.course.CourseVisibility;
+import com.M198.Majorproject.course.entity.CourseAccessType;
+import com.M198.Majorproject.course.entity.CourseStatus;
+import com.M198.Majorproject.course.entity.CourseVisibility;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -25,7 +26,7 @@ public class CourseResponse {
     private String logoUrl;
     private String theme;
     private CourseVisibility visibility;
-    private com.M198.Majorproject.entity.course.CourseAccessType accessType;
+    private CourseAccessType accessType;
     private CourseStatus status;
     private boolean enrollmentEnabled;
     private String enrollmentCode;

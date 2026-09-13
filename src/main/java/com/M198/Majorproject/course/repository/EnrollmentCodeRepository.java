@@ -6,14 +6,14 @@
  * This repository controls course access by checking whether an enrollment code is active,
  * valid for a specific course, and still within its allowed time window.
  */
-package com.M198.Majorproject.repository.course;
+package com.M198.Majorproject.course.repository;
 
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.M198.Majorproject.entity.course.EnrollmentCode;
+import com.M198.Majorproject.course.entity.EnrollmentCode;
 
 public interface EnrollmentCodeRepository extends MongoRepository<EnrollmentCode, String> {
 

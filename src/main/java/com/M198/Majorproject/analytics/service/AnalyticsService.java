@@ -16,12 +16,12 @@ import com.M198.Majorproject.analytics.entity.CourseAnalyticsSummary;
 import com.M198.Majorproject.analytics.entity.StudentGradebookEntry;
 import com.M198.Majorproject.analytics.repository.CourseAnalyticsSummaryRepository;
 import com.M198.Majorproject.analytics.repository.StudentGradebookEntryRepository;
-import com.M198.Majorproject.entity.course.CourseMembership;
-import com.M198.Majorproject.entity.course.MembershipRole;
-import com.M198.Majorproject.entity.course.MembershipStatus;
+import com.M198.Majorproject.course.entity.CourseMembership;
+import com.M198.Majorproject.course.entity.MembershipRole;
+import com.M198.Majorproject.course.entity.MembershipStatus;
 import com.M198.Majorproject.entity.identity.UserProfile;
 import com.M198.Majorproject.submission.entity.SubmissionStatus;
-import com.M198.Majorproject.repository.course.CourseMembershipRepository;
+import com.M198.Majorproject.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.repository.identity.UserProfileRepository;
 
 import lombok.RequiredArgsConstructor;

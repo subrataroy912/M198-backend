@@ -1,9 +1,10 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.course.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-import com.M198.Majorproject.entity.course.CourseVisibility;
+import com.M198.Majorproject.course.entity.CourseAccessType;
+import com.M198.Majorproject.course.entity.CourseVisibility;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -27,7 +28,7 @@ public class CreateCourseRequest {
 
     private CourseVisibility visibility;
 
-    private com.M198.Majorproject.entity.course.CourseAccessType accessType;
+    private CourseAccessType accessType;
 
     @Size(max = 2048)
     private String coverUrl;

@@ -1,4 +1,4 @@
-package com.M198.Majorproject.controller.course;
+package com.M198.Majorproject.course.controller;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,10 +19,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import com.M198.Majorproject.config.GlobalExceptionHandler;
-import com.M198.Majorproject.dto.CourseCoverUploadResponse;
-import com.M198.Majorproject.dto.CourseResponse;
-import com.M198.Majorproject.dto.CreateCourseRequest;
-import com.M198.Majorproject.service.course.CourseService;
+import com.M198.Majorproject.course.dto.CourseCoverUploadResponse;
+import com.M198.Majorproject.course.dto.CourseResponse;
+import com.M198.Majorproject.course.dto.CreateCourseRequest;
+import com.M198.Majorproject.course.service.CourseService;
 
 @ExtendWith(MockitoExtension.class)
 class CourseControllerTest {

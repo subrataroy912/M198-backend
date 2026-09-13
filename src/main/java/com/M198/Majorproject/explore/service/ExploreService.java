@@ -7,8 +7,9 @@ import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
 import com.M198.Majorproject.explore.dto.CourseDiscoveryResponse;
-import com.M198.Majorproject.entity.course.CourseStatus;
-import com.M198.Majorproject.entity.course.CourseVisibility;
+import com.M198.Majorproject.course.entity.CourseAccessType;
+import com.M198.Majorproject.course.entity.CourseStatus;
+import com.M198.Majorproject.course.entity.CourseVisibility;
 import com.M198.Majorproject.explore.entity.CourseDiscovery;
 import com.M198.Majorproject.explore.repository.CourseDiscoveryRepository;
 
@@ -52,7 +53,7 @@ public class ExploreService {
         r.setTags(value.getTags());
         r.setCoverUrl(value.getCoverUrl());
         r.setLogoUrl(value.getLogoUrl());
-        r.setAccessType(value.getAccessType() != null ? value.getAccessType() : com.M198.Majorproject.entity.course.CourseAccessType.OPEN);
+        r.setAccessType(value.getAccessType() != null ? value.getAccessType() : CourseAccessType.OPEN);
         r.setEnrollmentCount(value.getEnrollmentCount());
         r.setPopularityScore(value.getPopularityScore());
         r.setLastActivityAt(value.getLastActivityAt());

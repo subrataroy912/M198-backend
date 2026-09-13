@@ -6,7 +6,7 @@
  * This document holds the course owner, title, section, subject, status, visibility,
  * and enrollment settings needed for student access and course management.
  */
-package com.M198.Majorproject.entity.course;
+package com.M198.Majorproject.course.entity;
 
 import java.time.Instant;
 

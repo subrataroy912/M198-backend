@@ -1,7 +1,7 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.course.dto;
 
-import com.M198.Majorproject.entity.course.CourseAccessType;
-import com.M198.Majorproject.entity.course.CourseVisibility;
+import com.M198.Majorproject.course.entity.CourseAccessType;
+import com.M198.Majorproject.course.entity.CourseVisibility;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -7,7 +7,7 @@
  * This controller routes all teaching and student course interactions into the service layer,
  * keeping HTTP concerns separate from the business logic of course management.
  */
-package com.M198.Majorproject.controller.course;
+package com.M198.Majorproject.course.controller;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -28,13 +28,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.M198.Majorproject.dto.CourseResponse;
-import com.M198.Majorproject.dto.CourseCoverUploadResponse;
-import com.M198.Majorproject.dto.CreateCourseRequest;
-import com.M198.Majorproject.dto.EnrollCourseRequest;
-import com.M198.Majorproject.dto.CourseMemberResponse;
-import com.M198.Majorproject.dto.UpdateCourseRequest;
-import com.M198.Majorproject.service.course.CourseService;
+import com.M198.Majorproject.course.dto.CourseResponse;
+import com.M198.Majorproject.course.dto.CourseCoverUploadResponse;
+import com.M198.Majorproject.course.dto.CreateCourseRequest;
+import com.M198.Majorproject.course.dto.EnrollCourseRequest;
+import com.M198.Majorproject.course.dto.CourseMemberResponse;
+import com.M198.Majorproject.course.dto.UpdateCourseRequest;
+import com.M198.Majorproject.course.service.CourseService;
 
 @RestController
 @RequestMapping("/v1/courses")
