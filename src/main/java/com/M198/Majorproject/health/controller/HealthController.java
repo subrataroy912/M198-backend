@@ -1,4 +1,4 @@
-package com.M198.Majorproject.controller.health;
+package com.M198.Majorproject.health.controller;
 
 import java.util.Map;
 
