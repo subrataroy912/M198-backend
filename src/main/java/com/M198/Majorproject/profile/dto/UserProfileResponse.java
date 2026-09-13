@@ -2,7 +2,6 @@ package com.M198.Majorproject.profile.dto;
 
 import java.util.List;
 
-import com.M198.Majorproject.identity.entity.AccountType;
 import com.M198.Majorproject.identity.entity.ProfileLink;
 import com.M198.Majorproject.identity.entity.ProfileVisibility;
 import lombok.Data;
@@ -12,7 +11,7 @@ public class UserProfileResponse {
 
     private String id; // The User ID
     private String email;
-    private AccountType accountType;
+    private boolean isAdmin;
 
     private String handle;
     private String firstName;

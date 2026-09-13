@@ -26,7 +26,6 @@ import com.M198.Majorproject.profile.dto.PublicUserProfileResponse;
 import com.M198.Majorproject.profile.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.profile.dto.UserProfileResponse;
 import com.M198.Majorproject.identity.entity.AccountStatus;
-import com.M198.Majorproject.identity.entity.AccountType;
 import com.M198.Majorproject.identity.entity.ProfileLink;
 import com.M198.Majorproject.identity.entity.ProfileVisibility;
 import com.M198.Majorproject.identity.entity.User;
@@ -65,9 +64,6 @@ public class ProfileService {
             throw new ProfileNotFoundException();
         }
         PublicUserProfileResponse response = toPublicResponse(profile);
-        if (response.getAccountType() == null) {
-            response.setAccountType(user.getAccountType());
-        }
         if (user.isCanCreateCourses()) {
             response.setCanCreateCourses(true);
         }
@@ -82,9 +78,6 @@ public class ProfileService {
 
         UserProfile profile = profile(userId);
         profile.setCanCreateCourses(true);
-        if (profile.getAccountType() == null) {
-            profile.setAccountType(user.getAccountType());
-        }
         UserProfile saved = profileRepository.save(profile);
         return toOwnerResponse(user, saved);
     }
@@ -286,7 +279,7 @@ public class ProfileService {
         UserProfileResponse response = new UserProfileResponse();
         response.setId(profile.getUserId());
         response.setEmail(user.getEmail());
-        response.setAccountType(user.getAccountType());
+        response.setAdmin(user.isAdmin() || profile.isAdmin());
         copyProfileFields(profile, response);
         response.setCanCreateCourses(user.isCanCreateCourses() || profile.isCanCreateCourses());
         return response;
@@ -295,7 +288,6 @@ public class ProfileService {
     private PublicUserProfileResponse toPublicResponse(UserProfile profile) {
         PublicUserProfileResponse response = new PublicUserProfileResponse();
         response.setId(profile.getUserId());
-        response.setAccountType(profile.getAccountType() != null ? profile.getAccountType() : AccountType.STUDENT);
         response.setCanCreateCourses(profile.isCanCreateCourses());
         copyProfileFields(profile, response);
         return response;
@@ -334,7 +326,6 @@ public class ProfileService {
         response.setCountry(profile.getCountry());
         response.setProfileVisibility(profile.getProfileVisibility());
         response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks()) : java.util.Collections.emptyList());
-        response.setAccountType(profile.getAccountType() != null ? profile.getAccountType() : AccountType.STUDENT);
         response.setCanCreateCourses(profile.isCanCreateCourses());
     }
 

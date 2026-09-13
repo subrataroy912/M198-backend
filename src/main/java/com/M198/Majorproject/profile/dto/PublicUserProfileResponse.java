@@ -2,7 +2,6 @@ package com.M198.Majorproject.profile.dto;
 
 import java.util.List;
 
-import com.M198.Majorproject.identity.entity.AccountType;
 import com.M198.Majorproject.identity.entity.ProfileLink;
 import com.M198.Majorproject.identity.entity.ProfileVisibility;
 import lombok.Getter;
@@ -25,7 +24,6 @@ public class PublicUserProfileResponse {
     private String country;
     private ProfileVisibility profileVisibility;
     private List<ProfileLink> links;
-    private AccountType accountType;
     private boolean canCreateCourses;
 
     public String getName() {

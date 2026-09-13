@@ -40,15 +40,16 @@ public class User {
     @Field("password_hash")
     private String passwordHash;
 
-    @Field("account_type")
-    @Builder.Default
-    private AccountType accountType = AccountType.STUDENT;
     @Builder.Default
     private AccountStatus status = AccountStatus.PENDING;
 
     @Field("can_create_courses")
     @Builder.Default
     private boolean canCreateCourses = false;
+
+    @Field("is_admin")
+    @Builder.Default
+    private boolean isAdmin = false;
 
     @Field("is_active")
     private boolean active;

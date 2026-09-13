@@ -43,7 +43,10 @@ public class AppUserDetailsService implements UserDetailsService {
 
     private UserDetails toUserDetails(User user, String username) {
         java.util.List<String> roles = new java.util.ArrayList<>();
-        roles.add(user.getAccountType().name());
+        roles.add("USER");
+        if (user.isAdmin()) {
+            roles.add("ADMIN");
+        }
         if (user.isCanCreateCourses()) {
             roles.add("CREATOR");
         }

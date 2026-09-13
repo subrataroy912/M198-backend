@@ -45,11 +45,11 @@ class SubmissionServiceTest {
     void setUp() {
         when(student.isAuthenticated()).thenReturn(true);
         when(student.getName()).thenReturn("student-1");
-        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))
+        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_USER")))
                 .when(student).getAuthorities();
         when(teacher.isAuthenticated()).thenReturn(true);
         when(teacher.getName()).thenReturn("teacher-1");
-        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_TEACHER")))
+        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_USER")))
                 .when(teacher).getAuthorities();
         when(membershipRepository.findByCourseIdAndUserIdAndStatus(
                 "course-1", "student-1", MembershipStatus.ACTIVE))

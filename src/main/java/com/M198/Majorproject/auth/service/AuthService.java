@@ -37,7 +37,6 @@ import com.M198.Majorproject.auth.dto.AuthResponse;
 import com.M198.Majorproject.auth.dto.LoginRequest;
 import com.M198.Majorproject.auth.dto.RegisterUserRequest;
 import com.M198.Majorproject.identity.entity.AccountStatus;
-import com.M198.Majorproject.identity.entity.AccountType;
 import com.M198.Majorproject.identity.entity.OAuthProvider;
 import com.M198.Majorproject.identity.entity.ProfileVisibility;
 import com.M198.Majorproject.identity.entity.RefreshToken;
@@ -78,9 +77,6 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
 
     public AuthResponse register(RegisterUserRequest request) {
-        if (request.getAccountType() != AccountType.TEACHER && request.getAccountType() != AccountType.STUDENT) {
-            throw new IllegalArgumentException("Public registration requires a teacher or student account");
-        }
         String email = normalizeEmail(request.getEmail());
         Optional<User> existingUserOpt = userRepository.findByEmail(email);
         if (existingUserOpt.isPresent()) {
@@ -103,10 +99,10 @@ public class AuthService {
                 User.builder()
                         .email(email)
                         .passwordHash(passwordEncoder.encode(request.getPassword()))
-                        .accountType(request.getAccountType())
                         .status(AccountStatus.ACTIVE)
                         .active(true)
                         .verified(false)
+                        .isAdmin(false)
                         .build());
         profileRepository.save(UserProfile.builder()
                 .userId(user.getId())
@@ -114,7 +110,7 @@ public class AuthService {
                 .lastName(request.getLastName().trim())
                 .displayName((request.getFirstName().trim() + " " + request.getLastName().trim()).trim())
                 .profileVisibility(ProfileVisibility.PRIVATE)
-                .accountType(request.getAccountType())
+                .isAdmin(false)
                 .canCreateCourses(false)
                 .build());
         return issueTokens(user);
@@ -304,10 +300,10 @@ public class AuthService {
         String normalizedEmail = normalizeEmail(email);
         User user = userRepository.save(User.builder()
                 .email(normalizedEmail)
-                .accountType(AccountType.STUDENT)
                 .status(AccountStatus.ACTIVE)
                 .active(true)
                 .verified(true)
+                .isAdmin(false)
                 .build());
         String[] names = splitDisplayName(displayName, normalizedEmail);
         profileRepository.save(UserProfile.builder()
@@ -317,7 +313,7 @@ public class AuthService {
                 .displayName(displayName == null || displayName.isBlank() ? names[0] : displayName)
                 .avatarUrl(avatarUrl)
                 .profileVisibility(ProfileVisibility.PRIVATE)
-                .accountType(AccountType.STUDENT)
+                .isAdmin(false)
                 .canCreateCourses(false)
                 .build());
         return user;
@@ -350,7 +346,7 @@ public class AuthService {
                 .displayName(displayName == null || displayName.isBlank() ? names[0] : displayName)
                 .avatarUrl(avatarUrl)
                 .profileVisibility(ProfileVisibility.PRIVATE)
-                .accountType(user.getAccountType())
+                .isAdmin(user.isAdmin())
                 .canCreateCourses(user.isCanCreateCourses())
                 .build());
     }
@@ -378,7 +374,7 @@ public class AuthService {
                 .expiresAt(jwtService.refreshTokenExpiresAt())
                 .build());
         return AuthResponse.builder()
-                .accessToken(jwtService.createAccessToken(user.getId(), user.getAccountType().name()))
+                .accessToken(jwtService.createAccessToken(user.getId()))
                 .refreshToken(refreshToken)
                 .userId(user.getId())
                 .email(user.getEmail())

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -27,7 +28,6 @@ import com.M198.Majorproject.auth.dto.AuthResponse;
 import com.M198.Majorproject.auth.dto.LoginRequest;
 import com.M198.Majorproject.auth.dto.RegisterUserRequest;
 import com.M198.Majorproject.identity.entity.AccountStatus;
-import com.M198.Majorproject.identity.entity.AccountType;
 import com.M198.Majorproject.identity.entity.OAuthProvider;
 import com.M198.Majorproject.identity.entity.RefreshToken;
 import com.M198.Majorproject.identity.entity.User;
@@ -59,14 +59,28 @@ class AuthServiceTest {
                         refreshTokenRepository);
 
         @Test
-        void publicRegistrationRejectsAdministratorRoleBeforePersistence() {
+        void registrationPersistsUserAndProfileWithDefaultPrivileges() {
                 RegisterUserRequest request = new RegisterUserRequest();
-                request.setAccountType(AccountType.ADMIN);
+                request.setEmail("newuser@example.com");
+                request.setPassword("password123");
+                request.setFirstName("New");
+                request.setLastName("User");
 
-                var exception = assertThrows(IllegalArgumentException.class, () -> authService.register(request));
-                org.junit.jupiter.api.Assertions.assertEquals(
-                                "Public registration requires a teacher or student account", exception.getMessage());
-                verifyNoInteractions(userRepository, profileRepository, refreshTokenRepository);
+                when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.empty());
+                when(passwordEncoder.encode("password123")).thenReturn("encoded-pass");
+                when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+                        User u = inv.getArgument(0);
+                        u.setId("new-user-id");
+                        return u;
+                });
+                when(profileRepository.save(any(UserProfile.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                AuthResponse response = authService.register(request);
+
+                assertNotNull(response);
+                assertEquals("new-user-id", response.getUserId());
+                verify(userRepository).save(argThat(user -> !user.isAdmin() && !user.isCanCreateCourses()));
+                verify(profileRepository).save(argThat(profile -> !profile.isAdmin() && !profile.isCanCreateCourses()));
         }
 
         @Test
@@ -90,7 +104,6 @@ class AuthServiceTest {
                                 .id("user-1")
                                 .email("alice@example.com")
                                 .passwordHash("local-hash")
-                                .accountType(AccountType.STUDENT)
                                 .status(AccountStatus.ACTIVE)
                                 .active(true)
                                 .verified(true)
@@ -126,7 +139,6 @@ class AuthServiceTest {
                 User existingUser = User.builder()
                                 .id("user-1")
                                 .email("alice@example.com")
-                                .accountType(AccountType.STUDENT)
                                 .status(AccountStatus.ACTIVE)
                                 .active(true)
                                 .verified(true)
@@ -170,7 +182,6 @@ class AuthServiceTest {
                                 .id("user-oauth")
                                 .email("social@example.com")
                                 .passwordHash(null)
-                                .accountType(AccountType.STUDENT)
                                 .status(AccountStatus.ACTIVE)
                                 .active(true)
                                 .build();
@@ -195,7 +206,6 @@ class AuthServiceTest {
                                 .id("user-oauth")
                                 .email("social@example.com")
                                 .passwordHash(null)
-                                .accountType(AccountType.STUDENT)
                                 .status(AccountStatus.ACTIVE)
                                 .active(true)
                                 .build();
@@ -210,7 +220,6 @@ class AuthServiceTest {
                 request.setPassword("password123");
                 request.setFirstName("Social");
                 request.setLastName("User");
-                request.setAccountType(AccountType.STUDENT);
 
                 var exception = assertThrows(DuplicateKeyException.class, () -> authService.register(request));
                 org.junit.jupiter.api.Assertions.assertTrue(exception.getMessage().contains("GitHub"));
@@ -222,7 +231,6 @@ class AuthServiceTest {
                                 .id("user-1")
                                 .email("user@example.com")
                                 .status(AccountStatus.ACTIVE)
-                                .accountType(AccountType.STUDENT)
                                 .active(true)
                                 .build();
                 when(userRepository.findByIdAndActiveTrueAndStatus("user-1", AccountStatus.ACTIVE))
@@ -290,7 +298,6 @@ class AuthServiceTest {
                                 .id("user-1")
                                 .email("user@example.com")
                                 .status(AccountStatus.ACTIVE)
-                                .accountType(AccountType.STUDENT)
                                 .active(true)
                                 .build();
 

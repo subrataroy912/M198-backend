@@ -17,12 +17,11 @@ class JwtServiceTest {
             Duration.ofDays(1));
 
     @Test
-    void accessTokenContainsUserAndAccountClaims() {
+    void accessTokenContainsUserAndTypeClaims() {
         var claims = jwtService.parseAndValidate(
-                jwtService.createAccessToken("user-1", "STUDENT"), "access");
+                jwtService.createAccessToken("user-1"), "access");
 
         assertEquals("user-1", claims.getSubject());
-        assertEquals("STUDENT", claims.get("account_type"));
         assertEquals("access", claims.get("token_type"));
     }
 

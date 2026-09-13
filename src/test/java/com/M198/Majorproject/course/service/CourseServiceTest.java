@@ -68,11 +68,11 @@ class CourseServiceTest {
     void setUp() {
         when(teacher.isAuthenticated()).thenReturn(true);
         when(teacher.getName()).thenReturn("teacher-1");
-        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_TEACHER")))
+        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_USER"), new SimpleGrantedAuthority("ROLE_CREATOR")))
                 .when(teacher).getAuthorities();
         when(student.isAuthenticated()).thenReturn(true);
         when(student.getName()).thenReturn("student-1");
-        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))
+        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_USER")))
                 .when(student).getAuthorities();
         when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> {
             Course course = invocation.getArgument(0);
@@ -449,7 +449,7 @@ class CourseServiceTest {
         Authentication ownerAuth = mock(Authentication.class);
         when(ownerAuth.isAuthenticated()).thenReturn(true);
         when(ownerAuth.getName()).thenReturn("owner-1");
-        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_TEACHER")))
+        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_USER")))
                 .when(ownerAuth).getAuthorities();
 
         courseService.deleteCourse("course-1", ownerAuth);
@@ -491,7 +491,7 @@ class CourseServiceTest {
         Authentication teacher2 = mock(Authentication.class);
         when(teacher2.isAuthenticated()).thenReturn(true);
         when(teacher2.getName()).thenReturn("teacher-2");
-        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_TEACHER")))
+        doReturn(java.util.List.of(new SimpleGrantedAuthority("ROLE_USER")))
                 .when(teacher2).getAuthorities();
 
         assertThrows(CourseService.CourseAccessException.class,

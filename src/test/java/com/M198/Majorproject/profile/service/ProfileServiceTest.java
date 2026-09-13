@@ -17,7 +17,6 @@ import org.springframework.security.core.Authentication;
 
 import com.M198.Majorproject.profile.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.identity.entity.AccountStatus;
-import com.M198.Majorproject.identity.entity.AccountType;
 import com.M198.Majorproject.identity.entity.ProfileLink;
 import com.M198.Majorproject.identity.entity.ProfileVisibility;
 import com.M198.Majorproject.identity.entity.User;
@@ -44,7 +43,6 @@ class ProfileServiceTest {
         user = User.builder()
                 .id("user-1")
                 .email("user@example.com")
-                .accountType(AccountType.STUDENT)
                 .status(AccountStatus.ACTIVE)
                 .active(true)
                 .build();
@@ -263,7 +261,6 @@ class ProfileServiceTest {
         var response = profileService.unlockCreator(authentication);
 
         org.junit.jupiter.api.Assertions.assertTrue(response.isCanCreateCourses());
-        assertEquals(AccountType.STUDENT, response.getAccountType());
         verify(userRepository).save(argThat(User::isCanCreateCourses));
         verify(profileRepository).save(argThat(UserProfile::isCanCreateCourses));
     }

@@ -69,13 +69,13 @@ public class UserProfile {
     @Builder.Default
     private ProfileVisibility profileVisibility = ProfileVisibility.PRIVATE;
 
-    @Field("account_type")
-    @Builder.Default
-    private AccountType accountType = AccountType.STUDENT;
-
     @Field("can_create_courses")
     @Builder.Default
     private boolean canCreateCourses = false;
+
+    @Field("is_admin")
+    @Builder.Default
+    private boolean isAdmin = false;
 
     @Field("links")
     @Builder.Default

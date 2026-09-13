@@ -52,7 +52,6 @@ import com.M198.Majorproject.coursework.entity.Coursework;
 import com.M198.Majorproject.coursework.repository.CourseworkRepository;
 import com.M198.Majorproject.explore.entity.CourseDiscovery;
 import com.M198.Majorproject.explore.repository.CourseDiscoveryRepository;
-import com.M198.Majorproject.identity.entity.AccountType;
 import com.M198.Majorproject.identity.entity.UserProfile;
 import com.M198.Majorproject.identity.repository.UserProfileRepository;
 import com.M198.Majorproject.notification.entity.NotificationResourceType;
@@ -408,7 +407,6 @@ public class CourseService {
 
     public CourseResponse enroll(String courseId, Authentication authentication, EnrollCourseRequest request) {
         String userId = authenticatedUserId(authentication);
-        requireAnyRole(authentication, AccountType.STUDENT, AccountType.TEACHER, AccountType.ADMIN);
         Course course = activeCourse(courseId);
         if (!course.isEnrollmentEnabled()) {
             throw new CourseAccessException("Enrollment is disabled");
@@ -644,7 +642,7 @@ public class CourseService {
     public List<CourseMemberResponse> roster(String courseId, Authentication authentication) {
         String userId = authenticatedUserId(authentication);
         activeCourse(courseId);
-        if (!hasRole(authentication, AccountType.ADMIN)) {
+        if (!hasAuthority(authentication, "ROLE_ADMIN")) {
             requireActiveMember(courseId, userId);
         }
         List<CourseMembership> memberships = membershipRepository.findAllByCourseIdAndStatus(courseId,
@@ -697,7 +695,7 @@ public class CourseService {
     }
 
     private void requireOwnerOrAdmin(Course course, String userId, Authentication authentication) {
-        if (hasRole(authentication, AccountType.ADMIN)) {
+        if (hasAuthority(authentication, "ROLE_ADMIN")) {
             return;
         }
         if (course.getOwnerId() != null && course.getOwnerId().equals(userId)) {
@@ -718,16 +716,8 @@ public class CourseService {
         return authentication.getName();
     }
 
-    @SuppressWarnings("unused")
-    private void requireRole(Authentication authentication, AccountType requiredRole) {
-        boolean permitted = hasRole(authentication, requiredRole);
-        if (!permitted) {
-            throw new CourseAccessException("Teacher role required");
-        }
-    }
-
     private void requireCanCreateCourse(Authentication authentication, String userId) {
-        if (hasRole(authentication, AccountType.TEACHER) || hasRole(authentication, AccountType.ADMIN)) {
+        if (hasAuthority(authentication, "ROLE_ADMIN")) {
             return;
         }
         if (hasAuthority(authentication, "ROLE_CREATOR")) {
@@ -750,20 +740,6 @@ public class CourseService {
         }
         return authentication.getAuthorities().stream()
                 .anyMatch(authority -> authority.getAuthority().equals(authorityName));
-    }
-
-    private void requireAnyRole(Authentication authentication, AccountType... roles) {
-        for (AccountType role : roles) {
-            if (hasRole(authentication, role)) {
-                return;
-            }
-        }
-        throw new CourseAccessException("Teacher or administrator role required");
-    }
-
-    private boolean hasRole(Authentication authentication, AccountType role) {
-        return authentication.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_" + role.name()));
     }
 
     private CourseResponse toResponse(Course course) {

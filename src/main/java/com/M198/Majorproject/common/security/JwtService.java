@@ -46,12 +46,12 @@ public class JwtService {
         this.refreshTokenLifetime = refreshTokenLifetime;
     }
 
-    public String createAccessToken(String userId, String accountType) {
-        return createToken(userId, accountType, ACCESS_TOKEN, accessTokenLifetime);
+    public String createAccessToken(String userId) {
+        return createToken(userId, ACCESS_TOKEN, accessTokenLifetime);
     }
 
     public String createRefreshToken(String userId) {
-        return createToken(userId, null, REFRESH_TOKEN, refreshTokenLifetime);
+        return createToken(userId, REFRESH_TOKEN, refreshTokenLifetime);
     }
 
     public Instant refreshTokenExpiresAt() {
@@ -70,7 +70,7 @@ public class JwtService {
         return claims;
     }
 
-    private String createToken(String userId, String accountType, String tokenType, Duration lifetime) {
+    private String createToken(String userId, String tokenType, Duration lifetime) {
         Instant issuedAt = Instant.now();
         var builder = Jwts.builder()
                 .subject(userId)
@@ -78,9 +78,6 @@ public class JwtService {
                 .issuedAt(Date.from(issuedAt))
                 .expiration(Date.from(issuedAt.plus(lifetime)))
                 .signWith(signingKey);
-        if (accountType != null) {
-            builder.claim("account_type", accountType);
-        }
         return builder.compact();
     }
 }
