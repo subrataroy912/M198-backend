@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.M198.Majorproject.coursework.dto.CourseworkResponse;
 import com.M198.Majorproject.coursework.dto.CreateCourseworkRequest;
-import com.M198.Majorproject.dto.PageResponse;
+import com.M198.Majorproject.common.dto.PageResponse;
 import com.M198.Majorproject.coursework.dto.UpdateCourseworkRequest;
 import com.M198.Majorproject.coursework.service.CourseworkService;
 

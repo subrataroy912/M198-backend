@@ -3,7 +3,7 @@ package com.M198.Majorproject.notification.controller;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import com.M198.Majorproject.dto.PageResponse;
+import com.M198.Majorproject.common.dto.PageResponse;
 import com.M198.Majorproject.notification.dto.NotificationResponse;
 import com.M198.Majorproject.notification.dto.NotificationSettingsRequest;
 import com.M198.Majorproject.notification.dto.NotificationSettingsResponse;

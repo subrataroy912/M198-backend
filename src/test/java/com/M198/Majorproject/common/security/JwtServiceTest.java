@@ -1,4 +1,4 @@
-package com.M198.Majorproject.security;
+package com.M198.Majorproject.common.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

@@ -48,7 +48,7 @@ import com.M198.Majorproject.identity.repository.RefreshTokenRepository;
 import com.M198.Majorproject.identity.repository.UserOAuthRepository;
 import com.M198.Majorproject.identity.repository.UserProfileRepository;
 import com.M198.Majorproject.identity.repository.UserRepository;
-import com.M198.Majorproject.security.JwtService;
+import com.M198.Majorproject.common.security.JwtService;
 
 import jakarta.servlet.http.HttpServletResponse;
 

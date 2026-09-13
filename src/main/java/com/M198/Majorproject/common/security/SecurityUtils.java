@@ -1,4 +1,4 @@
-package com.M198.Majorproject.security;
+package com.M198.Majorproject.common.security;
 
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;

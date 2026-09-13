@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.M198.Majorproject.submission.dto.GradeSubmissionRequest;
 import com.M198.Majorproject.submission.dto.SubmissionResponse;
-import com.M198.Majorproject.dto.PageResponse;
+import com.M198.Majorproject.common.dto.PageResponse;
 import com.M198.Majorproject.submission.dto.UpdateSubmissionRequest;
 import com.M198.Majorproject.submission.service.SubmissionService;
 

@@ -14,7 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import com.M198.Majorproject.config.GlobalExceptionHandler;
+import com.M198.Majorproject.common.config.GlobalExceptionHandler;
 import com.M198.Majorproject.analytics.service.AnalyticsService;
 
 @ExtendWith(MockitoExtension.class)

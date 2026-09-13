@@ -17,7 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
-import com.M198.Majorproject.config.GlobalExceptionHandler;
+import com.M198.Majorproject.common.config.GlobalExceptionHandler;
 import com.M198.Majorproject.comment.dto.CreateCommentRequest;
 import com.M198.Majorproject.comment.service.CommentService;
 

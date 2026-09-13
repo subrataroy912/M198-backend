@@ -1,4 +1,4 @@
-package com.M198.Majorproject.config;
+package com.M198.Majorproject.common.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

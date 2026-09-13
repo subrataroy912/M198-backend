@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
-import com.M198.Majorproject.config.GlobalExceptionHandler;
+import com.M198.Majorproject.common.config.GlobalExceptionHandler;
 import com.M198.Majorproject.course.dto.CourseCoverUploadResponse;
 import com.M198.Majorproject.course.dto.CourseResponse;
 import com.M198.Majorproject.course.dto.CreateCourseRequest;

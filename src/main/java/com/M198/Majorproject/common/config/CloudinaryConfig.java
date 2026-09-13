@@ -1,4 +1,4 @@
-package com.M198.Majorproject.config;
+package com.M198.Majorproject.common.config;
 
 import java.util.HashMap;
 import java.util.Map;

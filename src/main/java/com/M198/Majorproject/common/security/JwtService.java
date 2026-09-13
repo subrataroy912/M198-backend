@@ -6,7 +6,7 @@
  * This service creates secure tokens used for user session management.
  * Access tokens are used for API authorization, while refresh tokens let users stay logged in.
  */
-package com.M198.Majorproject.security;
+package com.M198.Majorproject.common.security;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;

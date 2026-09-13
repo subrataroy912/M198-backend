@@ -3,7 +3,7 @@ package com.M198.Majorproject.explore.controller;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import com.M198.Majorproject.explore.dto.CourseDiscoveryResponse;
-import com.M198.Majorproject.dto.PageResponse;
+import com.M198.Majorproject.common.dto.PageResponse;
 import com.M198.Majorproject.course.dto.PublicCourseResponse;
 import com.M198.Majorproject.course.service.CourseService;
 import com.M198.Majorproject.explore.service.ExploreService;

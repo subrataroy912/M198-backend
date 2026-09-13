@@ -6,7 +6,7 @@
  * This filter runs before protected endpoints are processed and authenticates the caller
  * when a valid JWT token is present in the Authorization header.
  */
-package com.M198.Majorproject.security;
+package com.M198.Majorproject.common.security;
 
 import java.io.IOException;
 

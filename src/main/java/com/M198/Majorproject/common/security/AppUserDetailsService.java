@@ -6,7 +6,7 @@
  * This service translates the application user model into Spring Security's UserDetails,
  * so protected endpoints can validate the authenticated caller correctly.
  */
-package com.M198.Majorproject.security;
+package com.M198.Majorproject.common.security;
 
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

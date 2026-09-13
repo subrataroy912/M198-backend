@@ -8,7 +8,7 @@
  * It ensures only public routes remain open while important endpoints like
  * profile management, course actions, enrollments, and submissions are protected.
  */
-package com.M198.Majorproject.config;
+package com.M198.Majorproject.common.config;
 
 import java.util.Arrays;
 
@@ -36,8 +36,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.M198.Majorproject.security.AppUserDetailsService;
-import com.M198.Majorproject.security.JwtAuthenticationFilter;
+import com.M198.Majorproject.common.security.AppUserDetailsService;
+import com.M198.Majorproject.common.security.JwtAuthenticationFilter;
 import com.M198.Majorproject.auth.service.OAuthFailureHandler;
 import com.M198.Majorproject.auth.service.OAuthSuccessHandler;
 import com.M198.Majorproject.auth.service.OAuthUserService;

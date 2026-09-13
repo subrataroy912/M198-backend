@@ -1,4 +1,4 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.common.dto;
 
 import java.util.List;
 
