@@ -380,6 +380,8 @@ public class AuthService {
                 .email(user.getEmail())
                 .displayName(profile == null ? null : profile.getDisplayName())
                 .avatarUrl(profile == null ? null : profile.getAvatarUrl())
+                .canCreateCourses(user.isCanCreateCourses() || (profile != null && profile.isCanCreateCourses()))
+                .isAdmin(user.isAdmin() || (profile != null && profile.isAdmin()))
                 .build();
     }
 
