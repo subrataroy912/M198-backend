@@ -28,8 +28,8 @@ import com.M198.Majorproject.attachment.service.AttachmentService.AttachmentNotF
 import com.M198.Majorproject.attachment.service.AttachmentService.AttachmentConfigurationException;
 import com.M198.Majorproject.attachment.service.AttachmentService.AttachmentConflictException;
 import com.M198.Majorproject.attachment.service.AttachmentService.AttachmentStorageException;
-import com.M198.Majorproject.service.comment.CommentService.CommentAccessException;
-import com.M198.Majorproject.service.comment.CommentService.CommentNotFoundException;
+import com.M198.Majorproject.comment.service.CommentService.CommentAccessException;
+import com.M198.Majorproject.comment.service.CommentService.CommentNotFoundException;
 import com.M198.Majorproject.notification.service.NotificationService.NotificationAccessException;
 import com.M198.Majorproject.notification.service.NotificationService.NotificationNotFoundException;
 import com.M198.Majorproject.service.analytics.AnalyticsService.AnalyticsAccessException;

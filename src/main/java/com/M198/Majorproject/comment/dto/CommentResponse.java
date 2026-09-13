@@ -1,8 +1,8 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.comment.dto;
 
 import java.time.Instant;
 
-import com.M198.Majorproject.entity.comment.CommentVisibility;
+import com.M198.Majorproject.comment.entity.CommentVisibility;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -1,4 +1,4 @@
-package com.M198.Majorproject.service.comment;
+package com.M198.Majorproject.comment.service;
 
 import java.util.List;
 
@@ -6,16 +6,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
-import com.M198.Majorproject.dto.CommentResponse;
-import com.M198.Majorproject.dto.CreateCommentRequest;
-import com.M198.Majorproject.entity.comment.Comment;
-import com.M198.Majorproject.entity.comment.CommentTargetType;
-import com.M198.Majorproject.entity.comment.CommentVisibility;
+import com.M198.Majorproject.comment.dto.CommentResponse;
+import com.M198.Majorproject.comment.dto.CreateCommentRequest;
+import com.M198.Majorproject.comment.entity.Comment;
+import com.M198.Majorproject.comment.entity.CommentTargetType;
+import com.M198.Majorproject.comment.entity.CommentVisibility;
+import com.M198.Majorproject.comment.repository.CommentRepository;
 import com.M198.Majorproject.entity.course.CourseMembership;
 import com.M198.Majorproject.entity.course.MembershipRole;
 import com.M198.Majorproject.entity.course.MembershipStatus;
 import com.M198.Majorproject.entity.submission.Submission;
-import com.M198.Majorproject.repository.comment.CommentRepository;
 import com.M198.Majorproject.repository.course.CourseMembershipRepository;
 import com.M198.Majorproject.repository.coursework.CourseworkRepository;
 import com.M198.Majorproject.repository.submission.SubmissionRepository;

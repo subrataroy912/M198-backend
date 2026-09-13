@@ -1,11 +1,12 @@
-package com.M198.Majorproject.controller.comment;
+package com.M198.Majorproject.comment.controller;
 
 import java.util.List;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import com.M198.Majorproject.dto.*;
-import com.M198.Majorproject.service.comment.CommentService;
+import com.M198.Majorproject.comment.dto.CommentResponse;
+import com.M198.Majorproject.comment.dto.CreateCommentRequest;
+import com.M198.Majorproject.comment.service.CommentService;
 
 @RestController
 @RequestMapping("/v1")

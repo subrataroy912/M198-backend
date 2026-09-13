@@ -1,4 +1,4 @@
-package com.M198.Majorproject.controller.comment;
+package com.M198.Majorproject.comment.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -18,8 +18,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import com.M198.Majorproject.config.GlobalExceptionHandler;
-import com.M198.Majorproject.dto.CreateCommentRequest;
-import com.M198.Majorproject.service.comment.CommentService;
+import com.M198.Majorproject.comment.dto.CreateCommentRequest;
+import com.M198.Majorproject.comment.service.CommentService;
 
 @ExtendWith(MockitoExtension.class)
 class CommentControllerTest {
