@@ -1,11 +1,13 @@
-package com.M198.Majorproject.controller.notification;
+package com.M198.Majorproject.notification.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import com.M198.Majorproject.dto.*;
-import com.M198.Majorproject.dto.NotificationSettingsResponse;
-import com.M198.Majorproject.service.notification.NotificationService;
+import com.M198.Majorproject.dto.PageResponse;
+import com.M198.Majorproject.notification.dto.NotificationResponse;
+import com.M198.Majorproject.notification.dto.NotificationSettingsRequest;
+import com.M198.Majorproject.notification.dto.NotificationSettingsResponse;
+import com.M198.Majorproject.notification.service.NotificationService;
 
 @RestController
 @RequestMapping("/v1/notifications")

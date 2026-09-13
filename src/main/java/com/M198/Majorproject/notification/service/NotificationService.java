@@ -1,4 +1,4 @@
-package com.M198.Majorproject.service.notification;
+package com.M198.Majorproject.notification.service;
 
 import java.time.Instant;
 import org.springframework.data.domain.Page;
@@ -9,13 +9,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
-import com.M198.Majorproject.dto.NotificationResponse;
-import com.M198.Majorproject.dto.NotificationSettingsRequest;
-import com.M198.Majorproject.dto.NotificationSettingsResponse;
-import com.M198.Majorproject.entity.notification.Notification;
-import com.M198.Majorproject.entity.notification.NotificationSettings;
-import com.M198.Majorproject.repository.notification.NotificationRepository;
-import com.M198.Majorproject.repository.notification.NotificationSettingsRepository;
+import com.M198.Majorproject.notification.dto.NotificationResponse;
+import com.M198.Majorproject.notification.dto.NotificationSettingsRequest;
+import com.M198.Majorproject.notification.dto.NotificationSettingsResponse;
+import com.M198.Majorproject.notification.entity.Notification;
+import com.M198.Majorproject.notification.entity.NotificationSettings;
+import com.M198.Majorproject.notification.repository.NotificationRepository;
+import com.M198.Majorproject.notification.repository.NotificationSettingsRepository;
 
 @Service
 @RequiredArgsConstructor

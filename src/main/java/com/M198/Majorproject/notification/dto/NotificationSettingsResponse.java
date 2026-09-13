@@ -1,4 +1,4 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.notification.dto;
 
 import java.time.Instant;
 

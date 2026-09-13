@@ -1,9 +1,9 @@
-package com.M198.Majorproject.dto;
+package com.M198.Majorproject.notification.dto;
 
 import java.time.Instant;
 
-import com.M198.Majorproject.entity.notification.NotificationResourceType;
-import com.M198.Majorproject.entity.notification.NotificationType;
+import com.M198.Majorproject.notification.entity.NotificationResourceType;
+import com.M198.Majorproject.notification.entity.NotificationType;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -1,10 +1,10 @@
-package com.M198.Majorproject.repository.notification;
+package com.M198.Majorproject.notification.repository;
 
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.M198.Majorproject.entity.notification.NotificationSettings;
+import com.M198.Majorproject.notification.entity.NotificationSettings;
 
 public interface NotificationSettingsRepository extends MongoRepository<NotificationSettings, String> {
 

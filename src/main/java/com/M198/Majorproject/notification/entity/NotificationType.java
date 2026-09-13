@@ -1,4 +1,4 @@
-package com.M198.Majorproject.entity.notification;
+package com.M198.Majorproject.notification.entity;
 
 public enum NotificationType {
     COURSE_INVITATION,

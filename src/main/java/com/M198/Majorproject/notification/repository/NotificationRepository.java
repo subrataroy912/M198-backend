@@ -1,11 +1,11 @@
-package com.M198.Majorproject.repository.notification;
+package com.M198.Majorproject.notification.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.M198.Majorproject.entity.notification.Notification;
+import com.M198.Majorproject.notification.entity.Notification;
 
 public interface NotificationRepository extends MongoRepository<Notification, String> {
 

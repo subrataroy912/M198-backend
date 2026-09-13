@@ -1,4 +1,4 @@
-package com.M198.Majorproject.controller.notification;
+package com.M198.Majorproject.notification.controller;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -18,8 +18,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.M198.Majorproject.config.GlobalExceptionHandler;
-import com.M198.Majorproject.dto.NotificationResponse;
-import com.M198.Majorproject.service.notification.NotificationService;
+import com.M198.Majorproject.notification.dto.NotificationResponse;
+import com.M198.Majorproject.notification.service.NotificationService;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationControllerTest {

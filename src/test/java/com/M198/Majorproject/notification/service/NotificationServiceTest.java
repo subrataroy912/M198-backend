@@ -1,4 +1,4 @@
-package com.M198.Majorproject.service.notification;
+package com.M198.Majorproject.notification.service;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -13,9 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.Authentication;
 
-import com.M198.Majorproject.entity.notification.NotificationSettings;
-import com.M198.Majorproject.repository.notification.NotificationRepository;
-import com.M198.Majorproject.repository.notification.NotificationSettingsRepository;
+import com.M198.Majorproject.notification.entity.NotificationSettings;
+import com.M198.Majorproject.notification.repository.NotificationRepository;
+import com.M198.Majorproject.notification.repository.NotificationSettingsRepository;
 
 class NotificationServiceTest {
 

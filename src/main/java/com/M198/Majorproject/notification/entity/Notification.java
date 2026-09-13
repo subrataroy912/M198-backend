@@ -6,7 +6,7 @@
  * Notifications keep learners and teachers informed about course changes,
  * assignment updates, comments, grading events, and profile-related activity.
  */
-package com.M198.Majorproject.entity.notification;
+package com.M198.Majorproject.notification.entity;
 
 import java.time.Instant;
 

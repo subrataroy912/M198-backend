@@ -30,8 +30,8 @@ import com.M198.Majorproject.service.attachment.AttachmentService.AttachmentConf
 import com.M198.Majorproject.service.attachment.AttachmentService.AttachmentStorageException;
 import com.M198.Majorproject.service.comment.CommentService.CommentAccessException;
 import com.M198.Majorproject.service.comment.CommentService.CommentNotFoundException;
-import com.M198.Majorproject.service.notification.NotificationService.NotificationAccessException;
-import com.M198.Majorproject.service.notification.NotificationService.NotificationNotFoundException;
+import com.M198.Majorproject.notification.service.NotificationService.NotificationAccessException;
+import com.M198.Majorproject.notification.service.NotificationService.NotificationNotFoundException;
 import com.M198.Majorproject.service.analytics.AnalyticsService.AnalyticsAccessException;
 import com.M198.Majorproject.service.analytics.AnalyticsService.AnalyticsNotFoundException;
 import io.jsonwebtoken.JwtException;
