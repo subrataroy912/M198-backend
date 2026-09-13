@@ -12,4 +12,8 @@ public interface StudentGradebookEntryRepository extends MongoRepository<Student
             String courseId, String studentId);
 
     List<StudentGradebookEntry> findAllByCourseIdOrderByDueAtAsc(String courseId);
+
+    void deleteAllByCourseId(String courseId);
+
+    void deleteAllByCourseworkId(String courseworkId);
 }

@@ -22,4 +22,6 @@ public interface CourseDiscoveryRepository extends MongoRepository<CourseDiscove
 
     Page<CourseDiscovery> findAllByTitleContainingIgnoreCaseAndVisibilityAndStatusOrderByPopularityScoreDesc(
             String title, CourseVisibility visibility, CourseStatus status, Pageable pageable);
+
+    void deleteByCourseId(String courseId);
 }

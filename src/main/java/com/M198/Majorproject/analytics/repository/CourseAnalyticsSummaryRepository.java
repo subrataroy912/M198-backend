@@ -17,4 +17,8 @@ import com.M198.Majorproject.analytics.entity.CourseAnalyticsSummary;
 public interface CourseAnalyticsSummaryRepository extends MongoRepository<CourseAnalyticsSummary, String> {
 
     Optional<CourseAnalyticsSummary> findByCourseId(String courseId);
+
+    void deleteByCourseId(String courseId);
+
+    void deleteAllByCourseId(String courseId);
 }

@@ -26,6 +26,10 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import com.M198.Majorproject.analytics.repository.CourseAnalyticsSummaryRepository;
+import com.M198.Majorproject.analytics.repository.StudentGradebookEntryRepository;
+import com.M198.Majorproject.attachment.repository.AttachmentRepository;
+import com.M198.Majorproject.comment.repository.CommentRepository;
 import com.M198.Majorproject.course.dto.CourseCoverUploadResponse;
 import com.M198.Majorproject.course.dto.CourseMemberResponse;
 import com.M198.Majorproject.course.dto.CourseResponse;
@@ -44,11 +48,16 @@ import com.M198.Majorproject.course.entity.MembershipStatus;
 import com.M198.Majorproject.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.course.repository.CourseRepository;
 import com.M198.Majorproject.course.repository.EnrollmentCodeRepository;
+import com.M198.Majorproject.coursework.entity.Coursework;
+import com.M198.Majorproject.coursework.repository.CourseworkRepository;
 import com.M198.Majorproject.explore.entity.CourseDiscovery;
 import com.M198.Majorproject.explore.repository.CourseDiscoveryRepository;
 import com.M198.Majorproject.identity.entity.AccountType;
 import com.M198.Majorproject.identity.entity.UserProfile;
 import com.M198.Majorproject.identity.repository.UserProfileRepository;
+import com.M198.Majorproject.notification.entity.NotificationResourceType;
+import com.M198.Majorproject.notification.repository.NotificationRepository;
+import com.M198.Majorproject.submission.repository.SubmissionRepository;
 import com.cloudinary.Cloudinary;
 
 @Service
@@ -62,6 +71,13 @@ public class CourseService {
     private final EnrollmentCodeRepository enrollmentCodeRepository;
     private final CourseDiscoveryRepository courseDiscoveryRepository;
     private final UserProfileRepository userProfileRepository;
+    private final CourseworkRepository courseworkRepository;
+    private final SubmissionRepository submissionRepository;
+    private final CommentRepository commentRepository;
+    private final AttachmentRepository attachmentRepository;
+    private final NotificationRepository notificationRepository;
+    private final StudentGradebookEntryRepository studentGradebookEntryRepository;
+    private final CourseAnalyticsSummaryRepository courseAnalyticsSummaryRepository;
     private final Cloudinary cloudinary;
     private final String cloudName;
     private final String apiKey;
@@ -74,6 +90,13 @@ public class CourseService {
             EnrollmentCodeRepository enrollmentCodeRepository,
             CourseDiscoveryRepository courseDiscoveryRepository,
             UserProfileRepository userProfileRepository,
+            CourseworkRepository courseworkRepository,
+            SubmissionRepository submissionRepository,
+            CommentRepository commentRepository,
+            AttachmentRepository attachmentRepository,
+            NotificationRepository notificationRepository,
+            StudentGradebookEntryRepository studentGradebookEntryRepository,
+            CourseAnalyticsSummaryRepository courseAnalyticsSummaryRepository,
             Cloudinary cloudinary,
             @Value("${cloudinary.cloud-name:}") String cloudName,
             @Value("${cloudinary.api-key:}") String apiKey,
@@ -83,10 +106,32 @@ public class CourseService {
         this.enrollmentCodeRepository = enrollmentCodeRepository;
         this.courseDiscoveryRepository = courseDiscoveryRepository;
         this.userProfileRepository = userProfileRepository;
+        this.courseworkRepository = courseworkRepository;
+        this.submissionRepository = submissionRepository;
+        this.commentRepository = commentRepository;
+        this.attachmentRepository = attachmentRepository;
+        this.notificationRepository = notificationRepository;
+        this.studentGradebookEntryRepository = studentGradebookEntryRepository;
+        this.courseAnalyticsSummaryRepository = courseAnalyticsSummaryRepository;
         this.cloudinary = cloudinary;
         this.cloudName = cloudName;
         this.apiKey = apiKey;
         this.apiSecret = apiSecret;
+    }
+
+    public CourseService(
+            CourseRepository courseRepository,
+            CourseMembershipRepository membershipRepository,
+            EnrollmentCodeRepository enrollmentCodeRepository,
+            CourseDiscoveryRepository courseDiscoveryRepository,
+            UserProfileRepository userProfileRepository,
+            Cloudinary cloudinary,
+            String cloudName,
+            String apiKey,
+            String apiSecret) {
+        this(courseRepository, membershipRepository, enrollmentCodeRepository, courseDiscoveryRepository,
+                userProfileRepository, null, null, null, null, null, null, null,
+                cloudinary, cloudName, apiKey, apiSecret);
     }
 
     public CourseService(
@@ -530,6 +575,72 @@ public class CourseService {
         syncDiscovery(archivedCourse);
     }
 
+    public void deleteCourse(String courseId, Authentication authentication) {
+        validateCourseId(courseId);
+        String userId = authenticatedUserId(authentication);
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(CourseNotFoundException::new);
+        requireOwnerOrAdmin(course, userId, authentication);
+
+        List<String> courseworkIds = Collections.emptyList();
+        if (courseworkRepository != null) {
+            List<Coursework> courseworks = courseworkRepository.findAllByCourseId(courseId);
+            if (courseworks != null && !courseworks.isEmpty()) {
+                courseworkIds = courseworks.stream()
+                        .map(Coursework::getId)
+                        .filter(Objects::nonNull)
+                        .toList();
+            }
+        }
+
+        if (notificationRepository != null) {
+            notificationRepository.deleteAllByResourceTypeAndResourceId(NotificationResourceType.COURSE, courseId);
+            if (!courseworkIds.isEmpty()) {
+                notificationRepository.deleteAllByResourceTypeAndResourceIdIn(
+                        NotificationResourceType.COURSEWORK, courseworkIds);
+            }
+        }
+
+        if (commentRepository != null) {
+            commentRepository.deleteAllByCourseId(courseId);
+        }
+
+        if (attachmentRepository != null) {
+            attachmentRepository.deleteAllByCourseId(courseId);
+        }
+
+        if (submissionRepository != null) {
+            submissionRepository.deleteAllByCourseId(courseId);
+        }
+
+        if (courseworkRepository != null) {
+            courseworkRepository.deleteAllByCourseId(courseId);
+        }
+
+        if (studentGradebookEntryRepository != null) {
+            studentGradebookEntryRepository.deleteAllByCourseId(courseId);
+        }
+        if (courseAnalyticsSummaryRepository != null) {
+            courseAnalyticsSummaryRepository.deleteByCourseId(courseId);
+        }
+
+        if (enrollmentCodeRepository != null) {
+            enrollmentCodeRepository.deleteAllByCourseId(courseId);
+        }
+
+        if (membershipRepository != null) {
+            membershipRepository.deleteAllByCourseId(courseId);
+        }
+
+        if (courseDiscoveryRepository != null) {
+            courseDiscoveryRepository.deleteByCourseId(courseId);
+        }
+
+        courseRepository.deleteById(courseId);
+
+        logger.info("Permanently deleted course {} and cascaded all associated dependents by user {}", courseId, userId);
+    }
+
     public List<CourseMemberResponse> roster(String courseId, Authentication authentication) {
         String userId = authenticatedUserId(authentication);
         activeCourse(courseId);
@@ -582,6 +693,21 @@ public class CourseService {
                 .orElseThrow(() -> new CourseAccessException("Course membership required"));
         if (membership.getRole() != MembershipRole.OWNER && membership.getRole() != MembershipRole.TEACHER) {
             throw new CourseAccessException("Course owner or teacher role required");
+        }
+    }
+
+    private void requireOwnerOrAdmin(Course course, String userId, Authentication authentication) {
+        if (hasRole(authentication, AccountType.ADMIN)) {
+            return;
+        }
+        if (course.getOwnerId() != null && course.getOwnerId().equals(userId)) {
+            return;
+        }
+        CourseMembership membership = membershipRepository.findByCourseIdAndUserIdAndStatus(
+                course.getId(), userId, MembershipStatus.ACTIVE)
+                .orElseThrow(() -> new CourseAccessException("Course membership required"));
+        if (membership.getRole() != MembershipRole.OWNER) {
+            throw new CourseAccessException("Course owner or administrator role required");
         }
     }
 

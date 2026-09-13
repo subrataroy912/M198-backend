@@ -93,8 +93,14 @@ class CourseControllerTest {
         }
 
         @Test
-        void archiveReturnsNoContent() throws Exception {
+        void deleteCourseReturnsNoContent() throws Exception {
                 mockMvc.perform(delete("/v1/courses/course-1"))
+                                .andExpect(status().isNoContent());
+        }
+
+        @Test
+        void archiveCourseReturnsNoContent() throws Exception {
+                mockMvc.perform(post("/v1/courses/course-1/archive"))
                                 .andExpect(status().isNoContent());
         }
 

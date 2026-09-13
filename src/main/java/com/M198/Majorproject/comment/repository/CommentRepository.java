@@ -26,4 +26,8 @@ public interface CommentRepository extends MongoRepository<Comment, String> {
 
     List<Comment> findAllByCourseIdAndTargetTypeAndTargetIdAndDeletedAtIsNullOrderByCreatedAtAsc(
             String courseId, CommentTargetType targetType, String targetId);
+
+    void deleteAllByCourseId(String courseId);
+
+    void deleteAllByTargetTypeAndTargetId(CommentTargetType targetType, String targetId);
 }

@@ -88,6 +88,12 @@ public class CourseController {
 
     @DeleteMapping("/{courseId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCourse(@PathVariable String courseId, Authentication authentication) {
+        courseService.deleteCourse(courseId, authentication);
+    }
+
+    @PostMapping("/{courseId}/archive")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void archiveCourse(@PathVariable String courseId, Authentication authentication) {
         courseService.archive(courseId, authentication);
     }

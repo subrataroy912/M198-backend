@@ -24,4 +24,8 @@ public interface CourseworkRepository extends MongoRepository<Coursework, String
         Optional<Coursework> findByIdAndStatus(String id, CourseworkStatus status);
 
     Optional<Coursework> findByIdAndCourseIdAndStatus(String id, String courseId, CourseworkStatus status);
+
+    List<Coursework> findAllByCourseId(String courseId);
+
+    void deleteAllByCourseId(String courseId);
 }

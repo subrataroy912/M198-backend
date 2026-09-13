@@ -17,4 +17,8 @@ public interface AttachmentRepository extends MongoRepository<Attachment, String
     List<Attachment> findAllByOwnerIdAndStatus(String ownerId, AttachmentStatus status);
 
     Optional<Attachment> findByIdAndStatus(String id, AttachmentStatus status);
+
+    void deleteAllByCourseId(String courseId);
+
+    void deleteAllByResourceTypeAndResourceId(AttachmentResourceType resourceType, String resourceId);
 }

@@ -31,4 +31,8 @@ public interface SubmissionRepository extends MongoRepository<Submission, String
             String courseworkId, SubmissionStatus status);
 
     List<Submission> findAllByStudentIdAndCourseIdOrderByCreatedAtDesc(String studentId, String courseId);
+
+    void deleteAllByCourseId(String courseId);
+
+    void deleteAllByCourseworkId(String courseworkId);
 }
