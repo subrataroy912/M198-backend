@@ -104,7 +104,10 @@ public class ProfileService {
         }
     }
 
-    private void applyMediaUpdate(UserProfile profile, MultipartFile avatarFile, MultipartFile bannerFile) {
+    private void applyMediaUpdate(
+            UserProfile profile,
+            MultipartFile avatarFile,
+            MultipartFile bannerFile) {
         if (hasContent(avatarFile)) {
             profile.setAvatarUrl(upload(avatarFile, "user_avatars"));
         }
@@ -309,7 +312,8 @@ public class ProfileService {
         response.setDateOfBirth(profile.getDateOfBirth());
         response.setAddress(profile.getAddress());
         response.setProfileVisibility(profile.getProfileVisibility());
-        response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks()) : java.util.Collections.emptyList());
+        response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks())
+                : java.util.Collections.emptyList());
         response.setCanCreateCourses(profile.isCanCreateCourses());
     }
 
@@ -325,7 +329,8 @@ public class ProfileService {
         response.setCity(profile.getCity());
         response.setCountry(profile.getCountry());
         response.setProfileVisibility(profile.getProfileVisibility());
-        response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks()) : java.util.Collections.emptyList());
+        response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks())
+                : java.util.Collections.emptyList());
         response.setCanCreateCourses(profile.isCanCreateCourses());
     }
 
