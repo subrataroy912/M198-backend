@@ -1,28 +1,18 @@
 /**
  * CREATED BY : SUBRATA ROY
  * SERVICE    : ProfileService
- * PURPOSE    : Manages user profile data, visibility rules, media uploads,
- *              and profile updates for the current authenticated user.
- *
- * This service protects private information while allowing public user discovery.
- * It also uploads avatar/banner assets to Cloudinary.
+ * PURPOSE    : Orchestrates user profile operations including lookup, visibility rules,
+ *              updates, creator unlock, and public discovery.
  */
 package com.M198.Majorproject.profile.service;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.M198.Majorproject.identity.entity.AccountStatus;
-import com.M198.Majorproject.identity.entity.ProfileLink;
 import com.M198.Majorproject.identity.entity.ProfileVisibility;
 import com.M198.Majorproject.identity.entity.User;
 import com.M198.Majorproject.identity.entity.UserProfile;
@@ -31,8 +21,11 @@ import com.M198.Majorproject.identity.repository.UserRepository;
 import com.M198.Majorproject.profile.dto.PublicUserProfileResponse;
 import com.M198.Majorproject.profile.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.profile.dto.UserProfileResponse;
+import com.M198.Majorproject.profile.exception.HandleConflictException;
+import com.M198.Majorproject.profile.exception.ProfileNotFoundException;
 import com.M198.Majorproject.profile.mapper.ProfileMapper;
-import com.cloudinary.Cloudinary;
+import com.M198.Majorproject.profile.security.AuthenticatedUserResolver;
+import com.M198.Majorproject.profile.security.UserContext;
 
 import lombok.RequiredArgsConstructor;
 
@@ -42,14 +35,15 @@ public class ProfileService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
-    private final Cloudinary cloudinary;
     private final ProfileMapper profileMapper;
+    private final AuthenticatedUserResolver userResolver;
+    private final ProfilePatcher profilePatcher;
+    private final HandleChangePolicy handleChangePolicy;
+    private final MediaStorageService mediaStorageService;
 
     public UserProfileResponse getMyProfile(Authentication authentication) {
-        String userId = authenticatedUserId(authentication);
-        User user = activeUser(userId);
-        UserProfile profile = profile(userId);
-        return profileMapper.toOwnerResponse(user, profile);
+        UserContext context = userResolver.resolveCurrentUser(authentication);
+        return profileMapper.toOwnerResponse(context.user(), context.profile());
     }
 
     public List<PublicUserProfileResponse> getPublicProfiles() {
@@ -60,26 +54,26 @@ public class ProfileService {
     }
 
     public PublicUserProfileResponse getUserProfile(String userId, Authentication authentication) {
-        User user = activeUser(userId);
-        UserProfile profile = profile(userId);
-        String authenticatedUserId = authenticatedUserId(authentication);
-        if (!userId.equals(authenticatedUserId) && profile.getProfileVisibility() != ProfileVisibility.PUBLIC) {
+        UserContext context = userResolver.resolveUser(userId);
+        String authenticatedUserId = userResolver.authenticatedUserId(authentication);
+        if (!userId.equals(authenticatedUserId) && context.profile().getProfileVisibility() != ProfileVisibility.PUBLIC) {
             throw new ProfileNotFoundException();
         }
-        PublicUserProfileResponse response = profileMapper.toPublicResponse(profile);
-        if (user.isCanCreateCourses()) {
+        PublicUserProfileResponse response = profileMapper.toPublicResponse(context.profile());
+        if (context.user().isCanCreateCourses()) {
             response.setCanCreateCourses(true);
         }
         return response;
     }
 
     public UserProfileResponse unlockCreator(Authentication authentication) {
-        String userId = authenticatedUserId(authentication);
-        User user = activeUser(userId);
+        UserContext context = userResolver.resolveCurrentUser(authentication);
+        User user = context.user();
+        UserProfile profile = context.profile();
+
         user.setCanCreateCourses(true);
         userRepository.save(user);
 
-        UserProfile profile = profile(userId);
         profile.setCanCreateCourses(true);
         UserProfile saved = profileRepository.save(profile);
         return profileMapper.toOwnerResponse(user, saved);
@@ -94,11 +88,14 @@ public class ProfileService {
             UpdateUserProfileRequest request,
             MultipartFile avatarFile,
             MultipartFile bannerFile) {
-        String userId = authenticatedUserId(authentication);
-        User user = activeUser(userId);
-        UserProfile profile = profile(userId);
-        applyUpdate(profile, request);
-        applyMediaUpdate(profile, avatarFile, bannerFile);
+        UserContext context = userResolver.resolveCurrentUser(authentication);
+        User user = context.user();
+        UserProfile profile = context.profile();
+
+        profilePatcher.patch(profile, request);
+        handleChangePolicy.validateAndApplyHandleChange(profile, request != null ? request.getHandle() : null);
+        applyMediaFiles(profile, avatarFile, bannerFile);
+
         try {
             UserProfile saved = profileRepository.save(profile);
             return profileMapper.toOwnerResponse(user, saved);
@@ -107,192 +104,36 @@ public class ProfileService {
         }
     }
 
-    private void applyMediaUpdate(
-            UserProfile profile,
-            MultipartFile avatarFile,
-            MultipartFile bannerFile) {
-        if (hasContent(avatarFile)) {
-            profile.setAvatarUrl(upload(avatarFile, "user_avatars"));
+    private void applyMediaFiles(UserProfile profile, MultipartFile avatarFile, MultipartFile bannerFile) {
+        if (mediaStorageService.hasContent(avatarFile)) {
+            profile.setAvatarUrl(mediaStorageService.uploadImage(avatarFile, "user_avatars"));
         }
-        if (hasContent(bannerFile)) {
-            profile.setBannerUrl(upload(bannerFile, "user_banners"));
+        if (mediaStorageService.hasContent(bannerFile)) {
+            profile.setBannerUrl(mediaStorageService.uploadImage(bannerFile, "user_banners"));
         }
     }
 
-    private boolean hasContent(MultipartFile file) {
-        return file != null && !file.isEmpty();
-    }
-
-    private String upload(MultipartFile file, String folder) {
-        try {
-            return upload(file.getBytes(), file.getContentType(), folder);
-        } catch (ProfileStorageException exception) {
-            throw exception;
-        } catch (IOException exception) {
-            throw new ProfileStorageException("Could not read uploaded profile asset", exception);
-        }
-    }
-
-    private String mediaValue(String value, String folder) {
-        if (!value.startsWith("data:")) {
-            return value;
-        }
-        int separator = value.indexOf(',');
-        if (separator < 0 || !value.substring(0, separator).contains(";base64")) {
-            throw new ProfileStorageException("Invalid profile image data");
-        }
-        String metadata = value.substring(5, separator);
-        String contentType = metadata.substring(0, metadata.indexOf(';'));
-        if (!contentType.startsWith("image/")) {
-            throw new ProfileStorageException("Profile image must be an image file");
-        }
-        try {
-            byte[] bytes = Base64.getDecoder().decode(value.substring(separator + 1));
-            return upload(bytes, contentType, folder);
-        } catch (IllegalArgumentException exception) {
-            throw new ProfileStorageException("Invalid profile image data", exception);
-        }
-    }
-
-    private String upload(byte[] bytes, String contentType, String folder) {
-        try {
-            Map<String, Object> options = new java.util.HashMap<>();
-            options.put("folder", folder);
-            options.put("resource_type", "image");
-            if (contentType != null && !contentType.isBlank()) {
-                options.put("context", "content_type=" + contentType);
-            }
-            Map<?, ?> result = cloudinary.uploader().upload(bytes, options);
-            Object secureUrl = result.get("secure_url");
-            if (!(secureUrl instanceof String url) || url.isBlank()) {
-                throw new ProfileStorageException("Cloudinary did not return a secure asset URL");
-            }
-            return url;
-        } catch (ProfileStorageException exception) {
-            throw exception;
-        } catch (IOException exception) {
-            if (bytes != null && bytes.length > 0) {
-                String type = (contentType != null && !contentType.isBlank()) ? contentType : "image/jpeg";
-                return "data:" + type + ";base64," + java.util.Base64.getEncoder().encodeToString(bytes);
-            }
-            throw new ProfileStorageException("Could not upload profile asset", exception);
-        }
-    }
-
-    private void applyUpdate(UserProfile profile, UpdateUserProfileRequest request) {
-        if (request.getProfileVisibility() == ProfileVisibility.COURSE_MEMBERS) {
-            throw new IllegalArgumentException("COURSE_MEMBERS visibility is not available yet");
-        }
-        if (request.getHandle() != null) {
-            String newHandle = request.getHandle().trim();
-            String currentHandle = profile.getHandle() != null ? profile.getHandle().trim() : "";
-            if (!newHandle.equalsIgnoreCase(currentHandle)) {
-                if (!newHandle.isEmpty() && profileRepository.findByHandle(newHandle)
-                        .filter(existing -> !existing.getUserId().equals(profile.getUserId()))
-                        .isPresent()) {
-                    throw new IllegalArgumentException("Handle is already taken");
-                }
-                Instant fourteenDaysAgo = Instant.now().minus(Duration.ofDays(14));
-                List<Instant> timestamps = profile.getHandleUpdatedTimestamps();
-                if (timestamps == null) {
-                    timestamps = new java.util.ArrayList<>();
-                    profile.setHandleUpdatedTimestamps(timestamps);
-                }
-                List<Instant> recentUpdates = timestamps.stream()
-                        .filter(ts -> ts != null && ts.isAfter(fourteenDaysAgo))
-                        .toList();
-                if (recentUpdates.size() >= 2) {
-                    throw new IllegalArgumentException("You can only change your handle twice within a 14-day period.");
-                }
-                timestamps.add(Instant.now());
-                profile.setHandle(newHandle.isEmpty() ? null : newHandle);
-            }
-        }
-        if (request.getFirstName() != null) {
-            profile.setFirstName(request.getFirstName().trim());
-        }
-        if (request.getLastName() != null) {
-            profile.setLastName(request.getLastName().trim());
-        }
-        if (request.getDisplayName() != null) {
-            profile.setDisplayName(request.getDisplayName().trim());
-        }
-        if (request.getHeadline() != null) {
-            profile.setHeadline(request.getHeadline().trim());
-        }
-        if (request.getAbout() != null) {
-            profile.setAbout(request.getAbout().trim());
-        }
-        if (request.getAvatarUrl() != null) {
-            String avatar = request.getAvatarUrl().trim();
-            profile.setAvatarUrl(avatar.isEmpty() ? null : mediaValue(avatar, "user_avatars"));
-        }
-        if (request.getBannerUrl() != null) {
-            String banner = request.getBannerUrl().trim();
-            profile.setBannerUrl(banner.isEmpty() ? null : mediaValue(banner, "user_banners"));
-        }
-        if (request.getCity() != null) {
-            profile.setCity(request.getCity().trim());
-        }
-        if (request.getCountry() != null) {
-            profile.setCountry(request.getCountry().trim());
-        }
-        if (request.getPhone() != null) {
-            profile.setPhone(request.getPhone().trim());
-        }
-        if (request.getGender() != null) {
-            profile.setGender(request.getGender().trim());
-        }
-        if (request.getDateOfBirth() != null) {
-            profile.setDateOfBirth(request.getDateOfBirth().trim());
-        }
-        if (request.getAddress() != null) {
-            profile.setAddress(request.getAddress().trim());
-        }
-        if (request.getProfileVisibility() != null) {
-            profile.setProfileVisibility(request.getProfileVisibility());
-        }
-        if (request.getLinks() != null) {
-            profile.setLinks(request.getLinks().stream()
-                    .filter(link -> link != null && link.getUrl() != null && !link.getUrl().isBlank())
-                    .map(link -> ProfileLink.builder()
-                            .name(link.getName() != null && !link.getName().isBlank() ? link.getName().trim() : null)
-                            .url(link.getUrl().trim())
-                            .build())
-                    .toList());
-        }
-    }
-
-    private User activeUser(String userId) {
-        return userRepository.findByIdAndActiveTrueAndStatus(userId, AccountStatus.ACTIVE)
-                .orElseThrow(ProfileNotFoundException::new);
-    }
-
-    private UserProfile profile(String userId) {
-        return profileRepository.findByUserId(userId)
-                .filter(value -> value.getDeletedAt() == null)
-                .orElseThrow(ProfileNotFoundException::new);
-    }
-
-    private String authenticatedUserId(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated() || authentication.getName() == null) {
-            throw new ProfileNotFoundException();
-        }
-        return authentication.getName();
-    }
-
-    public static class ProfileNotFoundException extends RuntimeException {
-
+    /**
+     * @deprecated Use {@link com.M198.Majorproject.profile.exception.ProfileNotFoundException} directly.
+     */
+    @Deprecated
+    public static class ProfileNotFoundException extends com.M198.Majorproject.profile.exception.ProfileNotFoundException {
         private static final long serialVersionUID = 1L;
     }
 
-    public static class HandleConflictException extends RuntimeException {
-
+    /**
+     * @deprecated Use {@link com.M198.Majorproject.profile.exception.HandleConflictException} directly.
+     */
+    @Deprecated
+    public static class HandleConflictException extends com.M198.Majorproject.profile.exception.HandleConflictException {
         private static final long serialVersionUID = 1L;
     }
 
-    public static class ProfileStorageException extends RuntimeException {
-
+    /**
+     * @deprecated Use {@link com.M198.Majorproject.profile.exception.ProfileStorageException} directly.
+     */
+    @Deprecated
+    public static class ProfileStorageException extends com.M198.Majorproject.profile.exception.ProfileStorageException {
         private static final long serialVersionUID = 1L;
 
         public ProfileStorageException(String message) {
