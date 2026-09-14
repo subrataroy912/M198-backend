@@ -16,15 +16,11 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.web.multipart.MultipartFile;
-import lombok.RequiredArgsConstructor;
 
-import com.M198.Majorproject.profile.dto.PublicUserProfileResponse;
-import com.M198.Majorproject.profile.dto.UpdateUserProfileRequest;
-import com.M198.Majorproject.profile.dto.UserProfileResponse;
 import com.M198.Majorproject.identity.entity.AccountStatus;
 import com.M198.Majorproject.identity.entity.ProfileLink;
 import com.M198.Majorproject.identity.entity.ProfileVisibility;
@@ -32,7 +28,13 @@ import com.M198.Majorproject.identity.entity.User;
 import com.M198.Majorproject.identity.entity.UserProfile;
 import com.M198.Majorproject.identity.repository.UserProfileRepository;
 import com.M198.Majorproject.identity.repository.UserRepository;
+import com.M198.Majorproject.profile.dto.PublicUserProfileResponse;
+import com.M198.Majorproject.profile.dto.UpdateUserProfileRequest;
+import com.M198.Majorproject.profile.dto.UserProfileResponse;
+import com.M198.Majorproject.profile.mapper.ProfileMapper;
 import com.cloudinary.Cloudinary;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -41,19 +43,20 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
     private final Cloudinary cloudinary;
+    private final ProfileMapper profileMapper;
 
     public UserProfileResponse getMyProfile(Authentication authentication) {
         String userId = authenticatedUserId(authentication);
         User user = activeUser(userId);
         UserProfile profile = profile(userId);
-        return toOwnerResponse(user, profile);
+        return profileMapper.toOwnerResponse(user, profile);
     }
 
     public List<PublicUserProfileResponse> getPublicProfiles() {
-        return profileRepository.findAllByProfileVisibility(ProfileVisibility.PUBLIC).stream()
+        List<UserProfile> profiles = profileRepository.findAllByProfileVisibility(ProfileVisibility.PUBLIC).stream()
                 .filter(profile -> profile.getDeletedAt() == null)
-                .map(this::toPublicResponse)
                 .toList();
+        return profileMapper.toPublicResponseList(profiles);
     }
 
     public PublicUserProfileResponse getUserProfile(String userId, Authentication authentication) {
@@ -63,7 +66,7 @@ public class ProfileService {
         if (!userId.equals(authenticatedUserId) && profile.getProfileVisibility() != ProfileVisibility.PUBLIC) {
             throw new ProfileNotFoundException();
         }
-        PublicUserProfileResponse response = toPublicResponse(profile);
+        PublicUserProfileResponse response = profileMapper.toPublicResponse(profile);
         if (user.isCanCreateCourses()) {
             response.setCanCreateCourses(true);
         }
@@ -79,7 +82,7 @@ public class ProfileService {
         UserProfile profile = profile(userId);
         profile.setCanCreateCourses(true);
         UserProfile saved = profileRepository.save(profile);
-        return toOwnerResponse(user, saved);
+        return profileMapper.toOwnerResponse(user, saved);
     }
 
     public UserProfileResponse updateMyProfile(Authentication authentication, UpdateUserProfileRequest request) {
@@ -98,7 +101,7 @@ public class ProfileService {
         applyMediaUpdate(profile, avatarFile, bannerFile);
         try {
             UserProfile saved = profileRepository.save(profile);
-            return toOwnerResponse(user, saved);
+            return profileMapper.toOwnerResponse(user, saved);
         } catch (DuplicateKeyException exception) {
             throw new HandleConflictException();
         }
@@ -167,7 +170,7 @@ public class ProfileService {
             return url;
         } catch (ProfileStorageException exception) {
             throw exception;
-        } catch (Exception exception) {
+        } catch (IOException exception) {
             if (bytes != null && bytes.length > 0) {
                 String type = (contentType != null && !contentType.isBlank()) ? contentType : "image/jpeg";
                 return "data:" + type + ";base64," + java.util.Base64.getEncoder().encodeToString(bytes);
@@ -276,62 +279,6 @@ public class ProfileService {
             throw new ProfileNotFoundException();
         }
         return authentication.getName();
-    }
-
-    private UserProfileResponse toOwnerResponse(User user, UserProfile profile) {
-        UserProfileResponse response = new UserProfileResponse();
-        response.setId(profile.getUserId());
-        response.setEmail(user.getEmail());
-        response.setAdmin(user.isAdmin() || profile.isAdmin());
-        copyProfileFields(profile, response);
-        response.setCanCreateCourses(user.isCanCreateCourses() || profile.isCanCreateCourses());
-        return response;
-    }
-
-    private PublicUserProfileResponse toPublicResponse(UserProfile profile) {
-        PublicUserProfileResponse response = new PublicUserProfileResponse();
-        response.setId(profile.getUserId());
-        response.setCanCreateCourses(profile.isCanCreateCourses());
-        copyProfileFields(profile, response);
-        return response;
-    }
-
-    private void copyProfileFields(UserProfile profile, UserProfileResponse response) {
-        response.setHandle(profile.getHandle());
-        response.setFirstName(profile.getFirstName());
-        response.setLastName(profile.getLastName());
-        response.setDisplayName(profile.getDisplayName());
-        response.setAvatarUrl(profile.getAvatarUrl());
-        response.setBannerUrl(profile.getBannerUrl());
-        response.setHeadline(profile.getHeadline());
-        response.setAbout(profile.getAbout());
-        response.setCity(profile.getCity());
-        response.setCountry(profile.getCountry());
-        response.setPhone(profile.getPhone());
-        response.setGender(profile.getGender());
-        response.setDateOfBirth(profile.getDateOfBirth());
-        response.setAddress(profile.getAddress());
-        response.setProfileVisibility(profile.getProfileVisibility());
-        response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks())
-                : java.util.Collections.emptyList());
-        response.setCanCreateCourses(profile.isCanCreateCourses());
-    }
-
-    private void copyProfileFields(UserProfile profile, PublicUserProfileResponse response) {
-        response.setHandle(profile.getHandle());
-        response.setFirstName(profile.getFirstName());
-        response.setLastName(profile.getLastName());
-        response.setDisplayName(profile.getDisplayName());
-        response.setAvatarUrl(profile.getAvatarUrl());
-        response.setBannerUrl(profile.getBannerUrl());
-        response.setHeadline(profile.getHeadline());
-        response.setAbout(profile.getAbout());
-        response.setCity(profile.getCity());
-        response.setCountry(profile.getCountry());
-        response.setProfileVisibility(profile.getProfileVisibility());
-        response.setLinks(profile.getLinks() != null ? new java.util.ArrayList<>(profile.getLinks())
-                : java.util.Collections.emptyList());
-        response.setCanCreateCourses(profile.isCanCreateCourses());
     }
 
     public static class ProfileNotFoundException extends RuntimeException {

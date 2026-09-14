@@ -23,8 +23,10 @@ import com.M198.Majorproject.identity.entity.User;
 import com.M198.Majorproject.identity.entity.UserProfile;
 import com.M198.Majorproject.identity.repository.UserProfileRepository;
 import com.M198.Majorproject.identity.repository.UserRepository;
+import com.M198.Majorproject.profile.mapper.ProfileMapper;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
+import org.mapstruct.factory.Mappers;
 
 class ProfileServiceTest {
 
@@ -32,7 +34,8 @@ class ProfileServiceTest {
     private final UserProfileRepository profileRepository = mock(UserProfileRepository.class);
     private final Cloudinary cloudinary = mock(Cloudinary.class);
     private final Uploader uploader = mock(Uploader.class);
-        private final ProfileService profileService = new ProfileService(userRepository, profileRepository, cloudinary);
+    private final ProfileMapper profileMapper = Mappers.getMapper(ProfileMapper.class);
+    private final ProfileService profileService = new ProfileService(userRepository, profileRepository, cloudinary, profileMapper);
     private final Authentication authentication = mock(Authentication.class);
     private User user;
     private UserProfile profile;
