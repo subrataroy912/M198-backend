@@ -21,8 +21,6 @@ import com.M198.Majorproject.identity.repository.UserRepository;
 import com.M198.Majorproject.profile.dto.PublicUserProfileResponse;
 import com.M198.Majorproject.profile.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.profile.dto.UserProfileResponse;
-import com.M198.Majorproject.profile.exception.HandleConflictException;
-import com.M198.Majorproject.profile.exception.ProfileNotFoundException;
 import com.M198.Majorproject.profile.mapper.ProfileMapper;
 import com.M198.Majorproject.profile.security.AuthenticatedUserResolver;
 import com.M198.Majorproject.profile.security.UserContext;
@@ -56,7 +54,8 @@ public class ProfileService {
     public PublicUserProfileResponse getUserProfile(String userId, Authentication authentication) {
         UserContext context = userResolver.resolveUser(userId);
         String authenticatedUserId = userResolver.authenticatedUserId(authentication);
-        if (!userId.equals(authenticatedUserId) && context.profile().getProfileVisibility() != ProfileVisibility.PUBLIC) {
+        if (!userId.equals(authenticatedUserId)
+                && context.profile().getProfileVisibility() != ProfileVisibility.PUBLIC) {
             throw new ProfileNotFoundException();
         }
         PublicUserProfileResponse response = profileMapper.toPublicResponse(context.profile());
@@ -114,26 +113,35 @@ public class ProfileService {
     }
 
     /**
-     * @deprecated Use {@link com.M198.Majorproject.profile.exception.ProfileNotFoundException} directly.
+     * @deprecated Use
+     *             {@link com.M198.Majorproject.profile.exception.ProfileNotFoundException}
+     *             directly.
      */
     @Deprecated
-    public static class ProfileNotFoundException extends com.M198.Majorproject.profile.exception.ProfileNotFoundException {
+    public static class ProfileNotFoundException
+            extends com.M198.Majorproject.profile.exception.ProfileNotFoundException {
         private static final long serialVersionUID = 1L;
     }
 
     /**
-     * @deprecated Use {@link com.M198.Majorproject.profile.exception.HandleConflictException} directly.
+     * @deprecated Use
+     *             {@link com.M198.Majorproject.profile.exception.HandleConflictException}
+     *             directly.
      */
     @Deprecated
-    public static class HandleConflictException extends com.M198.Majorproject.profile.exception.HandleConflictException {
+    public static class HandleConflictException
+            extends com.M198.Majorproject.profile.exception.HandleConflictException {
         private static final long serialVersionUID = 1L;
     }
 
     /**
-     * @deprecated Use {@link com.M198.Majorproject.profile.exception.ProfileStorageException} directly.
+     * @deprecated Use
+     *             {@link com.M198.Majorproject.profile.exception.ProfileStorageException}
+     *             directly.
      */
     @Deprecated
-    public static class ProfileStorageException extends com.M198.Majorproject.profile.exception.ProfileStorageException {
+    public static class ProfileStorageException
+            extends com.M198.Majorproject.profile.exception.ProfileStorageException {
         private static final long serialVersionUID = 1L;
 
         public ProfileStorageException(String message) {

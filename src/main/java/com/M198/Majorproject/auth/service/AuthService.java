@@ -3,13 +3,14 @@
  * SERVICE    : AuthService
  * PURPOSE    : Handles account creation, credential-based login, JWT issuance,
  *              refresh token management, OAuth linking, and session lifecycle.
- *
+ * <p>
  * This service is the core identity engine of the platform.
  * It manages user registration, token creation, login events, OAuth account setup,
  * and secure profile creation for newly registered users.
  */
 package com.M198.Majorproject.auth.service;
 
+import java.io.Serial;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -20,6 +21,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.M198.Majorproject.attachment.service.AttachmentService;
+import org.jspecify.annotations.NonNull;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.dao.DuplicateKeyException;
@@ -50,6 +54,7 @@ import com.M198.Majorproject.identity.repository.UserRepository;
 import com.M198.Majorproject.common.security.JwtService;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -65,9 +70,6 @@ public class AuthService {
     @org.springframework.beans.factory.annotation.Value("${app.cookies.same-site:None}")
     private String cookieSameSite;
 
-    @org.springframework.beans.factory.annotation.Value("${app.auth.max-concurrent-sessions:5}")
-    private int maxConcurrentSessions = 5;
-
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
     private final UserOAuthRepository oauthRepository;
@@ -76,70 +78,98 @@ public class AuthService {
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
 
+    @Transactional
     public AuthResponse register(RegisterUserRequest request) {
-        String email = normalizeEmail(request.getEmail());
-        Optional<User> existingUserOpt = userRepository.findByEmail(email);
-        if (existingUserOpt.isPresent()) {
-            User existingUser = existingUserOpt.get();
-            if (existingUser.getPasswordHash() == null || existingUser.getPasswordHash().isBlank()) {
-                List<UserOAuth> oauths = oauthRepository.findAllByUserId(existingUser.getId());
-                String providers = oauths.stream()
-                        .map(o -> formatProviderName(o.getProvider()))
-                        .distinct()
-                        .collect(Collectors.joining(", "));
+        // 1. Extract & validate inputs early
+        String email = requireValidEmail(request.getEmail());
+        String rawPassword = requireNonBlank(request.getPassword(), "Password is required");
+        String firstName = requireNonBlank(request.getFirstName(), "First name is required");
+        String lastName = requireNonBlank(request.getLastName(), "Last name is required");
+
+        // 2. Check for existing account (provides better error messages)
+        userRepository.findByEmail(email).ifPresent(existingUser -> {
+            if (isSocialOnlyAccount(existingUser)) {
+                String providers = getFormattedProviders(existingUser.getId());
                 String message = providers.isBlank()
                         ? "An account with this email already exists via social login. Please sign in using your social account."
                         : "An account with this email already exists via " + providers + ". Please sign in with " + providers + ".";
                 throw new DuplicateKeyException(message);
             }
             throw new DuplicateKeyException("Email is already registered");
+        });
+
+        // 3. Create user
+        User user = User.builder()
+                .email(email)
+                .passwordHash(passwordEncoder.encode(rawPassword))
+                .status(AccountStatus.ACTIVE)
+                .active(true)
+                .verified(false)
+                .isAdmin(false)
+                .build();
+
+        try {
+            user = userRepository.save(user);
+        } catch (DataIntegrityViolationException ex) {
+            // Race condition protection (unique constraint on email)
+            throw new AttachmentService.AttachmentConflictException("Email is already registered");
         }
 
-        User user = userRepository.save(
-                User.builder()
-                        .email(email)
-                        .passwordHash(passwordEncoder.encode(request.getPassword()))
-                        .status(AccountStatus.ACTIVE)
-                        .active(true)
-                        .verified(false)
-                        .isAdmin(false)
-                        .build());
+        // 4. Create profile
         profileRepository.save(UserProfile.builder()
                 .userId(user.getId())
-                .firstName(request.getFirstName().trim())
-                .lastName(request.getLastName().trim())
-                .displayName((request.getFirstName().trim() + " " + request.getLastName().trim()).trim())
+                .firstName(firstName)
+                .lastName(lastName)
+                .displayName(firstName + " " + lastName)
                 .profileVisibility(ProfileVisibility.PRIVATE)
                 .isAdmin(false)
                 .canCreateCourses(false)
                 .build());
+
         return issueTokens(user);
     }
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         String email = normalizeEmail(request.getEmail());
-        User existingUser = userRepository.findByEmail(email).orElse(null);
-        if (existingUser != null && (existingUser.getPasswordHash() == null || existingUser.getPasswordHash().isBlank())) {
-            List<UserOAuth> oauths = oauthRepository.findAllByUserId(existingUser.getId());
-            String providers = oauths.stream()
-                    .map(o -> formatProviderName(o.getProvider()))
-                    .distinct()
-                    .collect(Collectors.joining(", "));
+        String rawPassword = request.getPassword();
+
+        if (email.isBlank()) {
+            throw new BadCredentialsException("Invalid credentials");
+        }
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new BadCredentialsException("Invalid credentials");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+
+        // Social-only account (no local password)
+        if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
+            String providers = getFormattedProviders(user.getId());
             String message = providers.isBlank()
                     ? "This account does not have a local password set. Please sign in using social login."
                     : "This account was registered with " + providers + ". Please sign in with " + providers + ".";
+
             throw new BadCredentialsException(message);
         }
 
+        // Authenticate (will throw BadCredentialsException on failure)
         authenticationManager.authenticate(
-                UsernamePasswordAuthenticationToken.unauthenticated(email, request.getPassword()));
-        User user = userRepository.findByEmailAndActiveTrueAndStatus(email, AccountStatus.ACTIVE)
-                .orElseThrow(() -> new AuthenticationServiceException("Invalid credentials"));
+                UsernamePasswordAuthenticationToken.unauthenticated(email, rawPassword)
+        );
+
+        // Re-fetch with active + status check (or apply filters earlier)
+        if (!user.isActive() || user.getStatus() != AccountStatus.ACTIVE) {
+            throw new AuthenticationServiceException("Account is not active");
+        }
+
+        // Update last login
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
+
         return issueTokens(user);
     }
-
     public AuthResponse refresh(String refreshToken) {
         String userId = jwtService.parseAndValidate(refreshToken, "refresh").getSubject();
         String tokenHash = hash(refreshToken);
@@ -222,7 +252,7 @@ public class AuthService {
         response.addHeader(HttpHeaders.SET_COOKIE, legacyCookie.toString());
     }
 
-    public void setCsrfCookie(HttpServletResponse response) {
+    public void setCsrfCookie(@NonNull HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from("XSRF-TOKEN", UUID.randomUUID().toString())
                 .httpOnly(false)
                 .sameSite(cookieSameSite)
@@ -386,9 +416,7 @@ public class AuthService {
     }
 
     private void enforceConcurrentSessionCap(String userId) {
-        if (maxConcurrentSessions <= 0) {
-            return;
-        }
+        int maxConcurrentSessions = 5;
         List<RefreshToken> activeTokens = refreshTokenRepository.findAllByUserIdOrderByCreatedAtAsc(userId);
         if (activeTokens != null && activeTokens.size() >= maxConcurrentSessions) {
             int toPrune = activeTokens.size() - maxConcurrentSessions + 1;
@@ -403,11 +431,12 @@ public class AuthService {
         }
     }
 
-    private String normalizeEmail(String email) {
+
+    private @NonNull String normalizeEmail(@NonNull String email) {
         return email.trim().toLowerCase(Locale.ROOT);
     }
 
-    private String hash(String token) {
+    private @NonNull String hash(@NonNull String token) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
                     .digest(token.getBytes(StandardCharsets.UTF_8));
@@ -430,11 +459,44 @@ public class AuthService {
     }
 
     private static class AuthenticationServiceException extends AuthenticationException {
-
+        @Serial
         private static final long serialVersionUID = 1L;
 
         AuthenticationServiceException(String message) {
             super(message);
         }
+    }
+
+    private String requireValidEmail(String email) {
+        String normalized = normalizeEmail(email);
+        if (normalized.isBlank()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+        // Optional: add basic format check
+        // if (!EmailValidator.getInstance().isValid(normalized)) {
+        //     throw new IllegalArgumentException("Invalid email format");
+        // }
+        return normalized;
+    }
+
+    private String requireNonBlank(String value, String message) {
+        return Optional.ofNullable(value)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .orElseThrow(() -> new IllegalArgumentException(message));
+    }
+
+    private boolean isSocialOnlyAccount(User user) {
+        return user.getPasswordHash() == null || user.getPasswordHash().isBlank();
+    }
+
+    private String getFormattedProviders(String userId) {
+        if (userId == null || oauthRepository == null) {
+            return "";
+        }
+        return oauthRepository.findAllByUserId(userId).stream()
+                .map(o -> formatProviderName(o.getProvider()))
+                .distinct()
+                .collect(Collectors.joining(", "));
     }
 }

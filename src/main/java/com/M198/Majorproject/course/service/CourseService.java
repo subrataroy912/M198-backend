@@ -58,8 +58,10 @@ import com.M198.Majorproject.identity.entity.UserProfile;
 import com.M198.Majorproject.identity.repository.UserProfileRepository;
 import com.M198.Majorproject.notification.entity.NotificationResourceType;
 import com.M198.Majorproject.notification.repository.NotificationRepository;
+import com.M198.Majorproject.profile.service.MediaStorageService;
 import com.M198.Majorproject.submission.repository.SubmissionRepository;
 import com.cloudinary.Cloudinary;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 
@@ -80,6 +82,7 @@ public class CourseService {
     private final StudentGradebookEntryRepository studentGradebookEntryRepository;
     private final CourseAnalyticsSummaryRepository courseAnalyticsSummaryRepository;
     private final Cloudinary cloudinary;
+    private final MediaStorageService mediaStorageService;
     private final String cloudName;
     private final String apiKey;
     private final String apiSecret;
@@ -99,6 +102,7 @@ public class CourseService {
             StudentGradebookEntryRepository studentGradebookEntryRepository,
             CourseAnalyticsSummaryRepository courseAnalyticsSummaryRepository,
             Cloudinary cloudinary,
+            @Autowired(required = false) MediaStorageService mediaStorageService,
             @Value("${cloudinary.cloud-name:}") String cloudName,
             @Value("${cloudinary.api-key:}") String apiKey,
             @Value("${cloudinary.api-secret:}") String apiSecret) {
@@ -115,9 +119,33 @@ public class CourseService {
         this.studentGradebookEntryRepository = studentGradebookEntryRepository;
         this.courseAnalyticsSummaryRepository = courseAnalyticsSummaryRepository;
         this.cloudinary = cloudinary;
+        this.mediaStorageService = mediaStorageService;
         this.cloudName = cloudName;
         this.apiKey = apiKey;
         this.apiSecret = apiSecret;
+    }
+
+    public CourseService(
+            CourseRepository courseRepository,
+            CourseMembershipRepository membershipRepository,
+            EnrollmentCodeRepository enrollmentCodeRepository,
+            CourseDiscoveryRepository courseDiscoveryRepository,
+            UserProfileRepository userProfileRepository,
+            CourseworkRepository courseworkRepository,
+            SubmissionRepository submissionRepository,
+            CommentRepository commentRepository,
+            AttachmentRepository attachmentRepository,
+            NotificationRepository notificationRepository,
+            StudentGradebookEntryRepository studentGradebookEntryRepository,
+            CourseAnalyticsSummaryRepository courseAnalyticsSummaryRepository,
+            Cloudinary cloudinary,
+            String cloudName,
+            String apiKey,
+            String apiSecret) {
+        this(courseRepository, membershipRepository, enrollmentCodeRepository, courseDiscoveryRepository,
+                userProfileRepository, courseworkRepository, submissionRepository, commentRepository,
+                attachmentRepository, notificationRepository, studentGradebookEntryRepository,
+                courseAnalyticsSummaryRepository, cloudinary, null, cloudName, apiKey, apiSecret);
     }
 
     public CourseService(
@@ -193,6 +221,20 @@ public class CourseService {
         return response;
     }
 
+    public CourseResponse createCourse(
+            Authentication authentication,
+            CreateCourseRequest request,
+            MultipartFile coverFile,
+            MultipartFile logoFile) {
+        if (coverFile != null && !coverFile.isEmpty() && mediaStorageService != null) {
+            request.setCoverUrl(mediaStorageService.uploadImage(coverFile, "course_covers"));
+        }
+        if (logoFile != null && !logoFile.isEmpty() && mediaStorageService != null) {
+            request.setLogoUrl(mediaStorageService.uploadImage(logoFile, "course_logos"));
+        }
+        return createCourse(authentication, request);
+    }
+
     public CourseResponse createCourse(Authentication authentication, CreateCourseRequest request) {
         String userId = authenticatedUserId(authentication);
         requireCanCreateCourse(authentication, userId);
@@ -218,6 +260,9 @@ public class CourseService {
         SpaceType spaceType = request.getSpaceType() != null ? request.getSpaceType() : SpaceType.ACADEMIC_CLASS;
         MeetingType meetingType = request.getMeetingType() != null ? request.getMeetingType() : MeetingType.IN_PERSON;
 
+        String coverUrl = resolveMediaUrl(request.getCoverUrl(), "course_covers");
+        String logoUrl = resolveMediaUrl(request.getLogoUrl(), "course_logos");
+
         Course course = courseRepository.save(Course.builder()
                 .ownerId(userId)
                 .title(normalizeRequired(request.getTitle()))
@@ -225,8 +270,8 @@ public class CourseService {
                 .section(normalize(request.getSection()))
                 .subject(normalize(request.getSubject()))
                 .description(normalize(request.getDescription()))
-                .coverUrl(normalize(request.getCoverUrl()))
-                .logoUrl(normalize(request.getLogoUrl()))
+                .coverUrl(coverUrl)
+                .logoUrl(logoUrl)
                 .theme(normalize(request.getTheme()))
                 .meetingType(meetingType)
                 .location(normalize(request.getLocation()))
@@ -521,6 +566,21 @@ public class CourseService {
         syncDiscovery(course);
     }
 
+    public CourseResponse update(
+            String courseId,
+            Authentication authentication,
+            UpdateCourseRequest request,
+            MultipartFile coverFile,
+            MultipartFile logoFile) {
+        if (coverFile != null && !coverFile.isEmpty() && mediaStorageService != null) {
+            request.setCoverUrl(mediaStorageService.uploadImage(coverFile, "course_covers"));
+        }
+        if (logoFile != null && !logoFile.isEmpty() && mediaStorageService != null) {
+            request.setLogoUrl(mediaStorageService.uploadImage(logoFile, "course_logos"));
+        }
+        return update(courseId, authentication, request);
+    }
+
     public CourseResponse update(String courseId, Authentication authentication, UpdateCourseRequest request) {
         String userId = authenticatedUserId(authentication);
         Course course = activeCourse(courseId);
@@ -564,10 +624,10 @@ public class CourseService {
             course.setEnrollmentEnabled(request.getEnrollmentEnabled());
         }
         if (request.getCoverUrl() != null) {
-            course.setCoverUrl(normalize(request.getCoverUrl()));
+            course.setCoverUrl(resolveMediaUrl(request.getCoverUrl(), "course_covers"));
         }
         if (request.getLogoUrl() != null) {
-            course.setLogoUrl(normalize(request.getLogoUrl()));
+            course.setLogoUrl(resolveMediaUrl(request.getLogoUrl(), "course_logos"));
         }
         if (request.getTheme() != null) {
             course.setTheme(normalize(request.getTheme()));
@@ -842,6 +902,17 @@ public class CourseService {
         }
         String normalized = value.trim();
         return normalized.isEmpty() ? null : normalized;
+    }
+
+    private String resolveMediaUrl(String value, String folder) {
+        String normalized = normalize(value);
+        if (normalized == null) {
+            return null;
+        }
+        if (mediaStorageService != null) {
+            return mediaStorageService.uploadImage(normalized, folder);
+        }
+        return normalized;
     }
 
     private String generateEnrollmentCode() {

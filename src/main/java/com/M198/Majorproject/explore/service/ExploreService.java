@@ -49,10 +49,12 @@ public class ExploreService {
         CourseDiscoveryResponse r = new CourseDiscoveryResponse();
         r.setCourseId(value.getCourseId());
         r.setTitle(value.getTitle());
+        r.setSpaceType(value.getSpaceType());
         r.setSubject(value.getSubject());
         r.setTags(value.getTags());
         r.setCoverUrl(value.getCoverUrl());
         r.setLogoUrl(value.getLogoUrl());
+        r.setTheme(value.getTheme());
         r.setAccessType(value.getAccessType() != null ? value.getAccessType() : CourseAccessType.OPEN);
         r.setEnrollmentCount(value.getEnrollmentCount());
         r.setPopularityScore(value.getPopularityScore());

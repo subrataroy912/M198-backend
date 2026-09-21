@@ -18,8 +18,25 @@ public class CourseDiscoveryResponse {
     private List<String> tags;
     private String coverUrl;
     private String logoUrl;
+    private String theme;
     private CourseAccessType accessType;
     private long enrollmentCount;
     private double popularityScore;
     private Instant lastActivityAt;
+
+    public String getId() {
+        return courseId;
+    }
+
+    public String getName() {
+        return title;
+    }
+
+    public String getCover() {
+        return coverUrl;
+    }
+
+    public String getLogo() {
+        return logoUrl;
+    }
 }
