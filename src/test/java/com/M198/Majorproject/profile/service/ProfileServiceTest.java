@@ -23,8 +23,12 @@ import com.M198.Majorproject.identity.entity.User;
 import com.M198.Majorproject.identity.entity.UserProfile;
 import com.M198.Majorproject.identity.repository.UserProfileRepository;
 import com.M198.Majorproject.identity.repository.UserRepository;
+import com.M198.Majorproject.profile.mapper.ProfileMapper;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
+import com.M198.Majorproject.profile.exception.ProfileNotFoundException;
+import com.M198.Majorproject.profile.security.AuthenticatedUserResolver;
+import org.mapstruct.factory.Mappers;
 
 class ProfileServiceTest {
 
@@ -32,7 +36,19 @@ class ProfileServiceTest {
     private final UserProfileRepository profileRepository = mock(UserProfileRepository.class);
     private final Cloudinary cloudinary = mock(Cloudinary.class);
     private final Uploader uploader = mock(Uploader.class);
-        private final ProfileService profileService = new ProfileService(userRepository, profileRepository, cloudinary);
+    private final ProfileMapper profileMapper = Mappers.getMapper(ProfileMapper.class);
+    private final AuthenticatedUserResolver userResolver = new AuthenticatedUserResolver(userRepository, profileRepository);
+    private final MediaStorageService mediaStorageService = new ProfileMediaStorageService(cloudinary);
+    private final HandleChangePolicy handleChangePolicy = new HandleChangePolicy(profileRepository);
+    private final ProfilePatcher profilePatcher = new ProfilePatcher(mediaStorageService);
+    private final ProfileService profileService = new ProfileService(
+            userRepository,
+            profileRepository,
+            profileMapper,
+            userResolver,
+            profilePatcher,
+            handleChangePolicy,
+            mediaStorageService);
     private final Authentication authentication = mock(Authentication.class);
     private User user;
     private UserProfile profile;
@@ -75,7 +91,7 @@ class ProfileServiceTest {
         when(otherAuthentication.isAuthenticated()).thenReturn(true);
         when(otherAuthentication.getName()).thenReturn("user-2");
 
-        assertThrows(ProfileService.ProfileNotFoundException.class,
+        assertThrows(ProfileNotFoundException.class,
                 () -> profileService.getUserProfile("user-1", otherAuthentication));
     }
 
@@ -89,7 +105,7 @@ class ProfileServiceTest {
         when(userRepository.findByIdAndActiveTrueAndStatus("user-2", AccountStatus.ACTIVE))
                 .thenReturn(Optional.empty());
 
-        assertThrows(ProfileService.ProfileNotFoundException.class,
+        assertThrows(ProfileNotFoundException.class,
                 () -> profileService.getUserProfile("user-2", authentication));
     }
 
@@ -113,7 +129,7 @@ class ProfileServiceTest {
     void softDeletedProfileIsNotReadable() {
         profile.setDeletedAt(java.time.Instant.now());
 
-        assertThrows(ProfileService.ProfileNotFoundException.class,
+        assertThrows(ProfileNotFoundException.class,
                 () -> profileService.getMyProfile(authentication));
     }
 

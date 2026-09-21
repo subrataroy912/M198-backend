@@ -48,6 +48,10 @@ public class CourseResponse {
         return title;
     }
 
+    public String getCover() {
+        return coverUrl;
+    }
+
     public String getLogo() {
         return logoUrl;
     }

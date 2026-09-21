@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
-import com.M198.Majorproject.profile.service.ProfileService.ProfileNotFoundException;
-import com.M198.Majorproject.profile.service.ProfileService.HandleConflictException;
-import com.M198.Majorproject.profile.service.ProfileService.ProfileStorageException;
+import com.M198.Majorproject.profile.exception.ProfileNotFoundException;
+import com.M198.Majorproject.profile.exception.HandleConflictException;
+import com.M198.Majorproject.profile.exception.ProfileStorageException;
 import com.M198.Majorproject.course.service.CourseService.CourseAccessException;
 import com.M198.Majorproject.course.service.CourseService.CourseConflictException;
 import com.M198.Majorproject.course.service.CourseService.CourseIdFormatException;

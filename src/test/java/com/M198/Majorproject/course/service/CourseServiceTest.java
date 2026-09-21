@@ -214,6 +214,45 @@ class CourseServiceTest {
     }
 
     @Test
+    void teacherCanUpdateCourseLogoUrl() {
+        Course course = Course.builder().id("course-1").title("Mathematics")
+                .status(CourseStatus.ACTIVE).build();
+        when(courseRepository.findByIdAndStatus("course-1", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
+        when(membershipRepository.findByCourseIdAndUserIdAndStatus(
+                "course-1", "teacher-1", MembershipStatus.ACTIVE))
+                .thenReturn(Optional.of(CourseMembership.builder().courseId("course-1").userId("teacher-1")
+                        .role(MembershipRole.TEACHER).build()));
+        UpdateCourseRequest request = new UpdateCourseRequest();
+        request.setLogoUrl(" https://images.example/logo.png ");
+
+        var response = courseService.update("course-1", teacher, request);
+
+        assertEquals("https://images.example/logo.png", response.getLogoUrl());
+        assertEquals("https://images.example/logo.png", response.getLogo());
+    }
+
+    @Test
+    void teacherCanClearCourseCoverAndLogoUrlWithBlankStrings() {
+        Course course = Course.builder().id("course-1").title("Mathematics")
+                .coverUrl("https://images.example/course.png")
+                .logoUrl("https://images.example/logo.png")
+                .status(CourseStatus.ACTIVE).build();
+        when(courseRepository.findByIdAndStatus("course-1", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
+        when(membershipRepository.findByCourseIdAndUserIdAndStatus(
+                "course-1", "teacher-1", MembershipStatus.ACTIVE))
+                .thenReturn(Optional.of(CourseMembership.builder().courseId("course-1").userId("teacher-1")
+                        .role(MembershipRole.TEACHER).build()));
+        UpdateCourseRequest request = new UpdateCourseRequest();
+        request.setCoverUrl("   ");
+        request.setLogoUrl("");
+
+        var response = courseService.update("course-1", teacher, request);
+
+        org.junit.jupiter.api.Assertions.assertNull(response.getCoverUrl());
+        org.junit.jupiter.api.Assertions.assertNull(response.getLogoUrl());
+    }
+
+    @Test
     void enrollByCodeFindsCourseAndEnrollsMember() {
         Course course = Course.builder().id("course-1").status(CourseStatus.ACTIVE).enrollmentEnabled(true).build();
         EnrollmentCode code = EnrollmentCode.builder().courseId("course-1").code("JOIN1234").active(true).build();

@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -26,7 +27,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.M198.Majorproject.course.dto.CourseResponse;
 import com.M198.Majorproject.course.dto.CourseCoverUploadResponse;
@@ -46,11 +49,21 @@ public class CourseController {
         this.courseService = courseService;
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public CourseResponse createCourse(
             @Valid @RequestBody CreateCourseRequest request,
             Authentication authentication) {
         return courseService.createCourse(authentication, request);
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public CourseResponse createCourseWithAssets(
+            @Valid @RequestPart(value = "course", required = false) CreateCourseRequest request,
+            @RequestPart(value = "coverFile", required = false) MultipartFile coverFile,
+            @RequestPart(value = "logoFile", required = false) MultipartFile logoFile,
+            Authentication authentication) {
+        CreateCourseRequest effectiveRequest = request != null ? request : new CreateCourseRequest();
+        return courseService.createCourse(authentication, effectiveRequest, coverFile, logoFile);
     }
 
     @PostMapping("/cover-upload")
@@ -78,12 +91,23 @@ public class CourseController {
         return courseService.getCourse(courseId, authentication);
     }
 
-    @PatchMapping("/{courseId}")
+    @PatchMapping(value = "/{courseId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public CourseResponse updateCourse(
             @PathVariable String courseId,
             @Valid @RequestBody UpdateCourseRequest request,
             Authentication authentication) {
         return courseService.update(courseId, authentication, request);
+    }
+
+    @PatchMapping(value = "/{courseId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public CourseResponse updateCourseWithAssets(
+            @PathVariable String courseId,
+            @Valid @RequestPart(value = "course", required = false) UpdateCourseRequest request,
+            @RequestPart(value = "coverFile", required = false) MultipartFile coverFile,
+            @RequestPart(value = "logoFile", required = false) MultipartFile logoFile,
+            Authentication authentication) {
+        UpdateCourseRequest effectiveRequest = request != null ? request : new UpdateCourseRequest();
+        return courseService.update(courseId, authentication, effectiveRequest, coverFile, logoFile);
     }
 
     @DeleteMapping("/{courseId}")

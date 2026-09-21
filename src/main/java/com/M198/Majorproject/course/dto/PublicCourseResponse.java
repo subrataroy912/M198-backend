@@ -30,4 +30,16 @@ public class PublicCourseResponse {
   private CourseAccessType accessType;
   private boolean enrollmentEnabled;
   private long memberCount;
+
+  public String getName() {
+    return title;
+  }
+
+  public String getCover() {
+    return coverUrl;
+  }
+
+  public String getLogo() {
+    return logoUrl;
+  }
 }
