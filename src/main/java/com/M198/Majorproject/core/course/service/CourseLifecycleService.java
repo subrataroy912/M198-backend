@@ -86,20 +86,24 @@ public class CourseLifecycleService {
         this.courseAccessPolicy = courseAccessPolicy;
     }
 
-    public CourseCoverUploadResponse requestCoverUpload(Authentication authentication) { courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required")); return mediaService.requestUpload("course_covers"); }
-    public CourseCoverUploadResponse requestLogoUpload(Authentication authentication) { courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required")); return mediaService.requestUpload("course_logos"); }
+    public CourseCoverUploadResponse requestCoverUpload(Authentication authentication) {
+        courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
+        return mediaService.requestUpload(CourseMediaService.Asset.COVER);
+    }
+
+    public CourseCoverUploadResponse requestLogoUpload(Authentication authentication) {
+        courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
+        return mediaService.requestUpload(CourseMediaService.Asset.LOGO);
+    }
 
     public CourseResponse createCourse(
             Authentication authentication,
             CreateCourseRequest request,
             MultipartFile coverFile,
             MultipartFile logoFile) {
-        if (coverFile != null && !coverFile.isEmpty()) {
-            request.setCoverUrl(mediaService.upload(coverFile, "course_covers"));
-        }
-        if (logoFile != null && !logoFile.isEmpty()) {
-            request.setLogoUrl(mediaService.upload(logoFile, "course_logos"));
-        }
+        mediaService.applyMultipartAssets(request, coverFile, logoFile);
         return createCourse(authentication, request);
     }
 
@@ -128,8 +132,8 @@ public class CourseLifecycleService {
         SpaceType spaceType = request.getSpaceType() != null ? request.getSpaceType() : SpaceType.ACADEMIC_CLASS;
         MeetingType meetingType = request.getMeetingType() != null ? request.getMeetingType() : MeetingType.IN_PERSON;
 
-        String coverUrl = resolveMediaUrl(request.getCoverUrl(), "course_covers");
-        String logoUrl = resolveMediaUrl(request.getLogoUrl(), "course_logos");
+        String coverUrl = mediaService.resolveAsset(request.getCoverUrl(), CourseMediaService.Asset.COVER);
+        String logoUrl = mediaService.resolveAsset(request.getLogoUrl(), CourseMediaService.Asset.LOGO);
 
         Course course = courseRepository.save(Course.builder()
                 .ownerId(userId)
@@ -440,12 +444,7 @@ public class CourseLifecycleService {
             UpdateCourseRequest request,
             MultipartFile coverFile,
             MultipartFile logoFile) {
-        if (coverFile != null && !coverFile.isEmpty()) {
-            request.setCoverUrl(mediaService.upload(coverFile, "course_covers"));
-        }
-        if (logoFile != null && !logoFile.isEmpty()) {
-            request.setLogoUrl(mediaService.upload(logoFile, "course_logos"));
-        }
+        mediaService.applyMultipartAssets(request, coverFile, logoFile);
         return update(courseId, authentication, request);
     }
 
@@ -492,10 +491,10 @@ public class CourseLifecycleService {
             course.setEnrollmentEnabled(request.getEnrollmentEnabled());
         }
         if (request.getCoverUrl() != null) {
-            course.setCoverUrl(resolveMediaUrl(request.getCoverUrl(), "course_covers"));
+            course.setCoverUrl(mediaService.resolveAsset(request.getCoverUrl(), CourseMediaService.Asset.COVER));
         }
         if (request.getLogoUrl() != null) {
-            course.setLogoUrl(resolveMediaUrl(request.getLogoUrl(), "course_logos"));
+            course.setLogoUrl(mediaService.resolveAsset(request.getLogoUrl(), CourseMediaService.Asset.LOGO));
         }
         if (request.getTheme() != null) {
             course.setTheme(normalize(request.getTheme()));
@@ -698,8 +697,6 @@ public class CourseLifecycleService {
         String normalized = value.trim();
         return normalized.isEmpty() ? null : normalized;
     }
-
-    private String resolveMediaUrl(String value, String folder) { return mediaService.resolve(value, folder); }
 
     private String generateEnrollmentCode() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();

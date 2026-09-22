@@ -1,7 +1,9 @@
 package com.M198.Majorproject.user.profile.service;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Base64;
+import java.util.UUID;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,17 +22,48 @@ public class ProfileMediaStorageService implements MediaStorageService {
 
     private final Cloudinary cloudinary;
     private final boolean allowBase64Fallback;
+    private final String cloudName;
+    private final String apiKey;
+    private final String apiSecret;
 
     @org.springframework.beans.factory.annotation.Autowired
     public ProfileMediaStorageService(
             Cloudinary cloudinary,
-            @Value("${app.media.allow-base64-fallback:true}") boolean allowBase64Fallback) {
+            @Value("${app.media.allow-base64-fallback:true}") boolean allowBase64Fallback,
+            @Value("${cloudinary.cloud-name:}") String cloudName,
+            @Value("${cloudinary.api-key:}") String apiKey,
+            @Value("${cloudinary.api-secret:}") String apiSecret) {
         this.cloudinary = cloudinary;
         this.allowBase64Fallback = allowBase64Fallback;
+        this.cloudName = cloudName;
+        this.apiKey = apiKey;
+        this.apiSecret = apiSecret;
+    }
+
+    public ProfileMediaStorageService(Cloudinary cloudinary, boolean allowBase64Fallback) {
+        this(cloudinary, allowBase64Fallback, "", "", "");
     }
 
     public ProfileMediaStorageService(Cloudinary cloudinary) {
         this(cloudinary, true);
+    }
+
+    @Override
+    public MediaUploadSignature requestImageUpload(String folder) {
+        if (cloudName.isBlank() || apiKey.isBlank() || apiSecret.isBlank()) {
+            throw new ProfileStorageException("Media storage is not configured");
+        }
+        String publicId = folder + "/" + UUID.randomUUID();
+        long timestamp = Instant.now().getEpochSecond();
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("public_id", publicId);
+        parameters.put("timestamp", timestamp);
+        return new MediaUploadSignature(
+                "https://api.cloudinary.com/v1_1/" + cloudName + "/image/upload",
+                publicId,
+                apiKey,
+                cloudinary.apiSignRequest(parameters, apiSecret, 0),
+                timestamp);
     }
 
     @Override
