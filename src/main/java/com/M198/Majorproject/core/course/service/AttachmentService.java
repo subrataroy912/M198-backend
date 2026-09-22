@@ -19,10 +19,8 @@ import com.M198.Majorproject.core.course.entity.AttachmentResourceType;
 import com.M198.Majorproject.core.course.entity.AttachmentStatus;
 import com.M198.Majorproject.core.course.repository.AttachmentRepository;
 import com.M198.Majorproject.core.course.entity.CourseMembership;
-import com.M198.Majorproject.core.course.entity.MembershipRole;
-import com.M198.Majorproject.core.course.entity.MembershipStatus;
-import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.core.course.repository.CourseworkRepository;
+import com.M198.Majorproject.core.course.security.CourseAccessPolicy;
 import com.M198.Majorproject.core.course.repository.SubmissionRepository;
 import com.cloudinary.Cloudinary;
 
@@ -32,7 +30,7 @@ public class AttachmentService {
     private final AttachmentRepository attachmentRepository;
     private final CourseworkRepository courseworkRepository;
     private final SubmissionRepository submissionRepository;
-    private final CourseMembershipRepository membershipRepository;
+    private final CourseAccessPolicy courseAccessPolicy;
     private final Cloudinary cloudinary;
     private final String cloudName;
     private final String apiKey;
@@ -42,7 +40,7 @@ public class AttachmentService {
             AttachmentRepository attachmentRepository,
             CourseworkRepository courseworkRepository,
             SubmissionRepository submissionRepository,
-            CourseMembershipRepository membershipRepository,
+            CourseAccessPolicy courseAccessPolicy,
             Cloudinary cloudinary,
             @Value("${cloudinary.cloud-name:}") String cloudName,
             @Value("${cloudinary.api-key:}") String apiKey,
@@ -50,7 +48,7 @@ public class AttachmentService {
         this.attachmentRepository = attachmentRepository;
         this.courseworkRepository = courseworkRepository;
         this.submissionRepository = submissionRepository;
-        this.membershipRepository = membershipRepository;
+        this.courseAccessPolicy = courseAccessPolicy;
         this.cloudinary = cloudinary;
         this.cloudName = cloudName;
         this.apiKey = apiKey;
@@ -58,10 +56,10 @@ public class AttachmentService {
     }
 
     public AttachmentResponse create(Authentication authentication, CreateAttachmentRequest request) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, AttachmentAccessException::new);
         String courseId = resourceCourseId(request.getResourceType(), request.getResourceId());
-        CourseMembership membership = membership(courseId, userId);
-        if (request.getResourceType() == AttachmentResourceType.COURSEWORK && !staff(membership)) {
+        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId, AttachmentAccessException::new);
+        if (request.getResourceType() == AttachmentResourceType.COURSEWORK && !courseAccessPolicy.isStaff(membership)) {
             throw new AttachmentAccessException();
         }
         if (request.getResourceType() == AttachmentResourceType.SUBMISSION
@@ -92,14 +90,14 @@ public class AttachmentService {
 
     public AttachmentResponse complete(
             String attachmentId, Authentication authentication, CompleteAttachmentRequest request) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, AttachmentAccessException::new);
         Attachment attachment = attachmentRepository.findById(attachmentId)
                 .filter(value -> value.getStatus() == AttachmentStatus.PENDING)
                 .orElseThrow(AttachmentNotFoundException::new);
         CourseMembership membership = hasRole(authentication, "ROLE_ADMIN")
-                ? null : membership(attachment.getCourseId(), userId);
+                ? null : courseAccessPolicy.requireActiveMember(attachment.getCourseId(), userId, AttachmentAccessException::new);
         if (!attachment.getOwnerId().equals(userId) && !hasRole(authentication, "ROLE_ADMIN")
-                && !staff(membership)) {
+                && !courseAccessPolicy.isStaff(membership)) {
             throw new AttachmentAccessException();
         }
         if (!attachment.getStorageKey().equals(request.getPublicId().trim())) {
@@ -114,19 +112,19 @@ public class AttachmentService {
 
     public List<AttachmentResponse> list(
             String resourceId, AttachmentResourceType resourceType, Authentication authentication) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, AttachmentAccessException::new);
         String courseId = resourceCourseId(resourceType, resourceId);
-        membership(courseId, userId);
+        courseAccessPolicy.requireActiveMember(courseId, userId, AttachmentAccessException::new);
         return attachmentRepository.findAllByResourceTypeAndResourceIdAndStatus(
                 resourceType, resourceId, AttachmentStatus.UPLOADED).stream().map(this::toResponse).toList();
     }
 
     public void delete(String attachmentId, Authentication authentication) throws IOException {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, AttachmentAccessException::new);
         Attachment attachment = attachmentRepository.findByIdAndStatus(attachmentId, AttachmentStatus.UPLOADED)
                 .orElseThrow(AttachmentNotFoundException::new);
-        CourseMembership membership = membership(attachment.getCourseId(), userId);
-        if (!attachment.getOwnerId().equals(userId) && !staff(membership)) {
+        CourseMembership membership = courseAccessPolicy.requireActiveMember(attachment.getCourseId(), userId, AttachmentAccessException::new);
+        if (!attachment.getOwnerId().equals(userId) && !courseAccessPolicy.isStaff(membership)) {
             throw new AttachmentAccessException();
         }
         requireCloudinaryConfiguration();
@@ -149,11 +147,11 @@ public class AttachmentService {
     }
 
     public AttachmentResponse downloadUrl(String attachmentId, Authentication authentication) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, AttachmentAccessException::new);
         Attachment attachment = attachmentRepository.findByIdAndStatus(attachmentId, AttachmentStatus.UPLOADED)
                 .orElseThrow(AttachmentNotFoundException::new);
-        CourseMembership membership = membership(attachment.getCourseId(), userId);
-        if (!attachment.getOwnerId().equals(userId) && !staff(membership)) {
+        CourseMembership membership = courseAccessPolicy.requireActiveMember(attachment.getCourseId(), userId, AttachmentAccessException::new);
+        if (!attachment.getOwnerId().equals(userId) && !courseAccessPolicy.isStaff(membership)) {
             throw new AttachmentAccessException();
         }
         AttachmentResponse response = toResponse(attachment);
@@ -191,26 +189,9 @@ public class AttachmentService {
                 .orElseThrow(AttachmentNotFoundException::new);
     }
 
-    private CourseMembership membership(String courseId, String userId) {
-        return membershipRepository.findByCourseIdAndUserIdAndStatus(
-                courseId, userId, MembershipStatus.ACTIVE).orElseThrow(AttachmentAccessException::new);
-    }
-
-    private boolean staff(CourseMembership membership) {
-        return membership.getRole() == MembershipRole.OWNER || membership.getRole() == MembershipRole.TEACHER
-                || membership.getRole() == MembershipRole.ASSISTANT;
-    }
-
     private boolean hasRole(Authentication authentication, String role) {
         return authentication.getAuthorities().stream()
                 .anyMatch(value -> role.equals(value.getAuthority()));
-    }
-
-    private String authenticatedUserId(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated() || authentication.getName() == null) {
-            throw new AttachmentAccessException();
-        }
-        return authentication.getName();
     }
 
     private AttachmentResponse toResponse(Attachment attachment) {

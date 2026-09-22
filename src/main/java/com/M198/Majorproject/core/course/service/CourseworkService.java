@@ -13,13 +13,11 @@ import com.M198.Majorproject.core.course.dto.CreateCourseworkRequest;
 import com.M198.Majorproject.core.course.dto.UpdateCourseworkRequest;
 import com.M198.Majorproject.core.course.entity.CourseMembership;
 import com.M198.Majorproject.core.course.entity.CourseStatus;
-import com.M198.Majorproject.core.course.entity.MembershipRole;
-import com.M198.Majorproject.core.course.entity.MembershipStatus;
 import com.M198.Majorproject.core.course.entity.Coursework;
 import com.M198.Majorproject.core.course.entity.CourseworkStatus;
 import com.M198.Majorproject.core.course.entity.CourseworkType;
-import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.core.course.repository.CourseRepository;
+import com.M198.Majorproject.core.course.security.CourseAccessPolicy;
 import com.M198.Majorproject.core.course.repository.CourseworkRepository;
 
 @Service
@@ -27,17 +25,17 @@ import com.M198.Majorproject.core.course.repository.CourseworkRepository;
 public class CourseworkService {
 
     private final CourseRepository courseRepository;
-    private final CourseMembershipRepository membershipRepository;
+    private final CourseAccessPolicy courseAccessPolicy;
     private final CourseworkRepository courseworkRepository;
 
     public CourseworkResponse create(
             String courseId, Authentication authentication, CreateCourseworkRequest request) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseworkAccessException("Authentication required"));
         requireActiveCourse(courseId);
         if (request.getType() == CourseworkType.ANNOUNCEMENT) {
-            activeMembership(courseId, userId);
+            courseAccessPolicy.requireActiveMember(courseId, userId, CourseworkNotFoundException::new);
         } else {
-            requireStaff(courseId, userId);
+            courseAccessPolicy.requireStaff(courseId, userId, CourseworkNotFoundException::new, () -> new CourseworkAccessException("Course staff role required"));
         }
         validateAssignmentFields(request.getType().name(), request.getDueAt(), request.getMaximumPoints());
 
@@ -66,12 +64,12 @@ public class CourseworkService {
         if (page < 0 || size < 1 || size > 100) {
             throw new IllegalArgumentException("page must be non-negative and size must be between 1 and 100");
         }
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseworkAccessException("Authentication required"));
         requireActiveCourse(courseId);
-        CourseMembership membership = activeMembership(courseId, userId);
+        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId, CourseworkNotFoundException::new);
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        if (isStaff(membership)) {
+        if (courseAccessPolicy.isStaff(membership)) {
             // Staff (OWNER, TEACHER, ASSISTANT) see every non-archived item:
             // PUBLISHED items appear first (sorted by publishedAt DESC),
             // DRAFT items (null publishedAt) follow, sorted by createdAt DESC.
@@ -90,12 +88,12 @@ public class CourseworkService {
 
     public CourseworkResponse get(
             String courseId, String courseworkId, Authentication authentication) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseworkAccessException("Authentication required"));
         requireActiveCourse(courseId);
-        CourseMembership membership = activeMembership(courseId, userId);
+        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId, CourseworkNotFoundException::new);
         Coursework coursework = courseworkRepository.findByIdAndCourseId(courseworkId, courseId)
                 .orElseThrow(CourseworkNotFoundException::new);
-        if (!isStaff(membership) && coursework.getStatus() != CourseworkStatus.PUBLISHED) {
+        if (!courseAccessPolicy.isStaff(membership) && coursework.getStatus() != CourseworkStatus.PUBLISHED) {
             throw new CourseworkNotFoundException();
         }
         return toResponse(coursework);
@@ -103,9 +101,9 @@ public class CourseworkService {
 
     public CourseworkResponse update(
             String courseId, String courseworkId, Authentication authentication, UpdateCourseworkRequest request) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseworkAccessException("Authentication required"));
         requireActiveCourse(courseId);
-        requireStaff(courseId, userId);
+        courseAccessPolicy.requireStaff(courseId, userId, CourseworkNotFoundException::new, () -> new CourseworkAccessException("Course staff role required"));
         Coursework coursework = courseworkRepository.findByIdAndCourseId(courseworkId, courseId)
                 .orElseThrow(CourseworkNotFoundException::new);
         if (request.getTitle() != null) {
@@ -131,9 +129,9 @@ public class CourseworkService {
     }
 
     public void archive(String courseId, String courseworkId, Authentication authentication) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseworkAccessException("Authentication required"));
         requireActiveCourse(courseId);
-        requireStaff(courseId, userId);
+        courseAccessPolicy.requireStaff(courseId, userId, CourseworkNotFoundException::new, () -> new CourseworkAccessException("Course staff role required"));
         Coursework coursework = courseworkRepository.findByIdAndCourseId(courseworkId, courseId)
                 .orElseThrow(CourseworkNotFoundException::new);
         coursework.setStatus(CourseworkStatus.ARCHIVED);
@@ -173,30 +171,6 @@ public class CourseworkService {
     private void requireActiveCourse(String courseId) {
         courseRepository.findByIdAndStatus(courseId, CourseStatus.ACTIVE)
                 .orElseThrow(CourseworkNotFoundException::new);
-    }
-
-    private CourseMembership activeMembership(String courseId, String userId) {
-        return membershipRepository.findByCourseIdAndUserIdAndStatus(
-                courseId, userId, MembershipStatus.ACTIVE).orElseThrow(CourseworkNotFoundException::new);
-    }
-
-    private void requireStaff(String courseId, String userId) {
-        if (!isStaff(activeMembership(courseId, userId))) {
-            throw new CourseworkAccessException("Course staff role required");
-        }
-    }
-
-    private boolean isStaff(CourseMembership membership) {
-        return membership.getRole() == MembershipRole.OWNER
-                || membership.getRole() == MembershipRole.TEACHER
-                || membership.getRole() == MembershipRole.ASSISTANT;
-    }
-
-    private String authenticatedUserId(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated() || authentication.getName() == null) {
-            throw new CourseworkAccessException("Authentication required");
-        }
-        return authentication.getName();
     }
 
     private CourseworkResponse toResponse(Coursework coursework) {

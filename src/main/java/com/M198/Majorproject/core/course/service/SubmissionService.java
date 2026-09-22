@@ -12,15 +12,12 @@ import lombok.RequiredArgsConstructor;
 import com.M198.Majorproject.core.course.dto.GradeSubmissionRequest;
 import com.M198.Majorproject.core.course.dto.SubmissionResponse;
 import com.M198.Majorproject.core.course.dto.UpdateSubmissionRequest;
-import com.M198.Majorproject.core.course.entity.CourseMembership;
-import com.M198.Majorproject.core.course.entity.MembershipRole;
-import com.M198.Majorproject.core.course.entity.MembershipStatus;
 import com.M198.Majorproject.core.course.entity.Coursework;
 import com.M198.Majorproject.core.course.entity.CourseworkStatus;
 import com.M198.Majorproject.core.course.entity.CourseworkType;
 import com.M198.Majorproject.core.course.entity.Submission;
 import com.M198.Majorproject.core.course.entity.SubmissionStatus;
-import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
+import com.M198.Majorproject.core.course.security.CourseAccessPolicy;
 import com.M198.Majorproject.core.course.repository.CourseworkRepository;
 import com.M198.Majorproject.core.course.repository.SubmissionRepository;
 
@@ -29,13 +26,13 @@ import com.M198.Majorproject.core.course.repository.SubmissionRepository;
 public class SubmissionService {
 
     private final CourseworkRepository courseworkRepository;
-    private final CourseMembershipRepository membershipRepository;
+    private final CourseAccessPolicy courseAccessPolicy;
     private final SubmissionRepository submissionRepository;
 
     public SubmissionResponse start(String courseworkId, Authentication authentication) {
-        String studentId = authenticatedUserId(authentication);
+        String studentId = courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new);
         Coursework coursework = publishedAssignment(courseworkId);
-        requireStudentMember(coursework.getCourseId(), studentId);
+        courseAccessPolicy.requireStudent(coursework.getCourseId(), studentId, SubmissionAccessException::new, SubmissionAccessException::new);
         if (coursework.getType() != CourseworkType.ASSIGNMENT) {
             throw new SubmissionConflictException("Only assignments accept submissions");
         }
@@ -56,9 +53,9 @@ public class SubmissionService {
     }
 
     public SubmissionResponse mine(String courseworkId, Authentication authentication) {
-        String studentId = authenticatedUserId(authentication);
+        String studentId = courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new);
         Coursework coursework = publishedAssignment(courseworkId);
-        requireStudentMember(coursework.getCourseId(), studentId);
+        courseAccessPolicy.requireStudent(coursework.getCourseId(), studentId, SubmissionAccessException::new, SubmissionAccessException::new);
         return submissionRepository.findByCourseworkIdAndStudentId(courseworkId, studentId)
                 .map(this::toResponse)
                 .orElseThrow(SubmissionNotFoundException::new);
@@ -66,9 +63,9 @@ public class SubmissionService {
 
     public SubmissionResponse update(
             String courseworkId, Authentication authentication, UpdateSubmissionRequest request) {
-        String studentId = authenticatedUserId(authentication);
+        String studentId = courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new);
         Coursework coursework = publishedAssignment(courseworkId);
-        requireStudentMember(coursework.getCourseId(), studentId);
+        courseAccessPolicy.requireStudent(coursework.getCourseId(), studentId, SubmissionAccessException::new, SubmissionAccessException::new);
         Submission submission = submissionRepository.findByCourseworkIdAndStudentId(courseworkId, studentId)
                 .orElseThrow(SubmissionNotFoundException::new);
         if (submission.getStatus() == SubmissionStatus.GRADED
@@ -97,7 +94,7 @@ public class SubmissionService {
             throw new IllegalArgumentException("page must be non-negative and size must be between 1 and 100");
         }
         Coursework coursework = coursework(courseworkId);
-        requireStaff(coursework.getCourseId(), authenticatedUserId(authentication));
+        courseAccessPolicy.requireStaff(coursework.getCourseId(), courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new), SubmissionAccessException::new, SubmissionAccessException::new);
         return submissionRepository.findAllByCourseworkIdOrderByCreatedAtAsc(
                 courseworkId, PageRequest.of(page, size)).map(this::toResponse);
     }
@@ -105,7 +102,7 @@ public class SubmissionService {
     public SubmissionResponse grade(
             String courseworkId, String submissionId, Authentication authentication, GradeSubmissionRequest request) {
         Coursework coursework = coursework(courseworkId);
-        requireStaff(coursework.getCourseId(), authenticatedUserId(authentication));
+        courseAccessPolicy.requireStaff(coursework.getCourseId(), courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new), SubmissionAccessException::new, SubmissionAccessException::new);
         Submission submission = submissionRepository.findById(submissionId)
                 .filter(value -> courseworkId.equals(value.getCourseworkId()))
                 .orElseThrow(SubmissionNotFoundException::new);
@@ -119,7 +116,7 @@ public class SubmissionService {
         }
         submission.setScore(request.getScore());
         submission.setFeedback(request.getFeedback() == null ? null : request.getFeedback().trim());
-        submission.setGraderId(authenticatedUserId(authentication));
+        submission.setGraderId(courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new));
         submission.setGradedAt(Instant.now());
         submission.setReturnedAt(Instant.now());
         submission.setStatus(SubmissionStatus.GRADED);
@@ -139,31 +136,6 @@ public class SubmissionService {
             throw new SubmissionConflictException("Only published assignments accept submissions");
         }
         return coursework;
-    }
-
-    private void requireStudentMember(String courseId, String userId) {
-        CourseMembership membership = membershipRepository.findByCourseIdAndUserIdAndStatus(
-                courseId, userId, MembershipStatus.ACTIVE).orElseThrow(SubmissionAccessException::new);
-        if (membership.getRole() != MembershipRole.STUDENT) {
-            throw new SubmissionAccessException();
-        }
-    }
-
-    private void requireStaff(String courseId, String userId) {
-        CourseMembership membership = membershipRepository.findByCourseIdAndUserIdAndStatus(
-                courseId, userId, MembershipStatus.ACTIVE).orElseThrow(SubmissionAccessException::new);
-        if (membership.getRole() != MembershipRole.OWNER
-                && membership.getRole() != MembershipRole.TEACHER
-                && membership.getRole() != MembershipRole.ASSISTANT) {
-            throw new SubmissionAccessException();
-        }
-    }
-
-    private String authenticatedUserId(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated() || authentication.getName() == null) {
-            throw new SubmissionAccessException();
-        }
-        return authentication.getName();
     }
 
     private SubmissionResponse toResponse(Submission submission) {

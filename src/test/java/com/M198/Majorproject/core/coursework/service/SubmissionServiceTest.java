@@ -30,6 +30,8 @@ import com.M198.Majorproject.core.course.entity.SubmissionStatus;
 import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.core.course.repository.CourseworkRepository;
 import com.M198.Majorproject.core.course.repository.SubmissionRepository;
+import com.M198.Majorproject.core.course.security.CourseAccessPolicy;
+import com.M198.Majorproject.core.course.security.CourseMembershipResolver;
 
 class SubmissionServiceTest {
 
@@ -37,7 +39,8 @@ class SubmissionServiceTest {
     private final CourseMembershipRepository membershipRepository = mock(CourseMembershipRepository.class);
     private final SubmissionRepository submissionRepository = mock(SubmissionRepository.class);
     private final SubmissionService service = new SubmissionService(
-            courseworkRepository, membershipRepository, submissionRepository);
+            courseworkRepository, new CourseAccessPolicy(new CourseMembershipResolver(membershipRepository)),
+            submissionRepository);
     private final Authentication student = mock(Authentication.class);
     private final Authentication teacher = mock(Authentication.class);
 

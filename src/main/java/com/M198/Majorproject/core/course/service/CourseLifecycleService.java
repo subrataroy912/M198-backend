@@ -48,6 +48,7 @@ import com.M198.Majorproject.core.course.repository.EnrollmentCodeRepository;
 import com.M198.Majorproject.core.course.port.CourseDiscoveryPort;
 import com.M198.Majorproject.user.profile.entity.UserProfile;
 import com.M198.Majorproject.core.course.port.CourseProfilePort;
+import com.M198.Majorproject.core.course.security.CourseAccessPolicy;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -63,6 +64,7 @@ public class CourseLifecycleService {
     private final CourseProfilePort courseProfilePort;
     private final CourseDeletionCleanupService deletionCleanupService;
     private final CourseMediaService mediaService;
+    private final CourseAccessPolicy courseAccessPolicy;
 
     @Autowired
     public CourseLifecycleService(
@@ -72,7 +74,8 @@ public class CourseLifecycleService {
             CourseDiscoveryPort courseDiscoveryPort,
             CourseProfilePort courseProfilePort,
             CourseDeletionCleanupService deletionCleanupService,
-            CourseMediaService mediaService) {
+            CourseMediaService mediaService,
+            CourseAccessPolicy courseAccessPolicy) {
         this.courseRepository = courseRepository;
         this.membershipRepository = membershipRepository;
         this.enrollmentCodeRepository = enrollmentCodeRepository;
@@ -80,10 +83,11 @@ public class CourseLifecycleService {
         this.courseProfilePort = courseProfilePort;
         this.deletionCleanupService = deletionCleanupService;
         this.mediaService = mediaService;
+        this.courseAccessPolicy = courseAccessPolicy;
     }
 
-    public CourseCoverUploadResponse requestCoverUpload(Authentication authentication) { authenticatedUserId(authentication); return mediaService.requestUpload("course_covers"); }
-    public CourseCoverUploadResponse requestLogoUpload(Authentication authentication) { authenticatedUserId(authentication); return mediaService.requestUpload("course_logos"); }
+    public CourseCoverUploadResponse requestCoverUpload(Authentication authentication) { courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required")); return mediaService.requestUpload("course_covers"); }
+    public CourseCoverUploadResponse requestLogoUpload(Authentication authentication) { courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required")); return mediaService.requestUpload("course_logos"); }
 
     public CourseResponse createCourse(
             Authentication authentication,
@@ -100,7 +104,7 @@ public class CourseLifecycleService {
     }
 
     public CourseResponse createCourse(Authentication authentication, CreateCourseRequest request) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         requireCanCreateCourse(authentication, userId);
 
         CourseAccessType accessType = request.getAccessType();
@@ -185,7 +189,7 @@ public class CourseLifecycleService {
     }
 
     public List<CourseResponse> listMyCourses(Authentication authentication) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         List<CourseMembership> memberships = membershipRepository.findAllByUserIdAndStatus(userId,
                 MembershipStatus.ACTIVE);
         if (memberships.isEmpty()) {
@@ -262,7 +266,7 @@ public class CourseLifecycleService {
 
     public CourseResponse getCourse(String courseId, Authentication authentication) {
         validateCourseId(courseId);
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = courseRepository.findById(courseId).orElse(null);
         var membership = membershipRepository.findByCourseIdAndUserId(courseId, userId);
         boolean isStaffOrEnrolled = membership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE)
@@ -329,7 +333,7 @@ public class CourseLifecycleService {
     }
 
     public CourseResponse enroll(String courseId, Authentication authentication, EnrollCourseRequest request) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
         if (!course.isEnrollmentEnabled()) {
             throw new CourseService.CourseAccessException("Enrollment is disabled");
@@ -400,7 +404,7 @@ public class CourseLifecycleService {
     }
 
     public void leave(String courseId, Authentication authentication) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         activeCourse(courseId);
         CourseMembership membership = membershipRepository.findByCourseIdAndUserIdAndStatus(
                 courseId, userId, MembershipStatus.ACTIVE)
@@ -415,9 +419,9 @@ public class CourseLifecycleService {
     }
 
     public void removeMember(String courseId, String memberUserId, Authentication authentication) {
-        String currentUserId = authenticatedUserId(authentication);
+        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
-        requireOwnerOrTeacher(courseId, currentUserId);
+        courseAccessPolicy.requireTeacherOrOwner(courseId, currentUserId, () -> new CourseService.CourseAccessException("Course membership required"), () -> new CourseService.CourseAccessException("Course owner or teacher role required"));
         CourseMembership membership = membershipRepository.findByCourseIdAndUserIdAndStatus(
                 courseId, memberUserId, MembershipStatus.ACTIVE)
                 .orElseThrow(CourseService.CourseNotFoundException::new);
@@ -446,9 +450,9 @@ public class CourseLifecycleService {
     }
 
     public CourseResponse update(String courseId, Authentication authentication, UpdateCourseRequest request) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
-        requireOwnerOrTeacher(courseId, userId);
+        courseAccessPolicy.requireTeacherOrOwner(courseId, userId, () -> new CourseService.CourseAccessException("Course membership required"), () -> new CourseService.CourseAccessException("Course owner or teacher role required"));
         if (request.getTitle() != null) {
             course.setTitle(normalizeRequired(request.getTitle()));
         }
@@ -517,9 +521,9 @@ public class CourseLifecycleService {
     }
 
     public void archive(String courseId, Authentication authentication) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
-        requireOwnerOrTeacher(courseId, userId);
+        courseAccessPolicy.requireTeacherOrOwner(courseId, userId, () -> new CourseService.CourseAccessException("Course membership required"), () -> new CourseService.CourseAccessException("Course owner or teacher role required"));
         course.setStatus(CourseStatus.ARCHIVED);
         course.setArchivedAt(Instant.now());
         Course archivedCourse = courseRepository.save(course);
@@ -528,7 +532,7 @@ public class CourseLifecycleService {
 
     public void deleteCourse(String courseId, Authentication authentication) {
         validateCourseId(courseId);
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(CourseService.CourseNotFoundException::new);
         requireOwnerOrAdmin(course, userId, authentication);
@@ -542,10 +546,10 @@ public class CourseLifecycleService {
     }
 
     public List<CourseMemberResponse> roster(String courseId, Authentication authentication) {
-        String userId = authenticatedUserId(authentication);
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         activeCourse(courseId);
         if (!hasAuthority(authentication, "ROLE_ADMIN")) {
-            requireActiveMember(courseId, userId);
+            courseAccessPolicy.requireActiveMember(courseId, userId, CourseService.CourseNotFoundException::new);
         }
         List<CourseMembership> memberships = membershipRepository.findAllByCourseIdAndStatus(courseId,
                 MembershipStatus.ACTIVE);
@@ -582,20 +586,6 @@ public class CourseLifecycleService {
         }
     }
 
-    private void requireActiveMember(String courseId, String userId) {
-        membershipRepository.findByCourseIdAndUserIdAndStatus(courseId, userId, MembershipStatus.ACTIVE)
-                .orElseThrow(CourseService.CourseNotFoundException::new);
-    }
-
-    private void requireOwnerOrTeacher(String courseId, String userId) {
-        CourseMembership membership = membershipRepository.findByCourseIdAndUserIdAndStatus(
-                courseId, userId, MembershipStatus.ACTIVE)
-                .orElseThrow(() -> new CourseService.CourseAccessException("Course membership required"));
-        if (membership.getRole() != MembershipRole.OWNER && membership.getRole() != MembershipRole.TEACHER) {
-            throw new CourseService.CourseAccessException("Course owner or teacher role required");
-        }
-    }
-
     private void requireOwnerOrAdmin(Course course, String userId, Authentication authentication) {
         if (hasAuthority(authentication, "ROLE_ADMIN")) {
             return;
@@ -609,13 +599,6 @@ public class CourseLifecycleService {
         if (membership.getRole() != MembershipRole.OWNER) {
             throw new CourseService.CourseAccessException("Course owner or administrator role required");
         }
-    }
-
-    private String authenticatedUserId(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated() || authentication.getName() == null) {
-            throw new CourseService.CourseAccessException("Authentication required");
-        }
-        return authentication.getName();
     }
 
     private void requireCanCreateCourse(Authentication authentication, String userId) {

@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 
 import com.M198.Majorproject.common.exception.AnalyticsAccessException;
 import com.M198.Majorproject.common.exception.AnalyticsNotFoundException;
-import com.M198.Majorproject.user.profile.security.AuthenticatedUserResolver;
+import com.M198.Majorproject.core.course.security.CourseAccessPolicy;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -38,12 +38,12 @@ public class AnalyticsService {
     private final StudentGradebookEntryRepository gradebookRepository;
     private final CourseMembershipRepository membershipRepository;
     private final UserProfileRepository userProfileRepository;
-    private final AuthenticatedUserResolver authenticatedUserResolver;
+    private final CourseAccessPolicy courseAccessPolicy;
 
     public List<TeacherGradebookResponse> teacherGradebook(String courseId, Authentication a)
     {
         if (isNotAdmin(a)) {
-            requireStaff(courseId, authenticatedUserResolver.authenticatedUserId(a));
+            courseAccessPolicy.requireStaff(courseId, courseAccessPolicy.authenticatedUserId(a, AnalyticsAccessException::new), AnalyticsAccessException::new, AnalyticsAccessException::new);
         }
         List<CourseMembership> students = membershipRepository.findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE)
                 .stream()
@@ -93,7 +93,7 @@ public class AnalyticsService {
 
     public CourseAnalyticsResponse summary(String courseId, Authentication a) {
         if (isNotAdmin(a)) {
-            requireStaff(courseId, authenticatedUserResolver.authenticatedUserId(a));
+            courseAccessPolicy.requireStaff(courseId, courseAccessPolicy.authenticatedUserId(a, AnalyticsAccessException::new), AnalyticsAccessException::new, AnalyticsAccessException::new);
 
         }
         CourseAnalyticsSummary summary = summaryRepository.
@@ -103,24 +103,14 @@ public class AnalyticsService {
     }
 
     public List<GradebookEntryResponse> gradebook(String courseId, String studentId, Authentication a) {
-        String caller = authenticatedUserResolver.authenticatedUserId(a);
+        String caller = courseAccessPolicy.authenticatedUserId(a, AnalyticsAccessException::new);
         if (!caller.equals(studentId)) {
-            requireStaff(courseId, caller);
+            courseAccessPolicy.requireStaff(courseId, caller, AnalyticsAccessException::new, AnalyticsAccessException::new);
 
         }
         membershipRepository.findByCourseIdAndUserIdAndStatus(courseId, studentId, MembershipStatus.ACTIVE).orElseThrow(AnalyticsNotFoundException::new);
         return gradebookRepository.findAllByCourseIdAndStudentIdOrderByDueAtAsc(courseId, studentId).stream().map(this::gradebookResponse).toList();
     }
-
-    private void requireStaff(String courseId, String userId) {
-        var membership = membershipRepository.findByCourseIdAndUserIdAndStatus(courseId, userId, MembershipStatus.ACTIVE).orElseThrow(AnalyticsAccessException::new);
-        if (membership.getRole() != MembershipRole.OWNER && membership.getRole() != MembershipRole.TEACHER && membership.getRole() != MembershipRole.ASSISTANT) {
-            throw new AnalyticsAccessException();
-
-        }
-    }
-
-
 
     private boolean isNotAdmin(Authentication a) {
         return a == null || a.getAuthorities().stream()

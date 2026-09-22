@@ -34,6 +34,8 @@ import com.M198.Majorproject.core.course.entity.MembershipStatus;
 import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.core.course.repository.CourseRepository;
 import com.M198.Majorproject.core.course.repository.EnrollmentCodeRepository;
+import com.M198.Majorproject.core.course.security.CourseAccessPolicy;
+import com.M198.Majorproject.core.course.security.CourseMembershipResolver;
 
 class CourseServiceTest {
 
@@ -44,9 +46,11 @@ class CourseServiceTest {
     private final CourseProfilePort profilePort = mock(CourseProfilePort.class);
     private final CourseDeletionCleanupService deletionCleanupService = mock(CourseDeletionCleanupService.class);
     private final CourseMediaService mediaService = mock(CourseMediaService.class);
+    private final CourseAccessPolicy courseAccessPolicy =
+            new CourseAccessPolicy(new CourseMembershipResolver(membershipRepository));
     private final CourseLifecycleService courseService = new CourseLifecycleService(
             courseRepository, membershipRepository, enrollmentCodeRepository,
-            discoveryPort, profilePort, deletionCleanupService, mediaService);
+            discoveryPort, profilePort, deletionCleanupService, mediaService, courseAccessPolicy);
     private final Authentication teacher = mock(Authentication.class);
     private final Authentication student = mock(Authentication.class);
 
