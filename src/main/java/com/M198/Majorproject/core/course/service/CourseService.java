@@ -32,8 +32,10 @@ public class CourseService {
     public void archive(String id, Authentication a) { lifecycle.archive(id, a); }
     public void deleteCourse(String id, Authentication a) { lifecycle.deleteCourse(id, a); }
     public List<CourseMemberResponse> roster(String id, Authentication a) { return lifecycle.roster(id, a); }
+    public CourseMemberResponse updateMemberRole(String id, String userId, UpdateMemberRoleRequest r, Authentication a) { return lifecycle.updateMemberRole(id, userId, r, a); }
     public static class CourseNotFoundException extends RuntimeException { private static final long serialVersionUID = 1L; }
     public static class CourseIdFormatException extends RuntimeException { private static final long serialVersionUID = 1L; }
+    public static class CourseBadRequestException extends RuntimeException { private static final long serialVersionUID = 1L; public CourseBadRequestException(String message) { super(message); } }
     public static class CourseAccessException extends RuntimeException { private static final long serialVersionUID = 1L; public CourseAccessException(String message) { super(message); } }
     public static class CourseConflictException extends RuntimeException { private static final long serialVersionUID = 1L; public CourseConflictException(String message) { super(message); } }
 }

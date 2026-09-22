@@ -32,21 +32,21 @@ public class CourseAccessPolicy {
         return membershipResolver.requireActiveMember(courseId, userId, exceptionSupplier);
     }
 
-    public CourseMembership requireTeacherOrOwner(
+    public CourseMembership requireAdminOrOwner(
             String courseId, String userId, Supplier<? extends RuntimeException> membershipException,
             Supplier<? extends RuntimeException> roleException) {
         CourseMembership membership = requireActiveMember(courseId, userId, membershipException);
-        if (membership.getRole() != MembershipRole.OWNER && membership.getRole() != MembershipRole.TEACHER) {
+        if (membership.getRole() != MembershipRole.OWNER && membership.getRole() != MembershipRole.ADMIN) {
             throw roleException.get();
         }
         return membership;
     }
 
-    public CourseMembership requireStudent(
+    public CourseMembership requireMember(
             String courseId, String userId, Supplier<? extends RuntimeException> membershipException,
             Supplier<? extends RuntimeException> roleException) {
         CourseMembership membership = requireActiveMember(courseId, userId, membershipException);
-        if (membership.getRole() != MembershipRole.STUDENT) {
+        if (membership.getRole() != MembershipRole.MEMBER) {
             throw roleException.get();
         }
         return membership;
@@ -64,7 +64,6 @@ public class CourseAccessPolicy {
 
     public boolean isStaff(CourseMembership membership) {
         return membership.getRole() == MembershipRole.OWNER
-                || membership.getRole() == MembershipRole.TEACHER
-                || membership.getRole() == MembershipRole.ASSISTANT;
+                || membership.getRole() == MembershipRole.ADMIN;
     }
 }

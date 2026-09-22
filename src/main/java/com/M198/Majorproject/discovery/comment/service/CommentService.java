@@ -79,7 +79,7 @@ public class CommentService {
     }
 
     private boolean staff(CourseMembership m) {
-        return m.getRole() == MembershipRole.OWNER || m.getRole() == MembershipRole.TEACHER || m.getRole() == MembershipRole.ASSISTANT;
+        return m.getRole() == MembershipRole.OWNER || m.getRole() == MembershipRole.ADMIN;
     }
 
     private String userId(Authentication a) {

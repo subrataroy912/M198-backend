@@ -14,8 +14,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import com.M198.Majorproject.core.course.dto.CourseAnalyticsResponse;
+import com.M198.Majorproject.core.course.dto.CourseGradebookResponse;
 import com.M198.Majorproject.core.course.dto.GradebookEntryResponse;
-import com.M198.Majorproject.core.course.dto.TeacherGradebookResponse;
 import com.M198.Majorproject.core.course.entity.CourseAnalyticsSummary;
 import com.M198.Majorproject.core.course.entity.StudentGradebookEntry;
 import com.M198.Majorproject.core.course.repository.CourseAnalyticsSummaryRepository;
@@ -40,41 +40,44 @@ public class AnalyticsService {
     private final CourseProfilePort courseProfilePort;
     private final CourseAccessPolicy courseAccessPolicy;
 
-    public List<TeacherGradebookResponse> teacherGradebook(String courseId, Authentication a)
-    {
+    public List<CourseGradebookResponse> teacherGradebook(String courseId, Authentication a) {
+        return courseGradebook(courseId, a);
+    }
+
+    public List<CourseGradebookResponse> courseGradebook(String courseId, Authentication a) {
         if (isNotAdmin(a)) {
             courseAccessPolicy.requireStaff(courseId, courseAccessPolicy.authenticatedUserId(a, AnalyticsAccessException::new), AnalyticsAccessException::new, AnalyticsAccessException::new);
         }
-        List<CourseMembership> students = membershipRepository.findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE)
+        List<CourseMembership> members = membershipRepository.findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE)
                 .stream()
-                .filter(m -> m.getRole() == MembershipRole.STUDENT)
+                .filter(m -> m.getRole() == MembershipRole.MEMBER)
                 .toList();
 
-        List<String> studentIds = students.stream().map(CourseMembership::getUserId).toList();
+        List<String> memberIds = members.stream().map(CourseMembership::getUserId).toList();
         Map<String, UserProfile> profiles = new HashMap<>();
-        if (courseProfilePort != null && !studentIds.isEmpty()) {
-            courseProfilePort.findAllByUserIdIn(studentIds).forEach(p -> profiles.put(p.getUserId(), p));
+        if (courseProfilePort != null && !memberIds.isEmpty()) {
+            courseProfilePort.findAllByUserIdIn(memberIds).forEach(p -> profiles.put(p.getUserId(), p));
         }
 
-        Map<String, List<StudentGradebookEntry>> entriesByStudent = gradebookRepository
+        Map<String, List<StudentGradebookEntry>> entriesByMember = gradebookRepository
                 .findAllByCourseIdOrderByDueAtAsc(courseId).stream()
                 .collect(Collectors.groupingBy(StudentGradebookEntry::getStudentId));
 
-        return students.stream().map(m -> {
+        return members.stream().map(m -> {
             String sId = m.getUserId();
-            TeacherGradebookResponse res = new TeacherGradebookResponse();
+            CourseGradebookResponse res = new CourseGradebookResponse();
             res.setId(sId);
-            res.setStudentId(sId);
+            res.setMemberId(sId);
             UserProfile p = profiles.get(sId);
             if (p != null) {
-                res.setStudentName(p.getDisplayName());
+                res.setMemberName(p.getDisplayName());
                 res.setAvatar(p.getAvatarUrl());
                 res.setAvatarUrl(p.getAvatarUrl());
             } else {
-                res.setStudentName("Student (" + (sId.length() > 4 ? sId.substring(sId.length() - 4) : sId) + ")");
+                res.setMemberName("Member (" + (sId.length() > 4 ? sId.substring(sId.length() - 4) : sId) + ")");
             }
 
-            List<StudentGradebookEntry> entries = entriesByStudent.getOrDefault(sId, List.of());
+            List<StudentGradebookEntry> entries = entriesByMember.getOrDefault(sId, List.of());
             long missing = entries.stream().filter(e -> e.getStatus() == SubmissionStatus.MISSING).count();
             res.setMissingCount(missing);
             res.setSubmittedCount(entries.stream().filter(e -> e.getStatus() == SubmissionStatus.TURNED_IN || e.getStatus() == SubmissionStatus.GRADED).count());

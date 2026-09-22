@@ -39,7 +39,7 @@ public class CourseMembership {
     private String userId;
 
     @Builder.Default
-    private MembershipRole role = MembershipRole.STUDENT;
+    private MembershipRole role = MembershipRole.MEMBER;
 
     @Builder.Default
     private MembershipStatus status = MembershipStatus.ACTIVE;

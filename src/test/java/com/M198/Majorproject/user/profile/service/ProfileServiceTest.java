@@ -322,7 +322,7 @@ class ProfileServiceTest {
 
         assertEquals(3L, response.getCoursesCreatedCount());
         assertEquals(5L, response.getCoursesEnrolledCount());
-        org.junit.jupiter.api.Assertions.assertTrue(response.getBadges().contains("INSTRUCTOR"));
-        org.junit.jupiter.api.Assertions.assertTrue(response.getBadges().contains("STUDENT"));
+        org.junit.jupiter.api.Assertions.assertFalse(response.getBadges().contains("INSTRUCTOR"));
+        org.junit.jupiter.api.Assertions.assertFalse(response.getBadges().contains("STUDENT"));
     }
 }

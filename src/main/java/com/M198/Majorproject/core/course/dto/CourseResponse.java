@@ -60,18 +60,18 @@ public class CourseResponse {
         return enrollmentCode;
     }
 
-    public TeacherSummary getTeacher() {
-        return new TeacherSummary(ownerId, ownerName != null ? ownerName : "CampusMind Teacher", ownerAvatarUrl);
+    public OwnerSummary getOwner() {
+        return new OwnerSummary(ownerId, ownerName != null ? ownerName : "Space Owner", ownerAvatarUrl);
     }
 
-    public static class TeacherSummary {
+    public static class OwnerSummary {
         private String id;
         private String name;
         private String avatarUrl;
 
-        public TeacherSummary() {}
+        public OwnerSummary() {}
 
-        public TeacherSummary(String id, String name, String avatarUrl) {
+        public OwnerSummary(String id, String name, String avatarUrl) {
             this.id = id;
             this.name = name;
             this.avatarUrl = avatarUrl;

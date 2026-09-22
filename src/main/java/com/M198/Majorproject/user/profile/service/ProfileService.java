@@ -205,12 +205,6 @@ public class ProfileService {
         if (response.isCanCreateCourses()) {
             badges.add("CREATOR");
         }
-        if (created > 0) {
-            badges.add("INSTRUCTOR");
-        }
-        if (enrolled > 0) {
-            badges.add("STUDENT");
-        }
         response.setBadges(badges);
     }
 
@@ -237,12 +231,6 @@ public class ProfileService {
         }
         if (response.isCanCreateCourses()) {
             badges.add("CREATOR");
-        }
-        if (created > 0) {
-            badges.add("INSTRUCTOR");
-        }
-        if (enrolled > 0) {
-            badges.add("STUDENT");
         }
         response.setBadges(badges);
     }

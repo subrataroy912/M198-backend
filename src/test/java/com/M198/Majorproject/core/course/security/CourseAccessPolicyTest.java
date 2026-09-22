@@ -29,10 +29,10 @@ class CourseAccessPolicyTest {
         assertThrows(AccessDeniedException.class,
                 () -> policy.requireActiveMember(COURSE_ID, USER_ID, AccessDeniedException::new));
         assertThrows(AccessDeniedException.class,
-                () -> policy.requireTeacherOrOwner(COURSE_ID, USER_ID,
+                () -> policy.requireAdminOrOwner(COURSE_ID, USER_ID,
                         AccessDeniedException::new, AccessDeniedException::new));
         assertThrows(AccessDeniedException.class,
-                () -> policy.requireStudent(COURSE_ID, USER_ID,
+                () -> policy.requireMember(COURSE_ID, USER_ID,
                         AccessDeniedException::new, AccessDeniedException::new));
         assertThrows(AccessDeniedException.class,
                 () -> policy.requireStaff(COURSE_ID, USER_ID,
@@ -51,13 +51,13 @@ class CourseAccessPolicyTest {
 
             assertDoesNotThrow(() -> policy.requireActiveMember(
                     COURSE_ID, USER_ID, AccessDeniedException::new));
-            assertRoleAccess(role == MembershipRole.OWNER || role == MembershipRole.TEACHER,
-                    () -> policy.requireTeacherOrOwner(COURSE_ID, USER_ID,
+            assertRoleAccess(role == MembershipRole.OWNER || role == MembershipRole.ADMIN,
+                    () -> policy.requireAdminOrOwner(COURSE_ID, USER_ID,
                             AccessDeniedException::new, AccessDeniedException::new));
-            assertRoleAccess(role == MembershipRole.STUDENT,
-                    () -> policy.requireStudent(COURSE_ID, USER_ID,
+            assertRoleAccess(role == MembershipRole.MEMBER,
+                    () -> policy.requireMember(COURSE_ID, USER_ID,
                             AccessDeniedException::new, AccessDeniedException::new));
-            assertRoleAccess(role != MembershipRole.STUDENT,
+            assertRoleAccess(role != MembershipRole.MEMBER,
                     () -> policy.requireStaff(COURSE_ID, USER_ID,
                             AccessDeniedException::new, AccessDeniedException::new));
         }

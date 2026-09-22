@@ -37,6 +37,7 @@ import com.M198.Majorproject.core.course.dto.CreateCourseRequest;
 import com.M198.Majorproject.core.course.dto.EnrollCourseRequest;
 import com.M198.Majorproject.core.course.dto.CourseMemberResponse;
 import com.M198.Majorproject.core.course.dto.UpdateCourseRequest;
+import com.M198.Majorproject.core.course.dto.UpdateMemberRoleRequest;
 import com.M198.Majorproject.core.course.service.CourseService;
 
 @RestController
@@ -158,5 +159,14 @@ public class CourseMainController {
             @PathVariable String userId,
             Authentication authentication) {
         courseService.removeMember(courseId, userId, authentication);
+    }
+
+    @PatchMapping("/{courseId}/members/{userId}/role")
+    public CourseMemberResponse updateMemberRole(
+            @PathVariable String courseId,
+            @PathVariable String userId,
+            @Valid @RequestBody UpdateMemberRoleRequest request,
+            Authentication authentication) {
+        return courseService.updateMemberRole(courseId, userId, request, authentication);
     }
 }
