@@ -97,4 +97,18 @@ class HandleChangePolicyTest {
         assertThrows(IllegalArgumentException.class,
                 () -> policy.validateAndApplyHandleChange(profile, "new_handle_3"));
     }
+
+    @Test
+    void normalizesLowercaseAndStripsLeadingAt() {
+        policy.validateAndApplyHandleChange(profile, "@Cool_User");
+        assertEquals("cool_user", profile.getHandle());
+    }
+
+    @Test
+    void rejectsInvalidHandleFormat() {
+        assertThrows(IllegalArgumentException.class,
+                () -> policy.validateAndApplyHandleChange(profile, "ab")); // too short
+        assertThrows(IllegalArgumentException.class,
+                () -> policy.validateAndApplyHandleChange(profile, "user-name!")); // invalid characters
+    }
 }

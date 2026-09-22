@@ -23,6 +23,8 @@ import com.M198.Majorproject.identity.entity.User;
 import com.M198.Majorproject.identity.entity.UserProfile;
 import com.M198.Majorproject.identity.repository.UserProfileRepository;
 import com.M198.Majorproject.identity.repository.UserRepository;
+import com.M198.Majorproject.course.repository.CourseRepository;
+import com.M198.Majorproject.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.profile.mapper.ProfileMapper;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
@@ -41,9 +43,13 @@ class ProfileServiceTest {
     private final MediaStorageService mediaStorageService = new ProfileMediaStorageService(cloudinary);
     private final HandleChangePolicy handleChangePolicy = new HandleChangePolicy(profileRepository);
     private final ProfilePatcher profilePatcher = new ProfilePatcher(mediaStorageService);
+    private final CourseRepository courseRepository = mock(CourseRepository.class);
+    private final CourseMembershipRepository courseMembershipRepository = mock(CourseMembershipRepository.class);
     private final ProfileService profileService = new ProfileService(
             userRepository,
             profileRepository,
+            courseRepository,
+            courseMembershipRepository,
             profileMapper,
             userResolver,
             profilePatcher,
@@ -110,7 +116,7 @@ class ProfileServiceTest {
     }
 
     @Test
-    void patchPreservesOmittedFieldsAndRejectsCourseMemberVisibility() {
+    void patchPreservesOmittedFields() {
         UpdateUserProfileRequest request = new UpdateUserProfileRequest();
         request.setDisplayName("Updated Name");
 
@@ -119,10 +125,6 @@ class ProfileServiceTest {
         assertEquals("Updated Name", profile.getDisplayName());
         assertEquals("Original headline", profile.getHeadline());
         assertEquals(ProfileVisibility.PRIVATE, response.getProfileVisibility());
-
-        request.setProfileVisibility(ProfileVisibility.COURSE_MEMBERS);
-        assertThrows(IllegalArgumentException.class,
-                () -> profileService.updateMyProfile(authentication, request));
     }
 
     @Test
@@ -260,7 +262,7 @@ class ProfileServiceTest {
                 .displayName("Public User")
                 .profileVisibility(ProfileVisibility.PUBLIC)
                 .build();
-        when(profileRepository.findAllByProfileVisibility(ProfileVisibility.PUBLIC))
+        when(profileRepository.findAllByProfileVisibilityAndDeletedAtIsNull(ProfileVisibility.PUBLIC))
                 .thenReturn(java.util.List.of(publicProfile));
 
         var publicProfiles = profileService.getPublicProfiles();
@@ -279,5 +281,52 @@ class ProfileServiceTest {
         org.junit.jupiter.api.Assertions.assertTrue(response.isCanCreateCourses());
         verify(userRepository).save(argThat(User::isCanCreateCourses));
         verify(profileRepository).save(argThat(UserProfile::isCanCreateCourses));
+    }
+
+    @Test
+    void unlockCreatorIsIdempotentWhenAlreadyUnlocked() {
+        user.setCanCreateCourses(true);
+        profile.setCanCreateCourses(true);
+
+        var response = profileService.unlockCreator(authentication);
+
+        org.junit.jupiter.api.Assertions.assertTrue(response.isCanCreateCourses());
+    }
+
+    @Test
+    void polymorphicLookupResolvesByHandleAndAtHandle() {
+        UserProfile publicProfile = UserProfile.builder()
+                .userId("user-3")
+                .handle("supercoder")
+                .profileVisibility(ProfileVisibility.PUBLIC)
+                .build();
+        User user3 = User.builder()
+                .id("user-3")
+                .status(AccountStatus.ACTIVE)
+                .active(true)
+                .build();
+
+        when(profileRepository.findByHandleIgnoreCase("supercoder")).thenReturn(Optional.of(publicProfile));
+        when(userRepository.findByIdAndActiveTrueAndStatus("user-3", AccountStatus.ACTIVE)).thenReturn(Optional.of(user3));
+
+        var res1 = profileService.getUserProfile("supercoder", authentication);
+        assertEquals("supercoder", res1.getHandle());
+
+        var res2 = profileService.getUserProfile("@supercoder", authentication);
+        assertEquals("supercoder", res2.getHandle());
+    }
+
+    @Test
+    void getMyProfileEnrichesStatsAndBadges() {
+        when(courseRepository.countByOwnerId("user-1")).thenReturn(3L);
+        when(courseMembershipRepository.countByUserIdAndStatus("user-1", com.M198.Majorproject.course.entity.MembershipStatus.ACTIVE))
+                .thenReturn(5L);
+
+        var response = profileService.getMyProfile(authentication);
+
+        assertEquals(3L, response.getCoursesCreatedCount());
+        assertEquals(5L, response.getCoursesEnrolledCount());
+        org.junit.jupiter.api.Assertions.assertTrue(response.getBadges().contains("INSTRUCTOR"));
+        org.junit.jupiter.api.Assertions.assertTrue(response.getBadges().contains("STUDENT"));
     }
 }

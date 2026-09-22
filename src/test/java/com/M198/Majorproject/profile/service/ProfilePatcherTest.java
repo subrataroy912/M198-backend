@@ -46,12 +46,12 @@ class ProfilePatcherTest {
     }
 
     @Test
-    void patch_RejectsCourseMemberVisibility() {
+    void patch_UpdatesProfileVisibility() {
         UpdateUserProfileRequest request = new UpdateUserProfileRequest();
-        request.setProfileVisibility(ProfileVisibility.COURSE_MEMBERS);
+        request.setProfileVisibility(ProfileVisibility.PUBLIC);
 
-        var ex = assertThrows(IllegalArgumentException.class, () -> patcher.patch(profile, request));
-        assertEquals("COURSE_MEMBERS visibility is not available yet", ex.getMessage());
+        patcher.patch(profile, request);
+        assertEquals(ProfileVisibility.PUBLIC, profile.getProfileVisibility());
     }
 
     @Test

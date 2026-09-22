@@ -23,10 +23,6 @@ public class ProfilePatcher {
             return;
         }
 
-        if (request.getProfileVisibility() == ProfileVisibility.COURSE_MEMBERS) {
-            throw new IllegalArgumentException("COURSE_MEMBERS visibility is not available yet");
-        }
-
         patchScalar(request.getFirstName(), profile::setFirstName);
         patchScalar(request.getLastName(), profile::setLastName);
         patchScalar(request.getDisplayName(), profile::setDisplayName);
@@ -44,13 +40,23 @@ public class ProfilePatcher {
         }
 
         if (request.getAvatarUrl() != null) {
+            String oldAvatar = profile.getAvatarUrl();
             String avatar = request.getAvatarUrl().trim();
-            profile.setAvatarUrl(avatar.isEmpty() ? null : mediaStorageService.uploadImage(avatar, "user_avatars"));
+            String newAvatar = avatar.isEmpty() ? null : mediaStorageService.uploadImage(avatar, "user_avatars");
+            profile.setAvatarUrl(newAvatar);
+            if (oldAvatar != null && !oldAvatar.equals(newAvatar)) {
+                mediaStorageService.deleteImage(oldAvatar);
+            }
         }
 
         if (request.getBannerUrl() != null) {
+            String oldBanner = profile.getBannerUrl();
             String banner = request.getBannerUrl().trim();
-            profile.setBannerUrl(banner.isEmpty() ? null : mediaStorageService.uploadImage(banner, "user_banners"));
+            String newBanner = banner.isEmpty() ? null : mediaStorageService.uploadImage(banner, "user_banners");
+            profile.setBannerUrl(newBanner);
+            if (oldBanner != null && !oldBanner.equals(newBanner)) {
+                mediaStorageService.deleteImage(oldBanner);
+            }
         }
 
         if (request.getLinks() != null) {

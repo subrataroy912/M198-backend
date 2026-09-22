@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -94,5 +95,31 @@ class ProfileMediaStorageServiceTest {
         byte[] bytes = new byte[]{1, 2, 3};
         assertThrows(ProfileStorageException.class,
                 () -> strictService.upload(bytes, "image/png", "user_avatars"));
+    }
+
+    @Test
+    void extractPublicId_ExtractsFolderAndPublicId() {
+        String url1 = "https://res.cloudinary.com/demo/image/upload/v1612345678/user_avatars/sample_123.jpg";
+        assertEquals("user_avatars/sample_123", mediaStorageService.extractPublicId(url1));
+
+        String url2 = "https://res.cloudinary.com/demo/image/upload/user_banners/header_banner.png";
+        assertEquals("user_banners/header_banner", mediaStorageService.extractPublicId(url2));
+
+        String url3 = "https://res.cloudinary.com/demo/image/upload/c_fill,w_100/v12345/user_avatars/test.png";
+        assertEquals("user_avatars/test", mediaStorageService.extractPublicId(url3));
+    }
+
+    @Test
+    void deleteImage_DestroysAssetWhenCloudinaryUrl() throws Exception {
+        String url = "https://res.cloudinary.com/demo/image/upload/v1612345678/user_avatars/old_pic.jpg";
+        mediaStorageService.deleteImage(url);
+        verify(uploader).destroy(eq("user_avatars/old_pic"), any(Map.class));
+    }
+
+    @Test
+    void deleteImage_IgnoresNonCloudinaryUrl() {
+        mediaStorageService.deleteImage("https://external-domain.com/pic.jpg");
+        mediaStorageService.deleteImage(null);
+        mediaStorageService.deleteImage("data:image/png;base64,abc");
     }
 }

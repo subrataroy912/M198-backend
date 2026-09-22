@@ -14,8 +14,8 @@ import lombok.Setter;
 @Setter
 public class UpdateUserProfileRequest {
 
-    @Size(max = 30)
-    @Pattern(regexp = "^[A-Za-z0-9_]*$", message = "must contain only letters, numbers, or underscores")
+    @Size(max = 31)
+    @Pattern(regexp = "^@?[A-Za-z0-9_]*$", message = "must contain only letters, numbers, or underscores")
     private String handle;
 
     @Size(max = 100)

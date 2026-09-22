@@ -26,4 +26,8 @@ public interface CourseRepository extends MongoRepository<Course, String> {
     Optional<Course> findByIdAndStatus(String id, CourseStatus status);
 
     List<Course> findAllByIdInAndStatus(java.util.Collection<String> ids, CourseStatus status);
+ 
+    long countByOwnerId(String ownerId);
+
+    long countByOwnerIdAndStatus(String ownerId, CourseStatus status);
 }
