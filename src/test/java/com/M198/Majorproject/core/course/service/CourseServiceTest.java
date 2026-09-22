@@ -15,7 +15,8 @@ import static org.mockito.Mockito.when;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import com.M198.Majorproject.core.course.repository.CourseAnalyticsSummaryRepository;
+import com.M198.Majorproject.core.course.port.CourseDiscoveryPort;
+import com.M198.Majorproject.core.course.port.CourseProfilePort;
 import com.M198.Majorproject.core.course.repository.StudentGradebookEntryRepository;
 import com.M198.Majorproject.core.course.repository.AttachmentRepository;
 import com.M198.Majorproject.discovery.comment.repository.CommentRepository;
@@ -33,34 +34,19 @@ import com.M198.Majorproject.core.course.entity.MembershipStatus;
 import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.core.course.repository.CourseRepository;
 import com.M198.Majorproject.core.course.repository.EnrollmentCodeRepository;
-import com.M198.Majorproject.core.course.entity.Coursework;
-import com.M198.Majorproject.core.course.repository.CourseworkRepository;
-import com.M198.Majorproject.discovery.explore.entity.CourseDiscovery;
-import com.M198.Majorproject.discovery.explore.repository.CourseDiscoveryRepository;
-import com.M198.Majorproject.discovery.notification.entity.NotificationResourceType;
-import com.M198.Majorproject.discovery.notification.repository.NotificationRepository;
-import com.M198.Majorproject.core.course.repository.SubmissionRepository;
-import com.cloudinary.Cloudinary;
 
 class CourseServiceTest {
 
     private final CourseRepository courseRepository = mock(CourseRepository.class);
     private final CourseMembershipRepository membershipRepository = mock(CourseMembershipRepository.class);
     private final EnrollmentCodeRepository enrollmentCodeRepository = mock(EnrollmentCodeRepository.class);
-    private final CourseDiscoveryRepository courseDiscoveryRepository = mock(CourseDiscoveryRepository.class);
-    private final CourseworkRepository courseworkRepository = mock(CourseworkRepository.class);
-    private final SubmissionRepository submissionRepository = mock(SubmissionRepository.class);
-    private final CommentRepository commentRepository = mock(CommentRepository.class);
-    private final AttachmentRepository attachmentRepository = mock(AttachmentRepository.class);
-    private final NotificationRepository notificationRepository = mock(NotificationRepository.class);
-    private final StudentGradebookEntryRepository studentGradebookEntryRepository = mock(StudentGradebookEntryRepository.class);
-    private final CourseAnalyticsSummaryRepository courseAnalyticsSummaryRepository = mock(CourseAnalyticsSummaryRepository.class);
-    private final CourseService courseService = new CourseService(
+    private final CourseDiscoveryPort discoveryPort = mock(CourseDiscoveryPort.class);
+    private final CourseProfilePort profilePort = mock(CourseProfilePort.class);
+    private final CourseDeletionCleanupService deletionCleanupService = mock(CourseDeletionCleanupService.class);
+    private final CourseMediaService mediaService = mock(CourseMediaService.class);
+    private final CourseLifecycleService courseService = new CourseLifecycleService(
             courseRepository, membershipRepository, enrollmentCodeRepository,
-            courseDiscoveryRepository, null,
-            courseworkRepository, submissionRepository, commentRepository,
-            attachmentRepository, notificationRepository, studentGradebookEntryRepository,
-            courseAnalyticsSummaryRepository, (Cloudinary) null, "", "", "");
+            discoveryPort, profilePort, deletionCleanupService, mediaService);
     private final Authentication teacher = mock(Authentication.class);
     private final Authentication student = mock(Authentication.class);
 
@@ -81,6 +67,8 @@ class CourseServiceTest {
         });
         when(enrollmentCodeRepository.save(any(EnrollmentCode.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(profilePort.findByUserId(any())).thenReturn(Optional.empty());
+        when(profilePort.findAllByUserIdIn(any())).thenReturn(java.util.List.of());
     }
 
     @Test
@@ -106,14 +94,7 @@ class CourseServiceTest {
 
         courseService.createCourse(teacher, request);
 
-        var discovery = org.mockito.ArgumentCaptor.forClass(CourseDiscovery.class);
-        verify(courseDiscoveryRepository).save(discovery.capture());
-        assertEquals("course-1", discovery.getValue().getCourseId());
-        assertEquals("Mathematics", discovery.getValue().getTitle());
-        assertEquals("Science", discovery.getValue().getSubject());
-        assertEquals(CourseVisibility.PUBLIC, discovery.getValue().getVisibility());
-        assertEquals(CourseStatus.ACTIVE, discovery.getValue().getStatus());
-        org.junit.jupiter.api.Assertions.assertNotNull(discovery.getValue().getLastActivityAt());
+        verify(discoveryPort).sync(any(Course.class), org.mockito.ArgumentMatchers.anyLong());
     }
 
     @Test
@@ -482,9 +463,6 @@ class CourseServiceTest {
                 .build();
         when(courseRepository.findById("course-1")).thenReturn(Optional.of(course));
 
-        Coursework cw = Coursework.builder().id("cw-1").courseId("course-1").build();
-        when(courseworkRepository.findAllByCourseId("course-1")).thenReturn(java.util.List.of(cw));
-
         Authentication ownerAuth = mock(Authentication.class);
         when(ownerAuth.isAuthenticated()).thenReturn(true);
         when(ownerAuth.getName()).thenReturn("owner-1");
@@ -493,19 +471,7 @@ class CourseServiceTest {
 
         courseService.deleteCourse("course-1", ownerAuth);
 
-        // Verify leaf-to-root cascading cleanup
-        verify(notificationRepository).deleteAllByResourceTypeAndResourceId(NotificationResourceType.COURSE, "course-1");
-        verify(notificationRepository).deleteAllByResourceTypeAndResourceIdIn(
-                NotificationResourceType.COURSEWORK, java.util.List.of("cw-1"));
-        verify(commentRepository).deleteAllByCourseId("course-1");
-        verify(attachmentRepository).deleteAllByCourseId("course-1");
-        verify(submissionRepository).deleteAllByCourseId("course-1");
-        verify(courseworkRepository).deleteAllByCourseId("course-1");
-        verify(studentGradebookEntryRepository).deleteAllByCourseId("course-1");
-        verify(courseAnalyticsSummaryRepository).deleteByCourseId("course-1");
-        verify(enrollmentCodeRepository).deleteAllByCourseId("course-1");
-        verify(membershipRepository).deleteAllByCourseId("course-1");
-        verify(courseDiscoveryRepository).deleteByCourseId("course-1");
+        verify(deletionCleanupService).clean("course-1");
         verify(courseRepository).deleteById("course-1");
     }
 
