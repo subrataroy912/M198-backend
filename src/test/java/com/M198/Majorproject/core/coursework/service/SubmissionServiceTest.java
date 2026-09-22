@@ -59,12 +59,12 @@ class SubmissionServiceTest {
                 "course-1", "student-1", MembershipStatus.ACTIVE))
                 .thenReturn(Optional.of(CourseMembership.builder()
                         .courseId("course-1").userId("student-1")
-                        .role(MembershipRole.STUDENT).status(MembershipStatus.ACTIVE).build()));
+                        .role(MembershipRole.MEMBER).status(MembershipStatus.ACTIVE).build()));
         when(membershipRepository.findByCourseIdAndUserIdAndStatus(
                 "course-1", "teacher-1", MembershipStatus.ACTIVE))
                 .thenReturn(Optional.of(CourseMembership.builder()
                         .courseId("course-1").userId("teacher-1")
-                        .role(MembershipRole.TEACHER).status(MembershipStatus.ACTIVE).build()));
+                        .role(MembershipRole.OWNER).status(MembershipStatus.ACTIVE).build()));
     }
 
     @Test

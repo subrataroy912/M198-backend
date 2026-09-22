@@ -53,23 +53,23 @@ class AnalyticsServiceTest {
 
     @Test
     void teacherGradebookUsesCourseProfilePortToResolveStudentDetails() {
-        CourseMembership teacherMembership = CourseMembership.builder()
+        CourseMembership staffMembership = CourseMembership.builder()
                 .courseId("course-1")
                 .userId("teacher-1")
-                .role(MembershipRole.TEACHER)
+                .role(MembershipRole.OWNER)
                 .status(MembershipStatus.ACTIVE)
                 .build();
-        CourseMembership studentMembership = CourseMembership.builder()
+        CourseMembership memberMembership = CourseMembership.builder()
                 .courseId("course-1")
                 .userId("student-1")
-                .role(MembershipRole.STUDENT)
+                .role(MembershipRole.MEMBER)
                 .status(MembershipStatus.ACTIVE)
                 .build();
 
         when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-1", "teacher-1", MembershipStatus.ACTIVE))
-                .thenReturn(java.util.Optional.of(teacherMembership));
+                .thenReturn(java.util.Optional.of(staffMembership));
         when(membershipRepository.findAllByCourseIdAndStatus("course-1", MembershipStatus.ACTIVE))
-                .thenReturn(List.of(teacherMembership, studentMembership));
+                .thenReturn(List.of(staffMembership, memberMembership));
         when(gradebookRepository.findAllByCourseIdOrderByDueAtAsc("course-1"))
                 .thenReturn(List.of());
 
@@ -85,7 +85,7 @@ class AnalyticsServiceTest {
 
         assertNotNull(gradebook);
         assertEquals(1, gradebook.size());
-        assertEquals("Student One", gradebook.get(0).getStudentName());
+        assertEquals("Student One", gradebook.get(0).getMemberName());
         assertEquals("https://images.example/avatar.png", gradebook.get(0).getAvatarUrl());
     }
 }

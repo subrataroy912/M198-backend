@@ -32,6 +32,7 @@ import com.M198.Majorproject.core.course.dto.CreateCourseRequest;
 import com.M198.Majorproject.core.course.dto.EnrollCourseRequest;
 import com.M198.Majorproject.core.course.dto.PublicCourseResponse;
 import com.M198.Majorproject.core.course.dto.UpdateCourseRequest;
+import com.M198.Majorproject.core.course.dto.UpdateMemberRoleRequest;
 import com.M198.Majorproject.core.course.entity.Course;
 import com.M198.Majorproject.core.course.entity.CourseAccessType;
 import com.M198.Majorproject.core.course.entity.CourseMembership;
@@ -288,7 +289,7 @@ public class CourseLifecycleService {
         }
         CourseResponse response = toResponse(course);
         if (isStaffOrEnrolled) {
-            response.setRole(membership.get().getRole() != null ? membership.get().getRole().name() : "STUDENT");
+            response.setRole(membership.get().getRole() != null ? membership.get().getRole().name() : "MEMBER");
             response.setEnrolled(true);
         } else {
             response.setRole("VIEWER");
@@ -381,7 +382,7 @@ public class CourseLifecycleService {
         }
         if (existingMembership.isPresent()) {
             CourseMembership membership = existingMembership.get();
-            membership.setRole(MembershipRole.STUDENT);
+            membership.setRole(MembershipRole.MEMBER);
             membership.setStatus(MembershipStatus.ACTIVE);
             membership.setJoinedAt(Instant.now());
             membership.setRemovedAt(null);
@@ -393,13 +394,13 @@ public class CourseLifecycleService {
             membershipRepository.save(CourseMembership.builder()
                     .courseId(courseId)
                     .userId(userId)
-                    .role(MembershipRole.STUDENT)
+                    .role(MembershipRole.MEMBER)
                     .status(MembershipStatus.ACTIVE)
                     .joinedAt(Instant.now())
                     .build());
         } catch (DuplicateKeyException exception) {
             CourseResponse res = toResponse(course);
-            res.setRole("STUDENT");
+            res.setRole("MEMBER");
             res.setEnrolled(true);
             return res;
         }
@@ -425,16 +426,26 @@ public class CourseLifecycleService {
     public void removeMember(String courseId, String memberUserId, Authentication authentication) {
         String currentUserId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
-        courseAccessPolicy.requireTeacherOrOwner(courseId, currentUserId, () -> new CourseService.CourseAccessException("Course membership required"), () -> new CourseService.CourseAccessException("Course owner or teacher role required"));
-        CourseMembership membership = membershipRepository.findByCourseIdAndUserIdAndStatus(
+        CourseMembership callerMembership = courseAccessPolicy.requireAdminOrOwner(
+                courseId, currentUserId,
+                () -> new CourseService.CourseAccessException("Course membership required"),
+                () -> new CourseService.CourseAccessException("Course owner or admin role required"));
+
+        CourseMembership targetMembership = membershipRepository.findByCourseIdAndUserIdAndStatus(
                 courseId, memberUserId, MembershipStatus.ACTIVE)
                 .orElseThrow(CourseService.CourseNotFoundException::new);
-        if (membership.getRole() == MembershipRole.OWNER) {
+
+        if (targetMembership.getRole() == MembershipRole.OWNER) {
             throw new CourseService.CourseConflictException("Course owner cannot be removed");
         }
-        membership.setStatus(MembershipStatus.REMOVED);
-        membership.setRemovedAt(Instant.now());
-        membershipRepository.save(membership);
+
+        if (callerMembership.getRole() != MembershipRole.OWNER && targetMembership.getRole() == MembershipRole.ADMIN) {
+            throw new CourseService.CourseAccessException("Only course owner can remove an administrator");
+        }
+
+        targetMembership.setStatus(MembershipStatus.REMOVED);
+        targetMembership.setRemovedAt(Instant.now());
+        membershipRepository.save(targetMembership);
         syncDiscovery(course);
     }
 
@@ -451,7 +462,7 @@ public class CourseLifecycleService {
     public CourseResponse update(String courseId, Authentication authentication, UpdateCourseRequest request) {
         String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
-        courseAccessPolicy.requireTeacherOrOwner(courseId, userId, () -> new CourseService.CourseAccessException("Course membership required"), () -> new CourseService.CourseAccessException("Course owner or teacher role required"));
+        courseAccessPolicy.requireAdminOrOwner(courseId, userId, () -> new CourseService.CourseAccessException("Course membership required"), () -> new CourseService.CourseAccessException("Course owner or admin role required"));
         if (request.getTitle() != null) {
             course.setTitle(normalizeRequired(request.getTitle()));
         }
@@ -522,7 +533,7 @@ public class CourseLifecycleService {
     public void archive(String courseId, Authentication authentication) {
         String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
-        courseAccessPolicy.requireTeacherOrOwner(courseId, userId, () -> new CourseService.CourseAccessException("Course membership required"), () -> new CourseService.CourseAccessException("Course owner or teacher role required"));
+        courseAccessPolicy.requireAdminOrOwner(courseId, userId, () -> new CourseService.CourseAccessException("Course membership required"), () -> new CourseService.CourseAccessException("Course owner or admin role required"));
         course.setStatus(CourseStatus.ARCHIVED);
         course.setArchivedAt(Instant.now());
         Course archivedCourse = courseRepository.save(course);
@@ -572,6 +583,59 @@ public class CourseLifecycleService {
                     }
                     return response;
                 }).toList();
+    }
+
+    public CourseMemberResponse updateMemberRole(
+            String courseId,
+            String targetUserId,
+            UpdateMemberRoleRequest request,
+            Authentication authentication) {
+        String currentUserId = courseAccessPolicy.authenticatedUserId(
+                authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        Course course = activeCourse(courseId);
+
+        boolean isGlobalAdmin = hasAuthority(authentication, "ROLE_ADMIN");
+        CourseMembership callerMembership = membershipRepository.findByCourseIdAndUserIdAndStatus(
+                courseId, currentUserId, MembershipStatus.ACTIVE)
+                .orElse(null);
+
+        boolean isOwner = (callerMembership != null && callerMembership.getRole() == MembershipRole.OWNER)
+                || (course.getOwnerId() != null && course.getOwnerId().equals(currentUserId));
+
+        if (!isGlobalAdmin && !isOwner) {
+            throw new CourseService.CourseAccessException("Only the space owner can update member roles");
+        }
+
+        CourseMembership targetMembership = membershipRepository.findByCourseIdAndUserIdAndStatus(
+                courseId, targetUserId, MembershipStatus.ACTIVE)
+                .orElseThrow(CourseService.CourseNotFoundException::new);
+
+        if (targetMembership.getRole() == MembershipRole.OWNER) {
+            throw new CourseService.CourseConflictException("Cannot change role of the space owner");
+        }
+
+        MembershipRole newRole = request.getRole();
+        if (newRole != MembershipRole.ADMIN && newRole != MembershipRole.MEMBER) {
+            throw new CourseService.CourseBadRequestException("Role must be ADMIN or MEMBER");
+        }
+
+        targetMembership.setRole(newRole);
+        targetMembership.setUpdatedAt(Instant.now());
+        membershipRepository.save(targetMembership);
+
+        CourseMemberResponse response = new CourseMemberResponse();
+        response.setUserId(targetMembership.getUserId());
+        response.setRole(targetMembership.getRole());
+        response.setJoinedAt(targetMembership.getJoinedAt());
+        courseProfilePort.findByUserId(targetUserId).ifPresent(p -> {
+            response.setName(p.getDisplayName());
+            response.setAvatarUrl(p.getAvatarUrl());
+        });
+
+        logger.info("Updated member role in course {}: targetUser={}, newRole={}, byUser={}",
+                courseId, targetUserId, newRole, currentUserId);
+
+        return response;
     }
 
     private Course activeCourse(String courseId) {
@@ -648,7 +712,7 @@ public class CourseLifecycleService {
         CourseResponse response = new CourseResponse();
         response.setId(course.getId());
         response.setOwnerId(course.getOwnerId());
-        response.setRole("STUDENT");
+        response.setRole("MEMBER");
         response.setEnrolled(true);
         if (ownerProfile != null) {
             response.setOwnerName(ownerProfile.getDisplayName());

@@ -193,7 +193,7 @@ class CourseServiceTest {
         when(membershipRepository.findByCourseIdAndUserIdAndStatus(
                 "course-1", "teacher-1", MembershipStatus.ACTIVE))
                 .thenReturn(Optional.of(CourseMembership.builder().courseId("course-1").userId("teacher-1")
-                        .role(MembershipRole.TEACHER).build()));
+                        .role(MembershipRole.ADMIN).build()));
         UpdateCourseRequest request = new UpdateCourseRequest();
         request.setCoverUrl(" https://images.example/course.png ");
 
@@ -210,7 +210,7 @@ class CourseServiceTest {
         when(membershipRepository.findByCourseIdAndUserIdAndStatus(
                 "course-1", "teacher-1", MembershipStatus.ACTIVE))
                 .thenReturn(Optional.of(CourseMembership.builder().courseId("course-1").userId("teacher-1")
-                        .role(MembershipRole.TEACHER).build()));
+                        .role(MembershipRole.ADMIN).build()));
         UpdateCourseRequest request = new UpdateCourseRequest();
         request.setLogoUrl(" https://images.example/logo.png ");
 
@@ -230,7 +230,7 @@ class CourseServiceTest {
         when(membershipRepository.findByCourseIdAndUserIdAndStatus(
                 "course-1", "teacher-1", MembershipStatus.ACTIVE))
                 .thenReturn(Optional.of(CourseMembership.builder().courseId("course-1").userId("teacher-1")
-                        .role(MembershipRole.TEACHER).build()));
+                        .role(MembershipRole.ADMIN).build()));
         UpdateCourseRequest request = new UpdateCourseRequest();
         request.setCoverUrl("   ");
         request.setLogoUrl("");
@@ -373,7 +373,7 @@ class CourseServiceTest {
         CourseMembership activeMembership = CourseMembership.builder()
                 .courseId("6aa451d330db1c61fdfc3ab5")
                 .userId("student-1")
-                .role(MembershipRole.STUDENT)
+                .role(MembershipRole.MEMBER)
                 .status(MembershipStatus.ACTIVE)
                 .build();
         when(courseRepository.findByIdAndStatus("6aa451d330db1c61fdfc3ab5", CourseStatus.ACTIVE)).thenReturn(Optional.of(course));
@@ -384,7 +384,7 @@ class CourseServiceTest {
         org.junit.jupiter.api.Assertions.assertNotNull(response);
         assertEquals("6aa451d330db1c61fdfc3ab5", response.getId());
         org.junit.jupiter.api.Assertions.assertTrue(response.isEnrolled());
-        assertEquals("STUDENT", response.getRole());
+        assertEquals("MEMBER", response.getRole());
     }
 
     @Test
@@ -395,7 +395,7 @@ class CourseServiceTest {
         CourseMembership teacherMembership = CourseMembership.builder()
                 .courseId("course-1")
                 .userId("teacher-1")
-                .role(MembershipRole.TEACHER)
+                .role(MembershipRole.ADMIN)
                 .status(MembershipStatus.ACTIVE)
                 .build();
         when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-1", "teacher-1", MembershipStatus.ACTIVE))
@@ -404,7 +404,7 @@ class CourseServiceTest {
         CourseMembership studentMembership = CourseMembership.builder()
                 .courseId("course-1")
                 .userId("student-2")
-                .role(MembershipRole.STUDENT)
+                .role(MembershipRole.MEMBER)
                 .status(MembershipStatus.ACTIVE)
                 .build();
         when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-1", "student-2", MembershipStatus.ACTIVE))
@@ -425,7 +425,7 @@ class CourseServiceTest {
         CourseMembership teacherMembership = CourseMembership.builder()
                 .courseId("course-1")
                 .userId("teacher-1")
-                .role(MembershipRole.TEACHER)
+                .role(MembershipRole.ADMIN)
                 .status(MembershipStatus.ACTIVE)
                 .build();
         when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-1", "teacher-1", MembershipStatus.ACTIVE))
@@ -452,7 +452,7 @@ class CourseServiceTest {
         CourseMembership studentMembership = CourseMembership.builder()
                 .courseId("course-1")
                 .userId("student-1")
-                .role(MembershipRole.STUDENT)
+                .role(MembershipRole.MEMBER)
                 .status(MembershipStatus.ACTIVE)
                 .build();
         when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-1", "student-1", MembershipStatus.ACTIVE))
@@ -495,7 +495,7 @@ class CourseServiceTest {
         CourseMembership teacherMembership = CourseMembership.builder()
                 .courseId("course-1")
                 .userId("teacher-2")
-                .role(MembershipRole.TEACHER)
+                .role(MembershipRole.ADMIN)
                 .status(MembershipStatus.ACTIVE)
                 .build();
         when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-1", "teacher-2", MembershipStatus.ACTIVE))
