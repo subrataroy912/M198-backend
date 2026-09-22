@@ -81,8 +81,10 @@ class AuthServiceTest {
 
                 assertNotNull(response);
                 assertEquals("new-user-id", response.getUserId());
+                org.junit.jupiter.api.Assertions.assertTrue(response.isNewUser());
+                org.junit.jupiter.api.Assertions.assertFalse(response.isProfileCompleted());
                 verify(userRepository).save(argThat(user -> !user.isAdmin() && !user.isCanCreateCourses()));
-                verify(profileRepository).save(argThat(profile -> !profile.isAdmin() && !profile.isCanCreateCourses()));
+                verify(profileRepository).save(argThat(profile -> !profile.isAdmin() && !profile.isCanCreateCourses() && !profile.isProfileCompleted()));
         }
 
         @Test

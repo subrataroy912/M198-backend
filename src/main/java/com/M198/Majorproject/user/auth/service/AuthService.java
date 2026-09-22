@@ -121,9 +121,13 @@ public class AuthService {
                 .profileVisibility(ProfileVisibility.PRIVATE)
                 .isAdmin(false)
                 .canCreateCourses(false)
+                .profileCompleted(false)
                 .build());
 
-        return issueTokens(user);
+        AuthResponse response = issueTokens(user);
+        response.setNewUser(true);
+        response.setProfileCompleted(false);
+        return response;
     }
 
     @Transactional
@@ -161,11 +165,17 @@ public class AuthService {
             throw new AuthenticationServiceException("Account is not active");
         }
 
+        // Check if user was away for a long time (>= 3 days)
+        Instant prevLogin = user.getLastLoginAt();
+        boolean isLongTimeAway = prevLogin != null && prevLogin.isBefore(Instant.now().minus(3, java.time.temporal.ChronoUnit.DAYS));
+
         // Update last login
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
 
-        return issueTokens(user);
+        AuthResponse response = issueTokens(user);
+        response.setLongTimeAway(isLongTimeAway);
+        return response;
     }
 
     public AuthResponse refresh(String refreshToken) {
@@ -274,6 +284,7 @@ public class AuthService {
 
         String normalizedEmail = normalizeEmail(email);
         User user;
+        boolean isFreshOAuthRegistration = false;
         var existingLink = oauthRepository.findByProviderAndProviderUserId(provider, providerUserId);
         if (existingLink.isPresent()) {
             user = userRepository.findById(existingLink.get().getUserId())
@@ -303,6 +314,7 @@ public class AuthService {
                 }
             } else {
                 user = createOAuthUser(normalizedEmail, displayName, avatarUrl);
+                isFreshOAuthRegistration = true;
             }
 
             if (oauthRepository.findByUserIdAndProvider(user.getId(), provider).isEmpty()) {
@@ -318,10 +330,20 @@ public class AuthService {
             }
         }
 
+        Instant prevLogin = user.getLastLoginAt();
+        boolean isLongTimeAway = prevLogin != null && prevLogin.isBefore(Instant.now().minus(3, java.time.temporal.ChronoUnit.DAYS));
+
         ensureProfileExists(user, displayName, avatarUrl);
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
-        return issueTokens(user);
+
+        AuthResponse response = issueTokens(user);
+        if (isFreshOAuthRegistration) {
+            response.setNewUser(true);
+            response.setProfileCompleted(false);
+        }
+        response.setLongTimeAway(isLongTimeAway);
+        return response;
     }
 
     private User createOAuthUser(String email, String displayName, String avatarUrl) {
@@ -343,6 +365,7 @@ public class AuthService {
                 .profileVisibility(ProfileVisibility.PRIVATE)
                 .isAdmin(false)
                 .canCreateCourses(false)
+                .profileCompleted(false)
                 .build());
         return user;
     }
@@ -401,6 +424,8 @@ public class AuthService {
                 .userId(user.getId())
                 .expiresAt(jwtService.refreshTokenExpiresAt())
                 .build());
+        boolean isProfileDone = profile != null && (profile.isProfileCompleted() || (profile.getHandle() != null && !profile.getHandle().isBlank()));
+
         return AuthResponse.builder()
                 .accessToken(jwtService.createAccessToken(user.getId()))
                 .refreshToken(refreshToken)
@@ -410,6 +435,8 @@ public class AuthService {
                 .avatarUrl(profile == null ? null : profile.getAvatarUrl())
                 .canCreateCourses(user.isCanCreateCourses() || (profile != null && profile.isCanCreateCourses()))
                 .isAdmin(user.isAdmin() || (profile != null && profile.isAdmin()))
+                .isNewUser(false)
+                .profileCompleted(isProfileDone)
                 .build();
     }
 

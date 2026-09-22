@@ -77,6 +77,10 @@ public class UserProfile {
     @Builder.Default
     private boolean isAdmin = false;
 
+    @Field("profile_completed")
+    @Builder.Default
+    private boolean profileCompleted = false;
+
     @Field("links")
     @Builder.Default
     private java.util.List<ProfileLink> links = new java.util.ArrayList<>();

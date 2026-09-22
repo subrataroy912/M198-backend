@@ -139,6 +139,7 @@ public class ProfileService {
         profilePatcher.patch(profile, request);
         handleChangePolicy.validateAndApplyHandleChange(profile, request != null ? request.getHandle() : null);
         applyMediaFiles(profile, avatarFile, bannerFile);
+        profile.setProfileCompleted(true);
 
         try {
             UserProfile saved = profileRepository.save(profile);

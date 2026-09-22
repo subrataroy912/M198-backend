@@ -34,4 +34,5 @@ public class UserProfileResponse {
     private long coursesCreatedCount;
     private long coursesEnrolledCount;
     private List<String> badges;
+    private boolean profileCompleted;
 }

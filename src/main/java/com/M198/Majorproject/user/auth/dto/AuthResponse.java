@@ -31,4 +31,10 @@ public class AuthResponse {
     private String avatarUrl;
     private boolean canCreateCourses;
     private boolean isAdmin;
+    @com.fasterxml.jackson.annotation.JsonProperty("isNewUser")
+    private boolean isNewUser;
+    @com.fasterxml.jackson.annotation.JsonProperty("profileCompleted")
+    private boolean profileCompleted;
+    @com.fasterxml.jackson.annotation.JsonProperty("isLongTimeAway")
+    private boolean isLongTimeAway;
 }
