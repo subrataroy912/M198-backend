@@ -38,9 +38,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.M198.Majorproject.common.security.AppUserDetailsService;
 import com.M198.Majorproject.common.security.JwtAuthenticationFilter;
-import com.M198.Majorproject.auth.service.OAuthFailureHandler;
-import com.M198.Majorproject.auth.service.OAuthSuccessHandler;
-import com.M198.Majorproject.auth.service.OAuthUserService;
+import com.M198.Majorproject.user.auth.service.OAuthFailureHandler;
+import com.M198.Majorproject.user.auth.service.OAuthSuccessHandler;
+import com.M198.Majorproject.user.auth.service.OAuthUserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -49,16 +49,14 @@ import jakarta.servlet.http.HttpServletResponse;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
-    private String allowedOrigins;
-
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             OAuthSuccessHandler oauthSuccessHandler,
             OAuthFailureHandler oauthFailureHandler,
-            OAuthUserService oauthUserService) throws Exception {
+            OAuthUserService oauthUserService,
+            CorsConfigurationSource corsConfigurationSource) throws Exception {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository())
@@ -71,7 +69,7 @@ public class SecurityConfig {
                                     String uri = request.getRequestURI();
                                     return uri.startsWith("/v1/auth/") || uri.equals("/v1/courses/cover-upload");
                                 }))
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
@@ -110,23 +108,6 @@ public class SecurityConfig {
                         }))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
-                .map(origin -> origin.trim())
-                .filter(origin -> !origin.isEmpty())
-                .toList());
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-CSRF-TOKEN"));
-        configuration.setExposedHeaders(Arrays.asList("Authorization"));
-        configuration.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
     }
 
     @Bean

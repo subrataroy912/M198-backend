@@ -8,7 +8,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
-import com.M198.Majorproject.course.entity.Course;
+import com.M198.Majorproject.core.course.entity.Course;
 
 @Component
 public class MongoDiagnostics {
