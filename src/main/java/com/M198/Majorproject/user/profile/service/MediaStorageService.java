@@ -8,6 +8,14 @@ import org.springframework.web.multipart.MultipartFile;
 public interface MediaStorageService {
 
     /**
+     * Creates the provider-specific details for a direct, signed image upload.
+     *
+     * @param folder target folder name
+     * @return upload details that can be sent to the client
+     */
+    MediaUploadSignature requestImageUpload(String folder);
+
+    /**
      * Uploads an image file to the designated folder.
      *
      * @param file the multipart file to upload
