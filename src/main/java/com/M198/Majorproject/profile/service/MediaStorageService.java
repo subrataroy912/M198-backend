@@ -34,4 +34,12 @@ public interface MediaStorageService {
      * @return true if non-null and not empty
      */
     boolean hasContent(MultipartFile file);
+
+    /**
+     * Deletes an image from cloud storage if hosted by the media provider.
+     * Best-effort execution: should not throw exceptions on failure.
+     *
+     * @param assetUrl URL of the asset to delete
+     */
+    void deleteImage(String assetUrl);
 }

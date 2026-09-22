@@ -41,11 +41,20 @@ public class HandleChangePolicy {
             return;
         }
 
-        String newHandle = rawNewHandle.trim();
-        String currentHandle = profile.getHandle() != null ? profile.getHandle().trim() : "";
+        String normalized = rawNewHandle.trim();
+        if (normalized.startsWith("@")) {
+            normalized = normalized.substring(1).trim();
+        }
+        String newHandle = normalized.toLowerCase();
 
-        if (newHandle.equalsIgnoreCase(currentHandle)) {
+        String currentHandle = profile.getHandle() != null ? profile.getHandle().trim().toLowerCase() : "";
+
+        if (newHandle.equals(currentHandle)) {
             return;
+        }
+
+        if (!newHandle.isEmpty() && (newHandle.length() < 3 || newHandle.length() > 30 || !newHandle.matches("^[a-z0-9_]+$"))) {
+            throw new IllegalArgumentException("Handle must be between 3 and 30 characters and contain only letters, numbers, or underscores");
         }
 
         if (!newHandle.isEmpty() && profileRepository.findByHandle(newHandle)

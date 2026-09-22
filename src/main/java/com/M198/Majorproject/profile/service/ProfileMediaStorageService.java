@@ -96,4 +96,53 @@ public class ProfileMediaStorageService implements MediaStorageService {
             throw new ProfileStorageException("Could not upload profile asset", exception);
         }
     }
+
+    @Override
+    public void deleteImage(String assetUrl) {
+        if (assetUrl == null || !assetUrl.contains("cloudinary.com") || !assetUrl.contains("/upload/")) {
+            return;
+        }
+        try {
+            String publicId = extractPublicId(assetUrl);
+            if (publicId != null && !publicId.isBlank()) {
+                Map<String, Object> options = new HashMap<>();
+                options.put("invalidate", true);
+                cloudinary.uploader().destroy(publicId, options);
+                log.info("Successfully deleted profile asset from Cloudinary: {}", publicId);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to delete asset from Cloudinary (non-fatal): {}", assetUrl, e);
+        }
+    }
+
+    public String extractPublicId(String url) {
+        int uploadIndex = url.indexOf("/upload/");
+        if (uploadIndex == -1) {
+            return null;
+        }
+        String path = url.substring(uploadIndex + "/upload/".length());
+        String[] parts = path.split("/");
+        int startIndex = 0;
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].matches("v[0-9]+")) {
+                startIndex = i + 1;
+                break;
+            } else if (parts[i].contains(",") || parts[i].startsWith("w_") || parts[i].startsWith("h_") || parts[i].startsWith("c_")) {
+                startIndex = i + 1;
+            }
+        }
+        if (startIndex >= parts.length) {
+            startIndex = parts.length - 1;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = startIndex; i < parts.length; i++) {
+            if (!sb.isEmpty()) {
+                sb.append("/");
+            }
+            sb.append(parts[i]);
+        }
+        String idWithExt = sb.toString();
+        int dotIndex = idWithExt.lastIndexOf('.');
+        return dotIndex != -1 ? idWithExt.substring(0, dotIndex) : idWithExt;
+    }
 }

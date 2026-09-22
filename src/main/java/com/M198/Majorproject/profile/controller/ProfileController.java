@@ -38,7 +38,15 @@ public class ProfileController {
 	}
 
 	@GetMapping
-	public java.util.List<PublicUserProfileResponse> getPublicProfiles() {
+	public Object getPublicProfiles(
+			@org.springframework.web.bind.annotation.RequestParam(value = "q", required = false) String query,
+			@org.springframework.web.bind.annotation.RequestParam(value = "page", required = false) Integer page,
+			@org.springframework.web.bind.annotation.RequestParam(value = "size", required = false) Integer size) {
+		if (page != null || size != null || (query != null && !query.isBlank())) {
+			int pageNumber = page != null && page >= 0 ? page : 0;
+			int pageSize = size != null && size > 0 ? Math.min(size, 100) : 20;
+			return profileService.getPublicProfiles(query, org.springframework.data.domain.PageRequest.of(pageNumber, pageSize));
+		}
 		return profileService.getPublicProfiles();
 	}
 
@@ -47,11 +55,18 @@ public class ProfileController {
 		return profileService.getMyProfile(authentication);
 	}
 
-	@GetMapping("/{userId}")
-	public PublicUserProfileResponse getUserProfile(
-			@PathVariable String userId,
+	@GetMapping("/by-handle/{handle}")
+	public PublicUserProfileResponse getUserByHandle(
+			@PathVariable String handle,
 			Authentication authentication) {
-		return profileService.getUserProfile(userId, authentication);
+		return profileService.getUserProfile(handle, authentication);
+	}
+
+	@GetMapping("/{identifier}")
+	public PublicUserProfileResponse getUserProfile(
+			@PathVariable String identifier,
+			Authentication authentication) {
+		return profileService.getUserProfile(identifier, authentication);
 	}
 
 	@PatchMapping(value = "/me", consumes = MediaType.APPLICATION_JSON_VALUE)

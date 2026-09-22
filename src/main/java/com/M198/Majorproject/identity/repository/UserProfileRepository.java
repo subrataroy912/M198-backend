@@ -8,22 +8,58 @@
  */
 package com.M198.Majorproject.identity.repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import com.M198.Majorproject.identity.entity.ProfileVisibility;
 import com.M198.Majorproject.identity.entity.UserProfile;
+import org.springframework.data.mongodb.repository.Query;
+
 
 public interface UserProfileRepository extends MongoRepository<UserProfile, String> {
 
-    Optional<UserProfile> findByUserId(String userId);
+    Optional<UserProfile> findByUserIdAndDeletedAtIsNull(String userId);
 
-    Optional<UserProfile> findByHandle(String handle);
+    Optional<UserProfile> findByHandleNormalizedAndDeletedAtIsNull(
+            String handleNormalized
+    );
 
-    java.util.List<UserProfile> findAllByUserIdIn(java.util.Collection<String> userIds);
+    List<UserProfile> findAllByUserIdInAndDeletedAtIsNull(
+            Collection<String> userIds
+    );
 
-    java.util.List<UserProfile> findAllByProfileVisibility(ProfileVisibility profileVisibility);
+    List<UserProfile> findAllByProfileVisibilityAndDeletedAtIsNull(
+            ProfileVisibility profileVisibility
+    );
 
-    java.util.List<UserProfile> findAllByProfileVisibilityAndDeletedAtIsNull(ProfileVisibility profileVisibility);
+    Page<UserProfile> findAllByProfileVisibilityAndDeletedAtIsNull(
+            ProfileVisibility profileVisibility,
+            Pageable pageable
+    );
+
+    @Query("""
+        {
+          'profile_visibility': ?0,
+          'deleted_at': null,
+          '$or': [
+            { 'handle_normalized': { '$regex': ?1 } },
+            { 'display_name': { '$regex': ?1, '$options': 'i' } },
+            { 'first_name': { '$regex': ?1, '$options': 'i' } },
+            { 'last_name': { '$regex': ?1, '$options': 'i' } },
+            { 'headline': { '$regex': ?1, '$options': 'i' } }
+          ]
+        }
+        """)
+    Page<UserProfile> searchPublicProfiles(
+            ProfileVisibility visibility,
+            String searchRegex,
+            Pageable pageable
+    );
+
+    UserProfile findByUserId(String userId);
 }

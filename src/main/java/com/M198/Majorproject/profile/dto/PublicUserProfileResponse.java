@@ -25,6 +25,10 @@ public class PublicUserProfileResponse {
     private ProfileVisibility profileVisibility;
     private List<ProfileLink> links;
     private boolean canCreateCourses;
+    private java.time.Instant joinedAt;
+    private long coursesCreatedCount;
+    private long coursesEnrolledCount;
+    private List<String> badges;
 
     public String getName() {
         return displayName != null && !displayName.isBlank()

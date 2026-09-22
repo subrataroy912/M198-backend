@@ -31,6 +31,8 @@ public interface CourseMembershipRepository extends MongoRepository<CourseMember
 
     long countByCourseIdAndStatus(String courseId, MembershipStatus status);
 
+    long countByUserIdAndStatus(String userId, MembershipStatus status);
+
     List<CourseMembership> findAllByCourseIdInAndStatus(java.util.Collection<String> courseIds, MembershipStatus status);
 
     void deleteAllByCourseId(String courseId);

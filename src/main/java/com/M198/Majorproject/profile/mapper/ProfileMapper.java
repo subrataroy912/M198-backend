@@ -22,11 +22,13 @@ public interface ProfileMapper {
     @Mapping(target = "admin", expression = "java((user != null && user.isAdmin()) || (profile != null && profile.isAdmin()))")
     @Mapping(target = "canCreateCourses", expression = "java((user != null && user.isCanCreateCourses()) || (profile != null && profile.isCanCreateCourses()))")
     @Mapping(target = "links", source = "profile.links")
+    @Mapping(target = "joinedAt", expression = "java(profile != null && profile.getCreatedAt() != null ? profile.getCreatedAt() : (user != null ? user.getCreatedAt() : null))")
     UserProfileResponse toOwnerResponse(User user, UserProfile profile);
 
     @Mapping(target = "id", source = "profile.userId")
     @Mapping(target = "canCreateCourses", source = "profile.canCreateCourses")
     @Mapping(target = "links", source = "profile.links")
+    @Mapping(target = "joinedAt", source = "profile.createdAt")
     PublicUserProfileResponse toPublicResponse(UserProfile profile);
 
     List<PublicUserProfileResponse> toPublicResponseList(List<UserProfile> profiles);

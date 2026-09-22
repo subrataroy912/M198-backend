@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,5 +72,42 @@ class AuthenticatedUserResolverTest {
         when(profileRepository.findByUserId("u-1")).thenReturn(Optional.of(profile));
 
         assertThrows(ProfileNotFoundException.class, () -> resolver.resolveCurrentUser(authentication));
+    }
+
+    @Test
+    void resolveAuthenticatedUserIdSafe_ReturnsNullWhenUnauthenticated() {
+        assertNull(resolver.resolveAuthenticatedUserIdSafe(null));
+
+        when(authentication.isAuthenticated()).thenReturn(false);
+        assertNull(resolver.resolveAuthenticatedUserIdSafe(authentication));
+
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn("anonymousUser");
+        assertNull(resolver.resolveAuthenticatedUserIdSafe(authentication));
+
+        when(authentication.getName()).thenReturn("u-1");
+        assertEquals("u-1", resolver.resolveAuthenticatedUserIdSafe(authentication));
+    }
+
+    @Test
+    void resolveUserByIdentifier_SupportsUserIdAndHandle() {
+        User user = User.builder().id("u-1").active(true).status(AccountStatus.ACTIVE).build();
+        UserProfile profile = UserProfile.builder().userId("u-1").handle("coder").build();
+
+        when(userRepository.findByIdAndActiveTrueAndStatus("u-1", AccountStatus.ACTIVE)).thenReturn(Optional.of(user));
+        when(profileRepository.findByUserId("u-1")).thenReturn(Optional.of(profile));
+        when(profileRepository.findByHandleIgnoreCase("coder")).thenReturn(Optional.of(profile));
+
+        // Lookup by userId
+        UserContext byId = resolver.resolveUserByIdentifier("u-1");
+        assertEquals("u-1", byId.user().getId());
+
+        // Lookup by @handle
+        UserContext byAtHandle = resolver.resolveUserByIdentifier("@coder");
+        assertEquals("coder", byAtHandle.profile().getHandle());
+
+        // Lookup by plain handle
+        UserContext byHandle = resolver.resolveUserByIdentifier("coder");
+        assertEquals("coder", byHandle.profile().getHandle());
     }
 }
