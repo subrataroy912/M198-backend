@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.M198.Majorproject.discovery.comment.controller.CommentController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,8 +19,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import com.M198.Majorproject.common.exception.GlobalExceptionHandler;
-import com.M198.Majorproject.engagement.comment.dto.CreateCommentRequest;
-import com.M198.Majorproject.engagement.comment.service.CommentService;
+import com.M198.Majorproject.discovery.comment.dto.CreateCommentRequest;
+import com.M198.Majorproject.discovery.comment.service.CommentService;
 
 @ExtendWith(MockitoExtension.class)
 class CommentControllerTest {

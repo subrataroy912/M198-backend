@@ -2,7 +2,7 @@
  * CREATED BY : SUBRATA ROY
  * SERVICE    : AuthService
  * PURPOSE    : Handles account creation, credential-based login, JWT issuance,
- *              refresh token management, OAuth linking, and session lifecycle.
+ * refresh token management, OAuth linking, and session lifecycle.
  * <p>
  * This service is the core identity engine of the platform.
  * It manages user registration, token creation, login events, OAuth account setup,
@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.M198.Majorproject.core.attachment.service.AttachmentService;
+import com.M198.Majorproject.core.course.service.AttachmentService;
 import org.jspecify.annotations.NonNull;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
@@ -80,13 +80,11 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterUserRequest request) {
-        // 1. Extract & validate inputs early
         String email = requireValidEmail(request.getEmail());
         String rawPassword = requireNonBlank(request.getPassword(), "Password is required");
         String firstName = requireNonBlank(request.getFirstName(), "First name is required");
         String lastName = requireNonBlank(request.getLastName(), "Last name is required");
 
-        // 2. Check for existing account (provides better error messages)
         userRepository.findByEmail(email).ifPresent(existingUser -> {
             if (isSocialOnlyAccount(existingUser)) {
                 String providers = getFormattedProviders(existingUser.getId());
@@ -98,7 +96,6 @@ public class AuthService {
             throw new DuplicateKeyException("Email is already registered");
         });
 
-        // 3. Create user
         User user = User.builder()
                 .email(email)
                 .passwordHash(passwordEncoder.encode(rawPassword))
@@ -170,6 +167,7 @@ public class AuthService {
 
         return issueTokens(user);
     }
+
     public AuthResponse refresh(String refreshToken) {
         String userId = jwtService.parseAndValidate(refreshToken, "refresh").getSubject();
         String tokenHash = hash(refreshToken);
@@ -454,8 +452,8 @@ public class AuthService {
         String value = displayName == null || displayName.isBlank() ? email.substring(0, email.indexOf('@'))
                 : displayName.trim();
         int separator = value.indexOf(' ');
-        return separator < 0 ? new String[] { value, "" }
-                : new String[] { value.substring(0, separator), value.substring(separator + 1).trim() };
+        return separator < 0 ? new String[]{value, ""}
+                : new String[]{value.substring(0, separator), value.substring(separator + 1).trim()};
     }
 
     private static class AuthenticationServiceException extends AuthenticationException {

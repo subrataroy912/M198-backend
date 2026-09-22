@@ -9,13 +9,14 @@ import static org.mockito.ArgumentMatchers.any;
 
 import java.util.Optional;
 
+import com.M198.Majorproject.discovery.notification.service.NotificationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.Authentication;
 
-import com.M198.Majorproject.engagement.notification.entity.NotificationSettings;
-import com.M198.Majorproject.engagement.notification.repository.NotificationRepository;
-import com.M198.Majorproject.engagement.notification.repository.NotificationSettingsRepository;
+import com.M198.Majorproject.discovery.notification.entity.NotificationSettings;
+import com.M198.Majorproject.discovery.notification.repository.NotificationRepository;
+import com.M198.Majorproject.discovery.notification.repository.NotificationSettingsRepository;
 
 class NotificationServiceTest {
 

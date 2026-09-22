@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.M198.Majorproject.core.course.controller.AttachmentController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,9 +19,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.M198.Majorproject.common.exception.GlobalExceptionHandler;
-import com.M198.Majorproject.core.attachment.dto.CompleteAttachmentRequest;
-import com.M198.Majorproject.core.attachment.dto.CreateAttachmentRequest;
-import com.M198.Majorproject.core.attachment.service.AttachmentService;
+import com.M198.Majorproject.core.course.dto.CompleteAttachmentRequest;
+import com.M198.Majorproject.core.course.dto.CreateAttachmentRequest;
+import com.M198.Majorproject.core.course.service.AttachmentService;
 
 @ExtendWith(MockitoExtension.class)
 class AttachmentControllerTest {

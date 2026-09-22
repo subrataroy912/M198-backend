@@ -18,22 +18,21 @@ import com.M198.Majorproject.core.course.service.CourseService.CourseAccessExcep
 import com.M198.Majorproject.core.course.service.CourseService.CourseConflictException;
 import com.M198.Majorproject.core.course.service.CourseService.CourseIdFormatException;
 import com.M198.Majorproject.core.course.service.CourseService.CourseNotFoundException;
-import com.M198.Majorproject.core.coursework.service.CourseworkService.CourseworkAccessException;
-import com.M198.Majorproject.core.coursework.service.CourseworkService.CourseworkNotFoundException;
-import com.M198.Majorproject.core.coursework.service.SubmissionService.SubmissionAccessException;
-import com.M198.Majorproject.core.coursework.service.SubmissionService.SubmissionConflictException;
-import com.M198.Majorproject.core.coursework.service.SubmissionService.SubmissionNotFoundException;
-import com.M198.Majorproject.core.attachment.service.AttachmentService.AttachmentAccessException;
-import com.M198.Majorproject.core.attachment.service.AttachmentService.AttachmentNotFoundException;
-import com.M198.Majorproject.core.attachment.service.AttachmentService.AttachmentConfigurationException;
-import com.M198.Majorproject.core.attachment.service.AttachmentService.AttachmentConflictException;
-import com.M198.Majorproject.core.attachment.service.AttachmentService.AttachmentStorageException;
-import com.M198.Majorproject.engagement.comment.service.CommentService.CommentAccessException;
-import com.M198.Majorproject.engagement.comment.service.CommentService.CommentNotFoundException;
-import com.M198.Majorproject.engagement.notification.service.NotificationService.NotificationAccessException;
-import com.M198.Majorproject.engagement.notification.service.NotificationService.NotificationNotFoundException;
-import com.M198.Majorproject.discovery.analytics.service.AnalyticsService.AnalyticsAccessException;
-import com.M198.Majorproject.discovery.analytics.service.AnalyticsService.AnalyticsNotFoundException;
+import com.M198.Majorproject.core.course.service.CourseworkService.CourseworkAccessException;
+import com.M198.Majorproject.core.course.service.CourseworkService.CourseworkNotFoundException;
+import com.M198.Majorproject.core.course.service.SubmissionService.SubmissionAccessException;
+import com.M198.Majorproject.core.course.service.SubmissionService.SubmissionConflictException;
+import com.M198.Majorproject.core.course.service.SubmissionService.SubmissionNotFoundException;
+import com.M198.Majorproject.core.course.service.AttachmentService.AttachmentAccessException;
+import com.M198.Majorproject.core.course.service.AttachmentService.AttachmentNotFoundException;
+import com.M198.Majorproject.core.course.service.AttachmentService.AttachmentConfigurationException;
+import com.M198.Majorproject.core.course.service.AttachmentService.AttachmentConflictException;
+import com.M198.Majorproject.core.course.service.AttachmentService.AttachmentStorageException;
+import com.M198.Majorproject.discovery.comment.service.CommentService.CommentAccessException;
+import com.M198.Majorproject.discovery.comment.service.CommentService.CommentNotFoundException;
+import com.M198.Majorproject.discovery.notification.service.NotificationService.NotificationAccessException;
+import com.M198.Majorproject.discovery.notification.service.NotificationService.NotificationNotFoundException;
+
 import io.jsonwebtoken.JwtException;
 
 @RestControllerAdvice

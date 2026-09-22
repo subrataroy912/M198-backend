@@ -11,24 +11,25 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.util.Optional;
 
+import com.M198.Majorproject.core.course.service.SubmissionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import com.M198.Majorproject.core.coursework.dto.GradeSubmissionRequest;
-import com.M198.Majorproject.core.coursework.dto.UpdateSubmissionRequest;
+import com.M198.Majorproject.core.course.dto.GradeSubmissionRequest;
+import com.M198.Majorproject.core.course.dto.UpdateSubmissionRequest;
 import com.M198.Majorproject.core.course.entity.CourseMembership;
 import com.M198.Majorproject.core.course.entity.MembershipRole;
 import com.M198.Majorproject.core.course.entity.MembershipStatus;
-import com.M198.Majorproject.core.coursework.entity.Coursework;
-import com.M198.Majorproject.core.coursework.entity.CourseworkStatus;
-import com.M198.Majorproject.core.coursework.entity.CourseworkType;
-import com.M198.Majorproject.core.coursework.entity.Submission;
-import com.M198.Majorproject.core.coursework.entity.SubmissionStatus;
+import com.M198.Majorproject.core.course.entity.Coursework;
+import com.M198.Majorproject.core.course.entity.CourseworkStatus;
+import com.M198.Majorproject.core.course.entity.CourseworkType;
+import com.M198.Majorproject.core.course.entity.Submission;
+import com.M198.Majorproject.core.course.entity.SubmissionStatus;
 import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
-import com.M198.Majorproject.core.coursework.repository.CourseworkRepository;
-import com.M198.Majorproject.core.coursework.repository.SubmissionRepository;
+import com.M198.Majorproject.core.course.repository.CourseworkRepository;
+import com.M198.Majorproject.core.course.repository.SubmissionRepository;
 
 class SubmissionServiceTest {
 

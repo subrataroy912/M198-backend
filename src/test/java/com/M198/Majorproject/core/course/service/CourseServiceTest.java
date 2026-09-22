@@ -15,10 +15,10 @@ import static org.mockito.Mockito.when;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import com.M198.Majorproject.discovery.analytics.repository.CourseAnalyticsSummaryRepository;
-import com.M198.Majorproject.discovery.analytics.repository.StudentGradebookEntryRepository;
-import com.M198.Majorproject.core.attachment.repository.AttachmentRepository;
-import com.M198.Majorproject.engagement.comment.repository.CommentRepository;
+import com.M198.Majorproject.core.course.repository.CourseAnalyticsSummaryRepository;
+import com.M198.Majorproject.core.course.repository.StudentGradebookEntryRepository;
+import com.M198.Majorproject.core.course.repository.AttachmentRepository;
+import com.M198.Majorproject.discovery.comment.repository.CommentRepository;
 import com.M198.Majorproject.core.course.dto.CreateCourseRequest;
 import com.M198.Majorproject.core.course.dto.EnrollCourseRequest;
 import com.M198.Majorproject.core.course.dto.UpdateCourseRequest;
@@ -33,13 +33,13 @@ import com.M198.Majorproject.core.course.entity.MembershipStatus;
 import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.core.course.repository.CourseRepository;
 import com.M198.Majorproject.core.course.repository.EnrollmentCodeRepository;
-import com.M198.Majorproject.core.coursework.entity.Coursework;
-import com.M198.Majorproject.core.coursework.repository.CourseworkRepository;
+import com.M198.Majorproject.core.course.entity.Coursework;
+import com.M198.Majorproject.core.course.repository.CourseworkRepository;
 import com.M198.Majorproject.discovery.explore.entity.CourseDiscovery;
 import com.M198.Majorproject.discovery.explore.repository.CourseDiscoveryRepository;
-import com.M198.Majorproject.engagement.notification.entity.NotificationResourceType;
-import com.M198.Majorproject.engagement.notification.repository.NotificationRepository;
-import com.M198.Majorproject.core.coursework.repository.SubmissionRepository;
+import com.M198.Majorproject.discovery.notification.entity.NotificationResourceType;
+import com.M198.Majorproject.discovery.notification.repository.NotificationRepository;
+import com.M198.Majorproject.core.course.repository.SubmissionRepository;
 import com.cloudinary.Cloudinary;
 
 class CourseServiceTest {

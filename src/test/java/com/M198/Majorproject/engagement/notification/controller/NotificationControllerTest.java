@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 
+import com.M198.Majorproject.discovery.notification.controller.NotificationController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,8 +19,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.M198.Majorproject.common.exception.GlobalExceptionHandler;
-import com.M198.Majorproject.engagement.notification.dto.NotificationResponse;
-import com.M198.Majorproject.engagement.notification.service.NotificationService;
+import com.M198.Majorproject.discovery.notification.dto.NotificationResponse;
+import com.M198.Majorproject.discovery.notification.service.NotificationService;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationControllerTest {

@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 
+import com.M198.Majorproject.core.course.controller.CourseworkController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,8 +21,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.M198.Majorproject.common.exception.GlobalExceptionHandler;
-import com.M198.Majorproject.core.coursework.dto.CourseworkResponse;
-import com.M198.Majorproject.core.coursework.service.CourseworkService;
+import com.M198.Majorproject.core.course.dto.CourseworkResponse;
+import com.M198.Majorproject.core.course.service.CourseworkService;
 
 @ExtendWith(MockitoExtension.class)
 class CourseworkControllerTest {
