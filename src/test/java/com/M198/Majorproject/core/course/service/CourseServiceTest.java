@@ -73,6 +73,10 @@ class CourseServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(profilePort.findByUserId(any())).thenReturn(Optional.empty());
         when(profilePort.findAllByUserIdIn(any())).thenReturn(java.util.List.of());
+        when(mediaService.resolveAsset(any(), any())).thenAnswer(invocation -> {
+            String val = invocation.getArgument(0);
+            return val != null && !val.trim().isEmpty() ? val.trim() : null;
+        });
     }
 
     @Test

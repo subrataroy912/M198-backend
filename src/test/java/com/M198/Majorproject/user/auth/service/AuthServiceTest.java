@@ -16,7 +16,9 @@ import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
+import com.M198.Majorproject.user.auth.exception.AuthConflictException;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -223,6 +225,23 @@ class AuthServiceTest {
 
                 var exception = assertThrows(DuplicateKeyException.class, () -> authService.register(request));
                 org.junit.jupiter.api.Assertions.assertTrue(exception.getMessage().contains("GitHub"));
+        }
+
+        @Test
+        void registerThrowsAuthConflictExceptionWhenEmailAlreadyExistsOnSaveRaceCondition() {
+                RegisterUserRequest request = new RegisterUserRequest();
+                request.setEmail("duplicate@example.com");
+                request.setPassword("password123");
+                request.setFirstName("First");
+                request.setLastName("Last");
+
+                when(userRepository.findByEmail("duplicate@example.com")).thenReturn(Optional.empty());
+                when(passwordEncoder.encode("password123")).thenReturn("encoded-pass");
+                when(userRepository.save(any(User.class)))
+                                .thenThrow(new DataIntegrityViolationException("duplicate key error"));
+
+                var exception = assertThrows(AuthConflictException.class, () -> authService.register(request));
+                assertEquals("Email is already registered", exception.getMessage());
         }
 
         @Test

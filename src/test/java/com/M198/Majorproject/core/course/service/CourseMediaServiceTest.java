@@ -10,19 +10,19 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import com.M198.Majorproject.core.course.dto.CreateCourseRequest;
 import com.M198.Majorproject.core.course.dto.UpdateCourseRequest;
-import com.M198.Majorproject.user.profile.service.MediaStorageService;
-import com.M198.Majorproject.user.profile.service.MediaUploadSignature;
+import com.M198.Majorproject.core.course.port.CourseMediaPort;
+import com.M198.Majorproject.core.course.port.CourseMediaUploadSignature;
 
 class CourseMediaServiceTest {
-    private final MediaStorageService storage = mock(MediaStorageService.class);
+    private final CourseMediaPort storage = mock(CourseMediaPort.class);
     private final CourseMediaService mediaService = new CourseMediaService(storage);
 
     @Test
     void signsCoverAndLogoUploadsThroughTheStorageAbstraction() {
         when(storage.requestImageUpload("course_covers"))
-                .thenReturn(new MediaUploadSignature("https://uploads.example/cover", "course_covers/1", "key", "cover-signature", 100L));
+                .thenReturn(new CourseMediaUploadSignature("https://uploads.example/cover", "course_covers/1", "key", "cover-signature", 100L));
         when(storage.requestImageUpload("course_logos"))
-                .thenReturn(new MediaUploadSignature("https://uploads.example/logo", "course_logos/2", "key", "logo-signature", 200L));
+                .thenReturn(new CourseMediaUploadSignature("https://uploads.example/logo", "course_logos/2", "key", "logo-signature", 200L));
 
         var cover = mediaService.requestUpload(CourseMediaService.Asset.COVER);
         var logo = mediaService.requestUpload(CourseMediaService.Asset.LOGO);

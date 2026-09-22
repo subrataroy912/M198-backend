@@ -16,10 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.M198.Majorproject.core.course.entity.CourseStatus;
-import com.M198.Majorproject.core.course.entity.MembershipStatus;
-import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
-import com.M198.Majorproject.core.course.repository.CourseRepository;
+import com.M198.Majorproject.user.profile.port.ProfileCoursePort;
 import com.M198.Majorproject.user.profile.entity.ProfileVisibility;
 import com.M198.Majorproject.user.identity.entity.User;
 import com.M198.Majorproject.user.profile.entity.UserProfile;
@@ -44,8 +41,7 @@ public class ProfileService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
-    private final CourseRepository courseRepository;
-    private final CourseMembershipRepository courseMembershipRepository;
+    private final ProfileCoursePort profileCoursePort;
     private final ProfileMapper profileMapper;
     private final AuthenticatedUserResolver userResolver;
     private final ProfilePatcher profilePatcher;
@@ -196,8 +192,8 @@ public class ProfileService {
         if (response == null || user == null) {
             return;
         }
-        long created = courseRepository.countByOwnerId(user.getId());
-        long enrolled = courseMembershipRepository.countByUserIdAndStatus(user.getId(), MembershipStatus.ACTIVE);
+        long created = profileCoursePort.countCreatedCourses(user.getId());
+        long enrolled = profileCoursePort.countActiveEnrolledCourses(user.getId());
         response.setCoursesCreatedCount(created);
         response.setCoursesEnrolledCount(enrolled);
 
@@ -229,8 +225,8 @@ public class ProfileService {
         if (userId == null) {
             return;
         }
-        long created = courseRepository.countByOwnerIdAndStatus(userId, CourseStatus.ACTIVE);
-        long enrolled = courseMembershipRepository.countByUserIdAndStatus(userId, MembershipStatus.ACTIVE);
+        long created = profileCoursePort.countActiveCreatedCourses(userId);
+        long enrolled = profileCoursePort.countActiveEnrolledCourses(userId);
         response.setCoursesCreatedCount(created);
         response.setCoursesEnrolledCount(enrolled);
 

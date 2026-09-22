@@ -25,8 +25,8 @@ import com.M198.Majorproject.core.course.entity.MembershipRole;
 import com.M198.Majorproject.core.course.entity.MembershipStatus;
 import com.M198.Majorproject.user.profile.entity.UserProfile;
 import com.M198.Majorproject.core.course.entity.SubmissionStatus;
+import com.M198.Majorproject.core.course.port.CourseProfilePort;
 import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
-import com.M198.Majorproject.user.profile.repository.UserProfileRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,7 +37,7 @@ public class AnalyticsService {
     private final CourseAnalyticsSummaryRepository summaryRepository;
     private final StudentGradebookEntryRepository gradebookRepository;
     private final CourseMembershipRepository membershipRepository;
-    private final UserProfileRepository userProfileRepository;
+    private final CourseProfilePort courseProfilePort;
     private final CourseAccessPolicy courseAccessPolicy;
 
     public List<TeacherGradebookResponse> teacherGradebook(String courseId, Authentication a)
@@ -52,8 +52,8 @@ public class AnalyticsService {
 
         List<String> studentIds = students.stream().map(CourseMembership::getUserId).toList();
         Map<String, UserProfile> profiles = new HashMap<>();
-        if (userProfileRepository != null && !studentIds.isEmpty()) {
-            userProfileRepository.findAllByUserIdIn(studentIds).forEach(p -> profiles.put(p.getUserId(), p));
+        if (courseProfilePort != null && !studentIds.isEmpty()) {
+            courseProfilePort.findAllByUserIdIn(studentIds).forEach(p -> profiles.put(p.getUserId(), p));
         }
 
         Map<String, List<StudentGradebookEntry>> entriesByStudent = gradebookRepository

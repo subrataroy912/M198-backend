@@ -8,12 +8,12 @@ import org.springframework.web.multipart.MultipartFile;
 import com.M198.Majorproject.core.course.dto.CourseCoverUploadResponse;
 import com.M198.Majorproject.core.course.dto.CreateCourseRequest;
 import com.M198.Majorproject.core.course.dto.UpdateCourseRequest;
-import com.M198.Majorproject.user.profile.service.MediaStorageService;
-import com.M198.Majorproject.user.profile.service.MediaUploadSignature;
+import com.M198.Majorproject.core.course.port.CourseMediaPort;
+import com.M198.Majorproject.core.course.port.CourseMediaUploadSignature;
 
 /**
  * Provider-neutral application service for course media workflows.
- * Provider signing and storage implementation remain behind {@link MediaStorageService}.
+ * Provider signing and storage implementation remain behind {@link CourseMediaPort}.
  */
 @Service
 public class CourseMediaService {
@@ -32,14 +32,14 @@ public class CourseMediaService {
         }
     }
 
-    private final MediaStorageService storage;
+    private final CourseMediaPort storage;
 
-    public CourseMediaService(MediaStorageService storage) {
+    public CourseMediaService(CourseMediaPort storage) {
         this.storage = storage;
     }
 
     public CourseCoverUploadResponse requestUpload(Asset asset) {
-        MediaUploadSignature signedUpload = storage.requestImageUpload(asset.folder());
+        CourseMediaUploadSignature signedUpload = storage.requestImageUpload(asset.folder());
         CourseCoverUploadResponse response = new CourseCoverUploadResponse();
         response.setUploadUrl(signedUpload.uploadUrl());
         response.setPublicId(signedUpload.publicId());

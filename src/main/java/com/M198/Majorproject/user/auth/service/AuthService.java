@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.M198.Majorproject.core.course.service.AttachmentService;
+import com.M198.Majorproject.user.auth.exception.AuthConflictException;
 import org.jspecify.annotations.NonNull;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
@@ -109,7 +109,7 @@ public class AuthService {
             user = userRepository.save(user);
         } catch (DataIntegrityViolationException ex) {
             // Race condition protection (unique constraint on email)
-            throw new AttachmentService.AttachmentConflictException("Email is already registered");
+            throw new AuthConflictException("Email is already registered");
         }
 
         // 4. Create profile

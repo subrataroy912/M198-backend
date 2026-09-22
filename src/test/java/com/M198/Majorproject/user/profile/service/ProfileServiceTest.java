@@ -23,8 +23,7 @@ import com.M198.Majorproject.user.identity.entity.User;
 import com.M198.Majorproject.user.profile.entity.UserProfile;
 import com.M198.Majorproject.user.profile.repository.UserProfileRepository;
 import com.M198.Majorproject.user.identity.repository.UserRepository;
-import com.M198.Majorproject.core.course.repository.CourseRepository;
-import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
+import com.M198.Majorproject.user.profile.port.ProfileCoursePort;
 import com.M198.Majorproject.user.profile.mapper.ProfileMapper;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
@@ -43,13 +42,11 @@ class ProfileServiceTest {
     private final MediaStorageService mediaStorageService = new ProfileMediaStorageService(cloudinary);
     private final HandleChangePolicy handleChangePolicy = new HandleChangePolicy(profileRepository);
     private final ProfilePatcher profilePatcher = new ProfilePatcher(mediaStorageService);
-    private final CourseRepository courseRepository = mock(CourseRepository.class);
-    private final CourseMembershipRepository courseMembershipRepository = mock(CourseMembershipRepository.class);
+    private final ProfileCoursePort profileCoursePort = mock(ProfileCoursePort.class);
     private final ProfileService profileService = new ProfileService(
             userRepository,
             profileRepository,
-            courseRepository,
-            courseMembershipRepository,
+            profileCoursePort,
             profileMapper,
             userResolver,
             profilePatcher,
@@ -318,9 +315,8 @@ class ProfileServiceTest {
 
     @Test
     void getMyProfileEnrichesStatsAndBadges() {
-        when(courseRepository.countByOwnerId("user-1")).thenReturn(3L);
-        when(courseMembershipRepository.countByUserIdAndStatus("user-1", com.M198.Majorproject.core.course.entity.MembershipStatus.ACTIVE))
-                .thenReturn(5L);
+        when(profileCoursePort.countCreatedCourses("user-1")).thenReturn(3L);
+        when(profileCoursePort.countActiveEnrolledCourses("user-1")).thenReturn(5L);
 
         var response = profileService.getMyProfile(authentication);
 
