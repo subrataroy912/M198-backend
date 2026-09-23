@@ -90,7 +90,8 @@ public class AuthService {
                 String providers = getFormattedProviders(existingUser.getId());
                 String message = providers.isBlank()
                         ? "An account with this email already exists via social login. Please sign in using your social account."
-                        : "An account with this email already exists via " + providers + ". Please sign in with " + providers + ".";
+                        : "An account with this email already exists via " + providers + ". Please sign in with "
+                                + providers + ".";
                 throw new DuplicateKeyException(message);
             }
             throw new DuplicateKeyException("Email is already registered");
@@ -157,8 +158,7 @@ public class AuthService {
 
         // Authenticate (will throw BadCredentialsException on failure)
         authenticationManager.authenticate(
-                UsernamePasswordAuthenticationToken.unauthenticated(email, rawPassword)
-        );
+                UsernamePasswordAuthenticationToken.unauthenticated(email, rawPassword));
 
         // Re-fetch with active + status check (or apply filters earlier)
         if (!user.isActive() || user.getStatus() != AccountStatus.ACTIVE) {
@@ -167,7 +167,8 @@ public class AuthService {
 
         // Check if user was away for a long time (>= 3 days)
         Instant prevLogin = user.getLastLoginAt();
-        boolean isLongTimeAway = prevLogin != null && prevLogin.isBefore(Instant.now().minus(3, java.time.temporal.ChronoUnit.DAYS));
+        boolean isLongTimeAway = prevLogin != null
+                && prevLogin.isBefore(Instant.now().minus(3, java.time.temporal.ChronoUnit.DAYS));
 
         // Update last login
         user.setLastLoginAt(Instant.now());
@@ -185,7 +186,9 @@ public class AuthService {
                 .filter(token -> token.getExpiresAt().isAfter(Instant.now()));
 
         if (storedTokenOpt.isEmpty()) {
-            logger.warn("Potential refresh token reuse or stolen token detected for userId={}. Revoking all active sessions.", userId);
+            logger.warn(
+                    "Potential refresh token reuse or stolen token detected for userId={}. Revoking all active sessions.",
+                    userId);
             refreshTokenRepository.deleteAllByUserId(userId);
             throw new AuthenticationServiceException("Invalid refresh token");
         }
@@ -198,7 +201,8 @@ public class AuthService {
         }
 
         if (refreshTokenRepository.revokeIfActive(storedToken.getTokenHash(), Instant.now()) != 1) {
-            logger.warn("Concurrent refresh token race/reuse detected for userId={}. Revoking all active sessions.", userId);
+            logger.warn("Concurrent refresh token race/reuse detected for userId={}. Revoking all active sessions.",
+                    userId);
             refreshTokenRepository.deleteAllByUserId(userId);
             throw new AuthenticationServiceException("Invalid refresh token");
         }
@@ -270,6 +274,17 @@ public class AuthService {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
+    public void clearCsrfCookie(@NonNull HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from("XSRF-TOKEN", "")
+                .httpOnly(false)
+                .sameSite(cookieSameSite)
+                .secure(secureCookies)
+                .path("/")
+                .maxAge(0)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
     public AuthResponse authenticateOAuth(
             OAuthProvider provider,
             String providerUserId,
@@ -331,7 +346,8 @@ public class AuthService {
         }
 
         Instant prevLogin = user.getLastLoginAt();
-        boolean isLongTimeAway = prevLogin != null && prevLogin.isBefore(Instant.now().minus(3, java.time.temporal.ChronoUnit.DAYS));
+        boolean isLongTimeAway = prevLogin != null
+                && prevLogin.isBefore(Instant.now().minus(3, java.time.temporal.ChronoUnit.DAYS));
 
         ensureProfileExists(user, displayName, avatarUrl);
         user.setLastLoginAt(Instant.now());
@@ -374,7 +390,8 @@ public class AuthService {
         var existingProfile = profileRepository.findByUserId(user.getId());
         if (existingProfile.filter(profile -> profile.getDeletedAt() == null).isPresent()) {
             UserProfile profile = existingProfile.get();
-            if ((profile.getAvatarUrl() == null || profile.getAvatarUrl().isBlank()) && avatarUrl != null && !avatarUrl.isBlank()) {
+            if ((profile.getAvatarUrl() == null || profile.getAvatarUrl().isBlank()) && avatarUrl != null
+                    && !avatarUrl.isBlank()) {
                 profile.setAvatarUrl(avatarUrl);
                 profileRepository.save(profile);
             }
@@ -383,7 +400,8 @@ public class AuthService {
         if (existingProfile.isPresent()) {
             UserProfile profile = existingProfile.get();
             profile.setDeletedAt(null);
-            if ((profile.getAvatarUrl() == null || profile.getAvatarUrl().isBlank()) && avatarUrl != null && !avatarUrl.isBlank()) {
+            if ((profile.getAvatarUrl() == null || profile.getAvatarUrl().isBlank()) && avatarUrl != null
+                    && !avatarUrl.isBlank()) {
                 profile.setAvatarUrl(avatarUrl);
             }
             profileRepository.save(profile);
@@ -424,7 +442,8 @@ public class AuthService {
                 .userId(user.getId())
                 .expiresAt(jwtService.refreshTokenExpiresAt())
                 .build());
-        boolean isProfileDone = profile != null && (profile.isProfileCompleted() || (profile.getHandle() != null && !profile.getHandle().isBlank()));
+        boolean isProfileDone = profile != null
+                && (profile.isProfileCompleted() || (profile.getHandle() != null && !profile.getHandle().isBlank()));
 
         return AuthResponse.builder()
                 .accessToken(jwtService.createAccessToken(user.getId()))
@@ -456,7 +475,6 @@ public class AuthService {
         }
     }
 
-
     private @NonNull String normalizeEmail(@NonNull String email) {
         return email.trim().toLowerCase(Locale.ROOT);
     }
@@ -479,8 +497,8 @@ public class AuthService {
         String value = displayName == null || displayName.isBlank() ? email.substring(0, email.indexOf('@'))
                 : displayName.trim();
         int separator = value.indexOf(' ');
-        return separator < 0 ? new String[]{value, ""}
-                : new String[]{value.substring(0, separator), value.substring(separator + 1).trim()};
+        return separator < 0 ? new String[] { value, "" }
+                : new String[] { value.substring(0, separator), value.substring(separator + 1).trim() };
     }
 
     private static class AuthenticationServiceException extends AuthenticationException {
@@ -499,7 +517,7 @@ public class AuthService {
         }
         // Optional: add basic format check
         // if (!EmailValidator.getInstance().isValid(normalized)) {
-        //     throw new IllegalArgumentException("Invalid email format");
+        // throw new IllegalArgumentException("Invalid email format");
         // }
         return normalized;
     }

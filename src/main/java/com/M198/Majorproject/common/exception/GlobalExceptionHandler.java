@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import com.M198.Majorproject.user.auth.exception.AuthConflictException;
+import com.M198.Majorproject.user.auth.exception.RefreshTokenException;
 import com.M198.Majorproject.user.profile.exception.ProfileNotFoundException;
 import com.M198.Majorproject.user.profile.exception.HandleConflictException;
 import com.M198.Majorproject.user.profile.exception.ProfileStorageException;
@@ -67,6 +68,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthConflictException.class)
     ResponseEntity<Map<String, String>> handleAuthConflictException(AuthConflictException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", exception.getMessage()));
+    }
+
+    @ExceptionHandler(RefreshTokenException.class)
+    ResponseEntity<Map<String, String>> handleRefreshTokenException(RefreshTokenException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("error", exception.getMessage()));
     }
 

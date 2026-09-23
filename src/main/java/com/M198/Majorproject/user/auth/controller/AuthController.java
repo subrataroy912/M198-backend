@@ -9,6 +9,7 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,14 +19,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.M198.Majorproject.user.auth.dto.AuthResponse;
 import com.M198.Majorproject.user.auth.dto.LoginRequest;
 import com.M198.Majorproject.user.auth.dto.RegisterUserRequest;
+import com.M198.Majorproject.user.auth.exception.RefreshTokenException;
 import com.M198.Majorproject.user.auth.service.AuthService;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import jakarta.servlet.http.Cookie;
-import org.springframework.security.web.csrf.CsrfToken;
 
 @RestController
 @RequestMapping("/v1/auth")
@@ -40,11 +41,7 @@ public class AuthController {
             @Valid @RequestBody RegisterUserRequest request,
             HttpServletResponse response,
             CsrfToken csrfToken) {
-        if (csrfToken != null) {
-            csrfToken.getToken();
-        } else {
-            authService.setCsrfCookie(response);
-        }
+        exposeCsrfToken(response, csrfToken);
         AuthResponse authResponse = authService.register(request);
         authService.setRefreshCookie(response, authResponse.getRefreshToken());
         return ResponseEntity.status(HttpStatus.CREATED).body(authResponse);
@@ -55,30 +52,21 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request,
             HttpServletResponse response,
             CsrfToken csrfToken) {
-        if (csrfToken != null) {
-            csrfToken.getToken();
-        } else {
-            authService.setCsrfCookie(response);
-        }
+        exposeCsrfToken(response, csrfToken);
         AuthResponse authResponse = authService.login(request);
         authService.setRefreshCookie(response, authResponse.getRefreshToken());
         return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(
+    public ResponseEntity<AuthResponse> refresh(
             @RequestBody(required = false) Map<String, String> body,
             HttpServletRequest request,
             HttpServletResponse response) {
-        try {
-            String refreshToken = resolveRefreshToken(request, body);
-            AuthResponse authResponse = authService.refresh(refreshToken);
-            authService.setRefreshCookie(response, authResponse.getRefreshToken());
-            return ResponseEntity.ok(authResponse);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("{\"error\":\"" + e.getMessage() + "\"}");
-        }
+        String refreshToken = resolveRefreshToken(request, body);
+        AuthResponse authResponse = authService.refresh(refreshToken);
+        authService.setRefreshCookie(response, authResponse.getRefreshToken());
+        return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/logout")
@@ -90,14 +78,26 @@ public class AuthController {
         String refreshToken = null;
         try {
             refreshToken = resolveRefreshToken(request, body);
-        } catch (IllegalArgumentException e) {
-            // Logout shouldn't fail if token is missing
+        } catch (RefreshTokenException ignored) {
+            // Logout is idempotent — missing token is fine
         }
-        if (refreshToken != null) {
+        if (refreshToken != null && authentication != null && authentication.isAuthenticated()) {
             authService.logout(authentication.getName(), refreshToken);
         }
         authService.clearRefreshCookie(response);
+        authService.clearCsrfCookie(response);
         return ResponseEntity.noContent().build();
+    }
+
+    private void exposeCsrfToken(HttpServletResponse response, CsrfToken csrfToken) {
+        if (csrfToken != null) {
+            String token = csrfToken.getToken();
+            if (token != null) {
+                response.setHeader(csrfToken.getHeaderName(), token);
+            }
+        } else {
+            authService.setCsrfCookie(response);
+        }
     }
 
     private String resolveRefreshToken(
@@ -124,6 +124,6 @@ public class AuthController {
             }
         }
 
-        throw new IllegalArgumentException("Refresh token is required");
+        throw new RefreshTokenException("Refresh token is required");
     }
 }

@@ -112,6 +112,7 @@ class AuthSecurityIntegrationTest {
 
         verify(authService).logout("user-1", "valid-refresh-token");
         verify(authService).clearRefreshCookie(org.mockito.ArgumentMatchers.any());
+        verify(authService).clearCsrfCookie(org.mockito.ArgumentMatchers.any());
     }
 
     private AuthResponse authResponse() {
