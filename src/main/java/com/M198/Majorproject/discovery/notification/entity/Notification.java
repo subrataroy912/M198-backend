@@ -3,7 +3,7 @@
  * ENTITY     : Notification
  * PURPOSE    : Represents alerts and activity updates sent to users within the platform.
  *
- * Notifications keep learners and teachers informed about course changes,
+ * Notifications keep members and space owners informed about course changes,
  * assignment updates, comments, grading events, and profile-related activity.
  */
 package com.M198.Majorproject.discovery.notification.entity;

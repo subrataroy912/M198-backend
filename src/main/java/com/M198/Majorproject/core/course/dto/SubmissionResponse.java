@@ -25,4 +25,12 @@ public class SubmissionResponse {
     private String graderId;
     private String feedback;
     private Instant gradedAt;
+
+    public String getMemberId() {
+        return studentId;
+    }
+
+    public void setMemberId(String memberId) {
+        this.studentId = memberId;
+    }
 }

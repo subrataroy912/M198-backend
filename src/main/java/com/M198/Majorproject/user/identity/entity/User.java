@@ -1,7 +1,7 @@
 /**
  * CREATED BY : SUBRATA ROY
  * ENTITY     : User
- * PURPOSE    : Represents the core account for a student or teacher in the platform.
+ * PURPOSE    : Represents the core user account in the platform.
  *
  * This document stores the identity and account state of every user.
  * Authentication, role handling, account status, and OAuth linking are tied to this entity.

@@ -40,9 +40,6 @@ public class AnalyticsService {
     private final CourseProfilePort courseProfilePort;
     private final CourseAccessPolicy courseAccessPolicy;
 
-    public List<CourseGradebookResponse> teacherGradebook(String courseId, Authentication a) {
-        return courseGradebook(courseId, a);
-    }
 
     public List<CourseGradebookResponse> courseGradebook(String courseId, Authentication a) {
         if (isNotAdmin(a)) {

@@ -70,7 +70,7 @@ public class CourseworkService {
         PageRequest pageRequest = PageRequest.of(page, size);
 
         if (courseAccessPolicy.isStaff(membership)) {
-            // Staff (OWNER, TEACHER, ASSISTANT) see every non-archived item:
+            // Staff (OWNER, ADMIN) see every non-archived item:
             // PUBLISHED items appear first (sorted by publishedAt DESC),
             // DRAFT items (null publishedAt) follow, sorted by createdAt DESC.
             return courseworkRepository

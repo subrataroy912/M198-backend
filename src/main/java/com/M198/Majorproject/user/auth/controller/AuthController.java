@@ -7,7 +7,7 @@
 	 * ==========================================
 	 * API Functions inside the Auth Controller:
 	 * ==========================================
-	 * 1. registerUser - Registers a new user account with a TEACHER or STUDENT role
+	 * 1. registerUser - Registers a new user account
 	 * 2. loginUser    - Validates credentials and issues an access token
 	 * 3. logoutUser   - Invalidates the current authenticated session
  */
@@ -20,7 +20,7 @@
 * 1. registerUser
 *    - Route: POST /v1/auth/register
 *    - Role Allowed: Public; the caller must not already be authenticated.
-*    - Request Body: Name, email, password, and account role (TEACHER or STUDENT).
+*    - Request Body: Name, email, and password.
 *    - How it works: Validates the registration data, checks that the email is not
 *      already registered, hashes the password, and stores the new user account.
 *    - Response: Returns the created user's safe profile data. Never return the

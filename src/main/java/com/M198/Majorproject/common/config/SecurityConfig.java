@@ -10,12 +10,9 @@
  */
 package com.M198.Majorproject.common.config;
 
-import java.util.Arrays;
-
 import jakarta.servlet.Filter;
 import org.springframework.web.filter.ShallowEtagHeaderFilter;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -32,9 +29,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
-import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.M198.Majorproject.common.security.AppUserDetailsService;
 import com.M198.Majorproject.common.security.JwtAuthenticationFilter;
