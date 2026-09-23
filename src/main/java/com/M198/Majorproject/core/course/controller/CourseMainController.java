@@ -33,6 +33,14 @@ public class CourseMainController {
 
     private final CourseService courseService;
 
+    @GetMapping
+    public ResponseEntity<List<CourseResponse>> listCourses(Authentication authentication) {
+        List<CourseResponse> courses = courseService.listMyCourses(authentication);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(30, TimeUnit.SECONDS).cachePrivate().mustRevalidate())
+                .body(courses);
+    }
+
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public CourseResponse createCourse(
             @Valid @RequestBody CreateCourseRequest request,
@@ -58,14 +66,6 @@ public class CourseMainController {
     @PostMapping("/logo-upload")
     public CourseCoverUploadResponse requestLogoUpload(Authentication authentication) {
         return courseService.requestLogoUpload(authentication);
-    }
-
-    @GetMapping
-    public ResponseEntity<List<CourseResponse>> listCourses(Authentication authentication) {
-        List<CourseResponse> courses = courseService.listMyCourses(authentication);
-        return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(30, TimeUnit.SECONDS).cachePrivate().mustRevalidate())
-                .body(courses);
     }
 
     @GetMapping("/{courseId}")

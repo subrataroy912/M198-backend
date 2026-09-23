@@ -240,6 +240,13 @@ public class CourseLifecycleService {
             long count = memberCountMap.getOrDefault(course.getId(), 0L);
             String enrollmentCode = enrollmentCodeMap.get(course.getId());
 
+            String visibility = course.getAccessType() != null ? course.getAccessType().name() : "PRIVATE";
+
+            boolean isOwner = course.getOwnerId() != null && course.getOwnerId().equals(userId);
+
+            if (!isOwner && (visibility.equalsIgnoreCase("PRIVATE") || visibility.equalsIgnoreCase("LINK_ONLY"))) {
+                enrollmentCode = null;
+            }
             CourseResponse res = toResponse(course, ownerProfile, count, enrollmentCode);
             if (membership.getRole() != null) {
                 res.setRole(membership.getRole().name());
@@ -326,11 +333,28 @@ public class CourseLifecycleService {
         if (code == null || code.isBlank()) {
             throw new CourseService.CourseAccessException("Enrollment code is required");
         }
-        EnrollmentCode enrollmentCode = enrollmentCodeRepository.findByCodeAndActiveTrue(code.trim().toUpperCase())
+
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
+
+        EnrollmentCode enrollmentCode = enrollmentCodeRepository
+                .findByCodeAndActiveTrue(code.trim().toUpperCase())
                 .filter(value -> value.getExpiresAt() == null || value.getExpiresAt().isAfter(Instant.now()))
                 .orElseThrow(() -> new CourseService.CourseAccessException("Invalid or expired invitation code"));
 
-        return enroll(enrollmentCode.getCourseId(), authentication, new EnrollCourseRequest(code.trim().toUpperCase()));
+        boolean alreadyEnrolled = membershipRepository.existsByCourseIdAndUserIdAndStatus(
+                enrollmentCode.getCourseId(),
+                userId,
+                MembershipStatus.ACTIVE);
+
+        if (alreadyEnrolled) {
+            throw new CourseService.CourseAccessException("You are already enrolled in this space");
+        }
+
+        return enroll(enrollmentCode
+                .getCourseId(),
+                authentication,
+                new EnrollCourseRequest(code.trim().toUpperCase()));
     }
 
     public CourseResponse enroll(String courseId, Authentication authentication, EnrollCourseRequest request) {
