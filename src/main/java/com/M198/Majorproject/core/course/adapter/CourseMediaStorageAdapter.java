@@ -8,14 +8,13 @@ import com.M198.Majorproject.core.course.port.CourseMediaUploadSignature;
 import com.M198.Majorproject.user.profile.service.MediaStorageService;
 import com.M198.Majorproject.user.profile.service.MediaUploadSignature;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 class CourseMediaStorageAdapter implements CourseMediaPort {
 
     private final MediaStorageService mediaStorageService;
-
-    CourseMediaStorageAdapter(MediaStorageService mediaStorageService) {
-        this.mediaStorageService = mediaStorageService;
-    }
 
     @Override
     public CourseMediaUploadSignature requestImageUpload(String folder) {

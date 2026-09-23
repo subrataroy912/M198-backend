@@ -11,11 +11,15 @@ import com.M198.Majorproject.core.course.dto.UpdateCourseRequest;
 import com.M198.Majorproject.core.course.port.CourseMediaPort;
 import com.M198.Majorproject.core.course.port.CourseMediaUploadSignature;
 
+import lombok.RequiredArgsConstructor;
+
 /**
  * Provider-neutral application service for course media workflows.
- * Provider signing and storage implementation remain behind {@link CourseMediaPort}.
+ * Provider signing and storage implementation remain behind
+ * {@link CourseMediaPort}.
  */
 @Service
+@RequiredArgsConstructor
 public class CourseMediaService {
     public enum Asset {
         COVER("course_covers"),
@@ -33,10 +37,6 @@ public class CourseMediaService {
     }
 
     private final CourseMediaPort storage;
-
-    public CourseMediaService(CourseMediaPort storage) {
-        this.storage = storage;
-    }
 
     public CourseCoverUploadResponse requestUpload(Asset asset) {
         CourseMediaUploadSignature signedUpload = storage.requestImageUpload(asset.folder());

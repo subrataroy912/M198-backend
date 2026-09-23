@@ -24,7 +24,10 @@ import com.M198.Majorproject.core.course.security.CourseAccessPolicy;
 import com.M198.Majorproject.core.course.repository.SubmissionRepository;
 import com.cloudinary.Cloudinary;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class AttachmentService {
 
     private final AttachmentRepository attachmentRepository;
@@ -32,33 +35,21 @@ public class AttachmentService {
     private final SubmissionRepository submissionRepository;
     private final CourseAccessPolicy courseAccessPolicy;
     private final Cloudinary cloudinary;
-    private final String cloudName;
-    private final String apiKey;
-    private final String apiSecret;
 
-    public AttachmentService(
-            AttachmentRepository attachmentRepository,
-            CourseworkRepository courseworkRepository,
-            SubmissionRepository submissionRepository,
-            CourseAccessPolicy courseAccessPolicy,
-            Cloudinary cloudinary,
-            @Value("${cloudinary.cloud-name:}") String cloudName,
-            @Value("${cloudinary.api-key:}") String apiKey,
-            @Value("${cloudinary.api-secret:}") String apiSecret) {
-        this.attachmentRepository = attachmentRepository;
-        this.courseworkRepository = courseworkRepository;
-        this.submissionRepository = submissionRepository;
-        this.courseAccessPolicy = courseAccessPolicy;
-        this.cloudinary = cloudinary;
-        this.cloudName = cloudName;
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
-    }
+    @Value("${cloudinary.cloud-name:}")
+    private String cloudName;
+
+    @Value("${cloudinary.api-key:}")
+    private String apiKey;
+
+    @Value("${cloudinary.api-secret:}")
+    private String apiSecret;
 
     public AttachmentResponse create(Authentication authentication, CreateAttachmentRequest request) {
         String userId = courseAccessPolicy.authenticatedUserId(authentication, AttachmentAccessException::new);
         String courseId = resourceCourseId(request.getResourceType(), request.getResourceId());
-        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId, AttachmentAccessException::new);
+        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId,
+                AttachmentAccessException::new);
         if (request.getResourceType() == AttachmentResourceType.COURSEWORK && !courseAccessPolicy.isStaff(membership)) {
             throw new AttachmentAccessException();
         }
@@ -95,7 +86,9 @@ public class AttachmentService {
                 .filter(value -> value.getStatus() == AttachmentStatus.PENDING)
                 .orElseThrow(AttachmentNotFoundException::new);
         CourseMembership membership = hasRole(authentication, "ROLE_ADMIN")
-                ? null : courseAccessPolicy.requireActiveMember(attachment.getCourseId(), userId, AttachmentAccessException::new);
+                ? null
+                : courseAccessPolicy.requireActiveMember(attachment.getCourseId(), userId,
+                        AttachmentAccessException::new);
         if (!attachment.getOwnerId().equals(userId) && !hasRole(authentication, "ROLE_ADMIN")
                 && !courseAccessPolicy.isStaff(membership)) {
             throw new AttachmentAccessException();
@@ -123,7 +116,8 @@ public class AttachmentService {
         String userId = courseAccessPolicy.authenticatedUserId(authentication, AttachmentAccessException::new);
         Attachment attachment = attachmentRepository.findByIdAndStatus(attachmentId, AttachmentStatus.UPLOADED)
                 .orElseThrow(AttachmentNotFoundException::new);
-        CourseMembership membership = courseAccessPolicy.requireActiveMember(attachment.getCourseId(), userId, AttachmentAccessException::new);
+        CourseMembership membership = courseAccessPolicy.requireActiveMember(attachment.getCourseId(), userId,
+                AttachmentAccessException::new);
         if (!attachment.getOwnerId().equals(userId) && !courseAccessPolicy.isStaff(membership)) {
             throw new AttachmentAccessException();
         }
@@ -150,7 +144,8 @@ public class AttachmentService {
         String userId = courseAccessPolicy.authenticatedUserId(authentication, AttachmentAccessException::new);
         Attachment attachment = attachmentRepository.findByIdAndStatus(attachmentId, AttachmentStatus.UPLOADED)
                 .orElseThrow(AttachmentNotFoundException::new);
-        CourseMembership membership = courseAccessPolicy.requireActiveMember(attachment.getCourseId(), userId, AttachmentAccessException::new);
+        CourseMembership membership = courseAccessPolicy.requireActiveMember(attachment.getCourseId(), userId,
+                AttachmentAccessException::new);
         if (!attachment.getOwnerId().equals(userId) && !courseAccessPolicy.isStaff(membership)) {
             throw new AttachmentAccessException();
         }

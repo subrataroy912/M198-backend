@@ -16,7 +16,6 @@ import com.M198.Majorproject.core.course.service.AnalyticsService;
 public class CourseAnalyticsController {
     private final AnalyticsService service;
 
-
     @GetMapping("/courses/{courseId}/summary")
     public CourseAnalyticsResponse summary(@PathVariable String courseId, Authentication a) {
         return service.summary(courseId, a);
@@ -27,8 +26,9 @@ public class CourseAnalyticsController {
         return service.courseGradebook(courseId, a);
     }
 
-    @GetMapping({"/courses/{courseId}/members/{memberId}/gradebook", "/courses/{courseId}/students/{memberId}/gradebook"})
-    public List<GradebookEntryResponse> gradebook(@PathVariable String courseId, @PathVariable String memberId, Authentication a) {
+    @GetMapping({ "/courses/{courseId}/members/{memberId}/gradebook" })
+    public List<GradebookEntryResponse> gradebook(@PathVariable String courseId, @PathVariable String memberId,
+            Authentication a) {
         return service.gradebook(courseId, memberId, a);
     }
 }

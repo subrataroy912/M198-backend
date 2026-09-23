@@ -40,12 +40,14 @@ public class AnalyticsService {
     private final CourseProfilePort courseProfilePort;
     private final CourseAccessPolicy courseAccessPolicy;
 
-
     public List<CourseGradebookResponse> courseGradebook(String courseId, Authentication a) {
         if (isNotAdmin(a)) {
-            courseAccessPolicy.requireStaff(courseId, courseAccessPolicy.authenticatedUserId(a, AnalyticsAccessException::new), AnalyticsAccessException::new, AnalyticsAccessException::new);
+            courseAccessPolicy.requireStaff(courseId,
+                    courseAccessPolicy.authenticatedUserId(a, AnalyticsAccessException::new),
+                    AnalyticsAccessException::new, AnalyticsAccessException::new);
         }
-        List<CourseMembership> members = membershipRepository.findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE)
+        List<CourseMembership> members = membershipRepository
+                .findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE)
                 .stream()
                 .filter(m -> m.getRole() == MembershipRole.MEMBER)
                 .toList();
@@ -77,11 +79,16 @@ public class AnalyticsService {
             List<StudentGradebookEntry> entries = entriesByMember.getOrDefault(sId, List.of());
             long missing = entries.stream().filter(e -> e.getStatus() == SubmissionStatus.MISSING).count();
             res.setMissingCount(missing);
-            res.setSubmittedCount(entries.stream().filter(e -> e.getStatus() == SubmissionStatus.TURNED_IN || e.getStatus() == SubmissionStatus.GRADED).count());
+            res.setSubmittedCount(entries.stream().filter(
+                    e -> e.getStatus() == SubmissionStatus.TURNED_IN || e.getStatus() == SubmissionStatus.GRADED)
+                    .count());
 
-            List<StudentGradebookEntry> graded = entries.stream().filter(e -> e.getScore() != null && e.getMaximumPoints() != null && e.getMaximumPoints() > 0).toList();
+            List<StudentGradebookEntry> graded = entries.stream()
+                    .filter(e -> e.getScore() != null && e.getMaximumPoints() != null && e.getMaximumPoints() > 0)
+                    .toList();
             if (!graded.isEmpty()) {
-                double totalRatio = graded.stream().mapToDouble(e -> e.getScore().doubleValue() / e.getMaximumPoints()).average().orElse(0.0);
+                double totalRatio = graded.stream().mapToDouble(e -> e.getScore().doubleValue() / e.getMaximumPoints())
+                        .average().orElse(0.0);
                 res.setAverage(Math.round(totalRatio * 100) + "%");
                 res.setAverageScore(BigDecimal.valueOf(Math.round(totalRatio * 100)));
             } else {
@@ -93,23 +100,27 @@ public class AnalyticsService {
 
     public CourseAnalyticsResponse summary(String courseId, Authentication a) {
         if (isNotAdmin(a)) {
-            courseAccessPolicy.requireStaff(courseId, courseAccessPolicy.authenticatedUserId(a, AnalyticsAccessException::new), AnalyticsAccessException::new, AnalyticsAccessException::new);
+            courseAccessPolicy.requireStaff(courseId,
+                    courseAccessPolicy.authenticatedUserId(a, AnalyticsAccessException::new),
+                    AnalyticsAccessException::new, AnalyticsAccessException::new);
 
         }
-        CourseAnalyticsSummary summary = summaryRepository.
-                findByCourseId(courseId).
-                orElseThrow(AnalyticsNotFoundException::new);
+        CourseAnalyticsSummary summary = summaryRepository.findByCourseId(courseId)
+                .orElseThrow(AnalyticsNotFoundException::new);
         return summaryResponse(summary);
     }
 
     public List<GradebookEntryResponse> gradebook(String courseId, String studentId, Authentication a) {
         String caller = courseAccessPolicy.authenticatedUserId(a, AnalyticsAccessException::new);
         if (!caller.equals(studentId)) {
-            courseAccessPolicy.requireStaff(courseId, caller, AnalyticsAccessException::new, AnalyticsAccessException::new);
+            courseAccessPolicy.requireStaff(courseId, caller, AnalyticsAccessException::new,
+                    AnalyticsAccessException::new);
 
         }
-        membershipRepository.findByCourseIdAndUserIdAndStatus(courseId, studentId, MembershipStatus.ACTIVE).orElseThrow(AnalyticsNotFoundException::new);
-        return gradebookRepository.findAllByCourseIdAndStudentIdOrderByDueAtAsc(courseId, studentId).stream().map(this::gradebookResponse).toList();
+        membershipRepository.findByCourseIdAndUserIdAndStatus(courseId, studentId, MembershipStatus.ACTIVE)
+                .orElseThrow(AnalyticsNotFoundException::new);
+        return gradebookRepository.findAllByCourseIdAndStudentIdOrderByDueAtAsc(courseId, studentId).stream()
+                .map(this::gradebookResponse).toList();
     }
 
     private boolean isNotAdmin(Authentication a) {
@@ -117,8 +128,7 @@ public class AnalyticsService {
                 .noneMatch(value -> "ROLE_ADMIN".equals(value.getAuthority()));
     }
 
-    private @NonNull CourseAnalyticsResponse summaryResponse(@NonNull CourseAnalyticsSummary value)
-    {
+    private @NonNull CourseAnalyticsResponse summaryResponse(@NonNull CourseAnalyticsSummary value) {
         CourseAnalyticsResponse response = new CourseAnalyticsResponse();
         response.setCourseId(value.getCourseId());
         response.setStudentCount(value.getStudentCount());
@@ -134,8 +144,7 @@ public class AnalyticsService {
         return response;
     }
 
-    private @NonNull GradebookEntryResponse gradebookResponse(@NonNull StudentGradebookEntry value)
-    {
+    private @NonNull GradebookEntryResponse gradebookResponse(@NonNull StudentGradebookEntry value) {
         GradebookEntryResponse response = new GradebookEntryResponse();
         response.setCourseworkId(value.getCourseworkId());
         response.setTitle(value.getTitle());

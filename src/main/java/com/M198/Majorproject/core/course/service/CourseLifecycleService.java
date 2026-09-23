@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -45,6 +44,10 @@ import com.M198.Majorproject.core.course.repository.CourseRepository;
 import com.M198.Majorproject.core.course.repository.EnrollmentCodeRepository;
 import com.M198.Majorproject.core.course.port.CourseDiscoveryPort;
 import com.M198.Majorproject.user.profile.entity.UserProfile;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import com.M198.Majorproject.core.course.port.CourseProfilePort;
 import com.M198.Majorproject.core.course.security.CourseAccessPolicy;
 import com.M198.Majorproject.core.course.dto.InviteTokenResponse;
@@ -56,10 +59,9 @@ import com.M198.Majorproject.discovery.notification.service.NotificationService;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
-
+@RequiredArgsConstructor
+@Slf4j
 public class CourseLifecycleService {
-
-    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CourseLifecycleService.class);
 
     private final CourseRepository courseRepository;
     private final CourseMembershipRepository membershipRepository;
@@ -70,28 +72,6 @@ public class CourseLifecycleService {
     private final CourseMediaService mediaService;
     private final CourseAccessPolicy courseAccessPolicy;
     private final NotificationService notificationService;
-
-    @Autowired
-    public CourseLifecycleService(
-            CourseRepository courseRepository,
-            CourseMembershipRepository membershipRepository,
-            EnrollmentCodeRepository enrollmentCodeRepository,
-            CourseDiscoveryPort courseDiscoveryPort,
-            CourseProfilePort courseProfilePort,
-            CourseDeletionCleanupService deletionCleanupService,
-            CourseMediaService mediaService,
-            CourseAccessPolicy courseAccessPolicy,
-            NotificationService notificationService) {
-        this.courseRepository = courseRepository;
-        this.membershipRepository = membershipRepository;
-        this.enrollmentCodeRepository = enrollmentCodeRepository;
-        this.courseDiscoveryPort = courseDiscoveryPort;
-        this.courseProfilePort = courseProfilePort;
-        this.deletionCleanupService = deletionCleanupService;
-        this.mediaService = mediaService;
-        this.courseAccessPolicy = courseAccessPolicy;
-        this.notificationService = notificationService;
-    }
 
     public CourseCoverUploadResponse requestCoverUpload(Authentication authentication) {
         courseAccessPolicy.authenticatedUserId(authentication,
@@ -281,7 +261,7 @@ public class CourseLifecycleService {
         boolean isDiscoverable = course != null && (course.getAccessType() == CourseAccessType.PUBLIC);
 
         if (course == null || course.getStatus() != CourseStatus.ACTIVE || (!isStaffOrEnrolled && !isDiscoverable)) {
-            logger.warn(
+            log.warn(
                     "Course access denied: courseId={}, userId={}, courseExists={}, courseStatus={}, membershipExists={}, membershipStatus={}",
                     courseId, userId, course != null, course == null ? null : course.getStatus(),
                     membership.isPresent(),
@@ -635,7 +615,7 @@ public class CourseLifecycleService {
 
         courseRepository.deleteById(courseId);
 
-        logger.info("Permanently deleted course {} and cascaded all associated dependents by user {}", courseId,
+        log.info("Permanently deleted course {} and cascaded all associated dependents by user {}", courseId,
                 userId);
     }
 
@@ -717,7 +697,7 @@ public class CourseLifecycleService {
             response.setAvatarUrl(p.getAvatarUrl());
         });
 
-        logger.info("Updated member role in course {}: targetUser={}, newRole={}, byUser={}",
+        log.info("Updated member role in course {}: targetUser={}, newRole={}, byUser={}",
                 courseId, targetUserId, newRole, currentUserId);
 
         return response;

@@ -1,17 +1,10 @@
 package com.M198.Majorproject.core.course.controller;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.M198.Majorproject.core.course.dto.CourseworkResponse;
 import com.M198.Majorproject.core.course.dto.CreateCourseworkRequest;
@@ -21,13 +14,10 @@ import com.M198.Majorproject.core.course.service.CourseworkService;
 
 @RestController
 @RequestMapping("/v1/courses/{courseId}/coursework")
+@RequiredArgsConstructor
 public class CourseworkController {
 
     private final CourseworkService courseworkService;
-
-    public CourseworkController(CourseworkService courseworkService) {
-        this.courseworkService = courseworkService;
-    }
 
     @PostMapping
     public CourseworkResponse create(

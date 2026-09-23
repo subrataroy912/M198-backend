@@ -40,21 +40,23 @@ public class CourseworkService {
 
     public CourseworkResponse create(
             String courseId, Authentication authentication, CreateCourseworkRequest request) {
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseworkAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseworkAccessException("Authentication required"));
         requireActiveCourse(courseId);
         CourseMembership membership;
         if (request.getType() == CourseworkType.ANNOUNCEMENT) {
             membership = courseAccessPolicy.requireActiveMember(courseId, userId, CourseworkNotFoundException::new);
         } else {
-            membership = courseAccessPolicy.requireStaff(courseId, userId, CourseworkNotFoundException::new, () -> new CourseworkAccessException("Course staff role required"));
+            membership = courseAccessPolicy.requireStaff(courseId, userId, CourseworkNotFoundException::new,
+                    () -> new CourseworkAccessException("Course staff role required"));
         }
         validateAssignmentFields(request.getType().name(), request.getDueAt(), request.getMaximumPoints());
 
-        // Default to PUBLISHED so newly created announcements and coursework are immediately visible to all members unless explicitly marked as DRAFT.
-        CourseworkStatus initialStatus =
-                request.getStatus() == CourseworkStatus.DRAFT
-                        ? CourseworkStatus.DRAFT
-                        : CourseworkStatus.PUBLISHED;
+        // Default to PUBLISHED so newly created announcements and coursework are
+        // immediately visible to all members unless explicitly marked as DRAFT.
+        CourseworkStatus initialStatus = request.getStatus() == CourseworkStatus.DRAFT
+                ? CourseworkStatus.DRAFT
+                : CourseworkStatus.PUBLISHED;
         Instant publishedAt = initialStatus == CourseworkStatus.PUBLISHED ? Instant.now() : null;
 
         boolean isStaff = courseAccessPolicy.isStaff(membership);
@@ -85,9 +87,11 @@ public class CourseworkService {
         if (page < 0 || size < 1 || size > 100) {
             throw new IllegalArgumentException("page must be non-negative and size must be between 1 and 100");
         }
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseworkAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseworkAccessException("Authentication required"));
         requireActiveCourse(courseId);
-        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId, CourseworkNotFoundException::new);
+        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId,
+                CourseworkNotFoundException::new);
         PageRequest pageRequest = PageRequest.of(page, size);
 
         Page<Coursework> pageOfCoursework = courseAccessPolicy.isStaff(membership)
@@ -110,9 +114,11 @@ public class CourseworkService {
 
     public CourseworkResponse get(
             String courseId, String courseworkId, Authentication authentication) {
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseworkAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseworkAccessException("Authentication required"));
         requireActiveCourse(courseId);
-        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId, CourseworkNotFoundException::new);
+        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId,
+                CourseworkNotFoundException::new);
         Coursework coursework = courseworkRepository.findByIdAndCourseId(courseworkId, courseId)
                 .orElseThrow(CourseworkNotFoundException::new);
         if (!courseAccessPolicy.isStaff(membership) && coursework.getStatus() != CourseworkStatus.PUBLISHED) {
@@ -126,9 +132,11 @@ public class CourseworkService {
 
     public CourseworkResponse update(
             String courseId, String courseworkId, Authentication authentication, UpdateCourseworkRequest request) {
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseworkAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseworkAccessException("Authentication required"));
         requireActiveCourse(courseId);
-        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId, CourseworkNotFoundException::new);
+        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId,
+                CourseworkNotFoundException::new);
         Coursework coursework = courseworkRepository.findByIdAndCourseId(courseworkId, courseId)
                 .orElseThrow(CourseworkNotFoundException::new);
 
@@ -173,9 +181,11 @@ public class CourseworkService {
     }
 
     public void archive(String courseId, String courseworkId, Authentication authentication) {
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseworkAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseworkAccessException("Authentication required"));
         requireActiveCourse(courseId);
-        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId, CourseworkNotFoundException::new);
+        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId,
+                CourseworkNotFoundException::new);
         Coursework coursework = courseworkRepository.findByIdAndCourseId(courseworkId, courseId)
                 .orElseThrow(CourseworkNotFoundException::new);
 
@@ -239,7 +249,8 @@ public class CourseworkService {
                 String first = creatorProfile.getFirstName() != null ? creatorProfile.getFirstName().trim() : "";
                 String last = creatorProfile.getLastName() != null ? creatorProfile.getLastName().trim() : "";
                 String full = (first + " " + last).trim();
-                name = !full.isEmpty() ? full : (creatorProfile.getHandle() != null ? creatorProfile.getHandle() : "Member");
+                name = !full.isEmpty() ? full
+                        : (creatorProfile.getHandle() != null ? creatorProfile.getHandle() : "Member");
             }
             response.setCreatorName(name);
             response.setCreatorAvatarUrl(creatorProfile.getAvatarUrl());
@@ -250,7 +261,8 @@ public class CourseworkService {
         response.setDescription(coursework.getDescription());
         response.setStatus(coursework.getStatus());
         response.setPinned(coursework.isPinned());
-        response.setAttachments(coursework.getAttachments() != null ? coursework.getAttachments() : Collections.emptyList());
+        response.setAttachments(
+                coursework.getAttachments() != null ? coursework.getAttachments() : Collections.emptyList());
         response.setPublishedAt(coursework.getPublishedAt());
         response.setDueAt(coursework.getDueAt());
         response.setMaximumPoints(coursework.getMaximumPoints());

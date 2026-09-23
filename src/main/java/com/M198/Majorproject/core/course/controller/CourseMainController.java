@@ -13,45 +13,25 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.M198.Majorproject.core.course.dto.CourseResponse;
-import com.M198.Majorproject.core.course.dto.CourseCoverUploadResponse;
-import com.M198.Majorproject.core.course.dto.CreateCourseRequest;
-import com.M198.Majorproject.core.course.dto.EnrollCourseRequest;
-import com.M198.Majorproject.core.course.dto.CourseMemberResponse;
-import com.M198.Majorproject.core.course.dto.InviteTokenResponse;
-import com.M198.Majorproject.core.course.dto.InviteValidationResponse;
-import com.M198.Majorproject.core.course.dto.JoinRequestResponse;
-import com.M198.Majorproject.core.course.dto.UpdateCourseRequest;
-import com.M198.Majorproject.core.course.dto.UpdateMemberRoleRequest;
+import com.M198.Majorproject.core.course.dto.*;
 import com.M198.Majorproject.core.course.service.CourseService;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/v1/courses")
 public class CourseMainController {
 
     private final CourseService courseService;
-
-    public CourseMainController(CourseService courseService) {
-        this.courseService = courseService;
-    }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public CourseResponse createCourse(

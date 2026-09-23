@@ -32,7 +32,8 @@ public class SubmissionService {
     public SubmissionResponse start(String courseworkId, Authentication authentication) {
         String studentId = courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new);
         Coursework coursework = publishedAssignment(courseworkId);
-        courseAccessPolicy.requireMember(coursework.getCourseId(), studentId, SubmissionAccessException::new, SubmissionAccessException::new);
+        courseAccessPolicy.requireMember(coursework.getCourseId(), studentId, SubmissionAccessException::new,
+                SubmissionAccessException::new);
         if (coursework.getType() != CourseworkType.ASSIGNMENT) {
             throw new SubmissionConflictException("Only assignments accept submissions");
         }
@@ -55,7 +56,8 @@ public class SubmissionService {
     public SubmissionResponse mine(String courseworkId, Authentication authentication) {
         String studentId = courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new);
         Coursework coursework = publishedAssignment(courseworkId);
-        courseAccessPolicy.requireMember(coursework.getCourseId(), studentId, SubmissionAccessException::new, SubmissionAccessException::new);
+        courseAccessPolicy.requireMember(coursework.getCourseId(), studentId, SubmissionAccessException::new,
+                SubmissionAccessException::new);
         return submissionRepository.findByCourseworkIdAndStudentId(courseworkId, studentId)
                 .map(this::toResponse)
                 .orElseThrow(SubmissionNotFoundException::new);
@@ -65,7 +67,8 @@ public class SubmissionService {
             String courseworkId, Authentication authentication, UpdateSubmissionRequest request) {
         String studentId = courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new);
         Coursework coursework = publishedAssignment(courseworkId);
-        courseAccessPolicy.requireMember(coursework.getCourseId(), studentId, SubmissionAccessException::new, SubmissionAccessException::new);
+        courseAccessPolicy.requireMember(coursework.getCourseId(), studentId, SubmissionAccessException::new,
+                SubmissionAccessException::new);
         Submission submission = submissionRepository.findByCourseworkIdAndStudentId(courseworkId, studentId)
                 .orElseThrow(SubmissionNotFoundException::new);
         if (submission.getStatus() == SubmissionStatus.GRADED
@@ -94,7 +97,9 @@ public class SubmissionService {
             throw new IllegalArgumentException("page must be non-negative and size must be between 1 and 100");
         }
         Coursework coursework = coursework(courseworkId);
-        courseAccessPolicy.requireStaff(coursework.getCourseId(), courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new), SubmissionAccessException::new, SubmissionAccessException::new);
+        courseAccessPolicy.requireStaff(coursework.getCourseId(),
+                courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new),
+                SubmissionAccessException::new, SubmissionAccessException::new);
         return submissionRepository.findAllByCourseworkIdOrderByCreatedAtAsc(
                 courseworkId, PageRequest.of(page, size)).map(this::toResponse);
     }
@@ -102,7 +107,9 @@ public class SubmissionService {
     public SubmissionResponse grade(
             String courseworkId, String submissionId, Authentication authentication, GradeSubmissionRequest request) {
         Coursework coursework = coursework(courseworkId);
-        courseAccessPolicy.requireStaff(coursework.getCourseId(), courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new), SubmissionAccessException::new, SubmissionAccessException::new);
+        courseAccessPolicy.requireStaff(coursework.getCourseId(),
+                courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new),
+                SubmissionAccessException::new, SubmissionAccessException::new);
         Submission submission = submissionRepository.findById(submissionId)
                 .filter(value -> courseworkId.equals(value.getCourseworkId()))
                 .orElseThrow(SubmissionNotFoundException::new);

@@ -9,10 +9,12 @@ import com.M198.Majorproject.core.course.port.CourseDiscoveryPort;
 import com.M198.Majorproject.discovery.explore.entity.CourseDiscovery;
 import com.M198.Majorproject.discovery.explore.repository.CourseDiscoveryRepository;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 class MongoCourseDiscoveryAdapter implements CourseDiscoveryPort {
     private final CourseDiscoveryRepository repository;
-    MongoCourseDiscoveryAdapter(CourseDiscoveryRepository repository) { this.repository = repository; }
 
     private CourseVisibility resolveVisibility(CourseAccessType accessType) {
         return (accessType == CourseAccessType.PUBLIC) ? CourseVisibility.PUBLIC : CourseVisibility.PRIVATE;
@@ -35,5 +37,8 @@ class MongoCourseDiscoveryAdapter implements CourseDiscoveryPort {
         discovery.setLastActivityAt(Instant.now());
         repository.save(discovery);
     }
-    public void remove(String courseId) { repository.deleteByCourseId(courseId); }
+
+    public void remove(String courseId) {
+        repository.deleteByCourseId(courseId);
+    }
 }
