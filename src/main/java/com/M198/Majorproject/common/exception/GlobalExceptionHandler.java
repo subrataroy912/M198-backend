@@ -16,6 +16,7 @@ import com.M198.Majorproject.user.profile.exception.ProfileNotFoundException;
 import com.M198.Majorproject.user.profile.exception.HandleConflictException;
 import com.M198.Majorproject.user.profile.exception.ProfileStorageException;
 import com.M198.Majorproject.core.course.service.CourseService.CourseAccessException;
+import com.M198.Majorproject.core.course.service.CourseService.CourseBadRequestException;
 import com.M198.Majorproject.core.course.service.CourseService.CourseConflictException;
 import com.M198.Majorproject.core.course.service.CourseService.CourseIdFormatException;
 import com.M198.Majorproject.core.course.service.CourseService.CourseNotFoundException;
@@ -102,6 +103,12 @@ public class GlobalExceptionHandler {
     ResponseEntity<Map<String, String>> handleCourseNotFoundException(CourseNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", "Course not found"));
+    }
+
+    @ExceptionHandler(CourseBadRequestException.class)
+    ResponseEntity<Map<String, String>> handleCourseBadRequestException(CourseBadRequestException exception) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("error", exception.getMessage() != null ? exception.getMessage() : "Bad request"));
     }
 
     @ExceptionHandler(CourseIdFormatException.class)

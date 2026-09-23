@@ -4,7 +4,7 @@
  * PURPOSE    : Manages membership records linking users to courses and tracking their roles.
  *
  * Membership records are the gatekeepers for access control in classrooms,
- * allowing teachers, owners, students, and active/inactive states to be evaluated reliably.
+ * allowing owners, admins, members, and active/inactive states to be evaluated reliably.
  */
 package com.M198.Majorproject.core.course.repository;
 

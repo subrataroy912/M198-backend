@@ -33,7 +33,7 @@ public class CreateCourseworkRequest {
     private Integer maximumPoints;
 
     /**
-     * Optional. When set to PUBLISHED the item is immediately visible to students
+     * Optional. When set to PUBLISHED the item is immediately visible to members
      * and publishedAt is recorded. Defaults to DRAFT when omitted or null.
      * ARCHIVED is not a valid value on creation.
      */

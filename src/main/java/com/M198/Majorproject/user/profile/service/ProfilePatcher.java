@@ -6,7 +6,6 @@ import java.util.function.Consumer;
 import org.springframework.stereotype.Component;
 
 import com.M198.Majorproject.user.profile.entity.ProfileLink;
-import com.M198.Majorproject.user.profile.entity.ProfileVisibility;
 import com.M198.Majorproject.user.profile.entity.UserProfile;
 import com.M198.Majorproject.user.profile.dto.UpdateUserProfileRequest;
 

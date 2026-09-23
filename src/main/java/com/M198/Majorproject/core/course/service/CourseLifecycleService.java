@@ -4,7 +4,7 @@
  * PURPOSE    : Handles course creation, enrollment, roster management, ownership rules,
  *              and lifecycle updates for classroom operations.
  *
- * This service is responsible for teacher/student course interaction.
+ * This service is responsible for course and membership lifecycle operations.
  * It validates memberships, enforces access control, and keeps course data consistent.
  */
 package com.M198.Majorproject.core.course.service;

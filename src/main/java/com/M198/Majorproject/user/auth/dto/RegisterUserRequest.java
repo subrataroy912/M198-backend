@@ -4,7 +4,7 @@
  * PURPOSE    : Carries the payload for new user registration and validates required identity data.
  *
  * This request ensures the system accepts only valid registration data before creating
- * an account and profile for a new student or teacher.
+ * an account and profile for a new user.
  */
 package com.M198.Majorproject.user.auth.dto;
 

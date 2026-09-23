@@ -1,7 +1,7 @@
 /**
  * CREATED BY : SUBRATA ROY
  * REPOSITORY : CourseAnalyticsSummaryRepository
- * PURPOSE    : Retrieves course-level analytics summaries for teacher and academic overview screens.
+ * PURPOSE    : Retrieves course-level analytics summaries for space owners, admins, and overview screens.
  *
  * This repository keeps grade and performance summary records available for analytics endpoints,
  * dashboards, and progress reporting features.
