@@ -100,7 +100,6 @@ class CourseServiceTest {
                 CreateCourseRequest request = new CreateCourseRequest();
                 request.setTitle("Mathematics");
                 request.setSubject("Science");
-                request.setVisibility(CourseVisibility.PUBLIC);
 
                 courseService.createCourse(teacher, request);
 
@@ -168,7 +167,7 @@ class CourseServiceTest {
         @Test
         void publicActiveCourseCanBeReadWithoutMembership() {
                 Course course = Course.builder().id("course-1").title("Mathematics")
-                                .visibility(CourseVisibility.PUBLIC).status(CourseStatus.ACTIVE).build();
+                                .accessType(CourseAccessType.PUBLIC).status(CourseStatus.ACTIVE).build();
                 when(courseRepository.findByIdAndStatus("course-1", CourseStatus.ACTIVE))
                                 .thenReturn(Optional.of(course));
                 when(membershipRepository.countByCourseIdAndStatus("course-1", MembershipStatus.ACTIVE)).thenReturn(3L);
@@ -291,35 +290,38 @@ class CourseServiceTest {
         }
 
         @Test
-        void inviteCourseCreationDoesNotGenerateEnrollmentCode() {
+        void privateCourseCreationDoesNotGenerateEnrollmentCode() {
                 CreateCourseRequest request = new CreateCourseRequest();
                 request.setTitle("Private Seminar");
-                request.setAccessType(CourseAccessType.INVITE);
+                request.setAccessType(CourseAccessType.PRIVATE);
 
                 var response = courseService.createCourse(teacher, request);
 
                 assertEquals("course-1", response.getId());
-                assertEquals(CourseAccessType.INVITE, response.getAccessType());
-                org.junit.jupiter.api.Assertions.assertFalse(response.isEnrollmentEnabled());
+                assertEquals(CourseAccessType.PRIVATE, response.getAccessType());
+                org.junit.jupiter.api.Assertions.assertTrue(response.isEnrollmentEnabled());
                 org.junit.jupiter.api.Assertions.assertNull(response.getEnrollmentCode());
                 verify(membershipRepository).save(any(CourseMembership.class));
         }
 
         @Test
-        void enrollmentInInviteCourseThrowsAccessException() {
+        void enrollmentInPrivateCourseCreatesPendingMembership() {
                 Course course = Course.builder()
-                                .id("course-invite")
+                                .id("course-private")
                                 .status(CourseStatus.ACTIVE)
-                                .accessType(CourseAccessType.INVITE)
+                                .accessType(CourseAccessType.PRIVATE)
                                 .enrollmentEnabled(true)
                                 .build();
-                when(courseRepository.findByIdAndStatus("course-invite", CourseStatus.ACTIVE))
+                when(courseRepository.findByIdAndStatus("course-private", CourseStatus.ACTIVE))
                                 .thenReturn(Optional.of(course));
+                when(membershipRepository.findByCourseIdAndUserId("course-private", "student-1"))
+                                .thenReturn(Optional.empty());
 
-                EnrollCourseRequest request = new EnrollCourseRequest("ANYCODE");
-                var ex = assertThrows(CourseService.CourseAccessException.class,
-                                () -> courseService.enroll("course-invite", student, request));
-                org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("invite-only"));
+                EnrollCourseRequest request = new EnrollCourseRequest();
+                var response = courseService.enroll("course-private", student, request);
+                org.junit.jupiter.api.Assertions.assertNotNull(response);
+                assertEquals(MembershipStatus.PENDING, response.getMembershipStatus());
+                org.junit.jupiter.api.Assertions.assertFalse(response.isEnrolled());
         }
 
         @Test
@@ -327,7 +329,7 @@ class CourseServiceTest {
                 Course course = Course.builder()
                                 .id("course-open")
                                 .status(CourseStatus.ACTIVE)
-                                .accessType(CourseAccessType.OPEN)
+                                .accessType(CourseAccessType.PUBLIC)
                                 .enrollmentEnabled(true)
                                 .build();
                 when(courseRepository.findByIdAndStatus("course-open", CourseStatus.ACTIVE))
@@ -347,8 +349,7 @@ class CourseServiceTest {
                 Course course = Course.builder()
                                 .id("6aa4583ab463bdd7707f1556")
                                 .status(CourseStatus.ACTIVE)
-                                .visibility(CourseVisibility.PUBLIC)
-                                .accessType(CourseAccessType.OPEN)
+                                .accessType(CourseAccessType.PUBLIC)
                                 .title("Public Open Class")
                                 .build();
                 when(courseRepository.findById("6aa4583ab463bdd7707f1556")).thenReturn(Optional.of(course));
@@ -365,12 +366,11 @@ class CourseServiceTest {
         }
 
         @Test
-        void publicCourseWithCodeAccessTypeEnrollmentSucceedsWithoutCode() {
+        void publicCourseEnrollmentSucceedsWithoutCode() {
                 Course course = Course.builder()
                                 .id("6aa437aecbe563688e22b18d")
                                 .status(CourseStatus.ACTIVE)
-                                .visibility(CourseVisibility.PUBLIC)
-                                .accessType(CourseAccessType.CODE)
+                                .accessType(CourseAccessType.PUBLIC)
                                 .enrollmentEnabled(true)
                                 .build();
                 when(courseRepository.findByIdAndStatus("6aa437aecbe563688e22b18d", CourseStatus.ACTIVE))
@@ -390,8 +390,7 @@ class CourseServiceTest {
                 Course course = Course.builder()
                                 .id("6aa451d330db1c61fdfc3ab5")
                                 .status(CourseStatus.ACTIVE)
-                                .visibility(CourseVisibility.PUBLIC)
-                                .accessType(CourseAccessType.OPEN)
+                                .accessType(CourseAccessType.PUBLIC)
                                 .enrollmentEnabled(true)
                                 .build();
                 CourseMembership activeMembership = CourseMembership.builder()
@@ -578,7 +577,6 @@ class CourseServiceTest {
 
                 CreateCourseRequest request = new CreateCourseRequest();
                 request.setTitle("Robotics Club");
-                request.setSpaceType(com.M198.Majorproject.core.course.entity.SpaceType.CLUB_SOCIETY);
                 request.setLinks(java.util.List.of(link1));
 
                 var response = courseService.createCourse(teacher, request);

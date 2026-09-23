@@ -116,29 +116,16 @@ public class CourseLifecycleService {
     }
 
     public CourseResponse createCourse(Authentication authentication, CreateCourseRequest request) {
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         requireCanCreateCourse(authentication, userId);
 
         CourseAccessType accessType = request.getAccessType();
-        CourseVisibility visibility = request.getVisibility();
-
         if (accessType == null) {
             accessType = CourseAccessType.PUBLIC;
         }
 
-        boolean isInvite = accessType == CourseAccessType.INVITE;
-        boolean enrollmentEnabled = !isInvite;
-
-        if (visibility == null) {
-            visibility = (accessType == CourseAccessType.LINK_ONLY || isInvite)
-                    ? CourseVisibility.PRIVATE
-                    : CourseVisibility.PUBLIC;
-        } else if (accessType == CourseAccessType.LINK_ONLY || isInvite) {
-            visibility = CourseVisibility.PRIVATE;
-        }
-
-        SpaceType spaceType = request.getSpaceType() != null ? request.getSpaceType() : SpaceType.ACADEMIC_CLASS;
-        MeetingType meetingType = request.getMeetingType() != null ? request.getMeetingType() : MeetingType.IN_PERSON;
+        boolean enrollmentEnabled = true;
 
         String coverUrl = mediaService.resolveAsset(request.getCoverUrl(), CourseMediaService.Asset.COVER);
         String logoUrl = mediaService.resolveAsset(request.getLogoUrl(), CourseMediaService.Asset.LOGO);
@@ -146,19 +133,15 @@ public class CourseLifecycleService {
         Course course = courseRepository.save(Course.builder()
                 .ownerId(userId)
                 .title(normalizeRequired(request.getTitle()))
-                .spaceType(spaceType)
                 .section(normalize(request.getSection()))
                 .subject(normalize(request.getSubject()))
                 .description(normalize(request.getDescription()))
                 .coverUrl(coverUrl)
                 .logoUrl(logoUrl)
                 .theme(normalize(request.getTheme()))
-                .meetingType(meetingType)
-                .location(normalize(request.getLocation()))
                 .tags(request.getTags() != null ? request.getTags() : Collections.emptyList())
                 .links(request.getLinks() != null ? request.getLinks() : Collections.emptyList())
                 .accessType(accessType)
-                .visibility(visibility)
                 .enrollmentEnabled(enrollmentEnabled)
                 .status(CourseStatus.ACTIVE)
                 .build());
@@ -173,7 +156,7 @@ public class CourseLifecycleService {
         try {
             membershipRepository.save(ownerMembership);
             String enrollmentCodeValue = null;
-            if (!isInvite) {
+            if (accessType != CourseAccessType.PRIVATE) {
                 EnrollmentCode enrollmentCode = enrollmentCodeRepository.save(EnrollmentCode.builder()
                         .courseId(course.getId())
                         .code(generateEnrollmentCode())
@@ -212,7 +195,8 @@ public class CourseLifecycleService {
     }
 
     public List<CourseResponse> listMyCourses(Authentication authentication) {
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         List<CourseMembership> memberships = membershipRepository.findAllByUserIdAndStatus(userId,
                 MembershipStatus.ACTIVE);
         if (memberships.isEmpty()) {
@@ -289,14 +273,13 @@ public class CourseLifecycleService {
 
     public CourseResponse getCourse(String courseId, Authentication authentication) {
         validateCourseId(courseId);
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = courseRepository.findById(courseId).orElse(null);
         var membership = membershipRepository.findByCourseIdAndUserId(courseId, userId);
         boolean isStaffOrEnrolled = membership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE)
                 .isPresent();
-        boolean isDiscoverable = course != null && (course.getVisibility() == CourseVisibility.PUBLIC
-                || course.getAccessType() == CourseAccessType.PUBLIC
-                || course.getAccessType() == CourseAccessType.PRIVATE);
+        boolean isDiscoverable = course != null && (course.getAccessType() == CourseAccessType.PUBLIC);
 
         if (course == null || course.getStatus() != CourseStatus.ACTIVE || (!isStaffOrEnrolled && !isDiscoverable)) {
             logger.warn(
@@ -308,13 +291,15 @@ public class CourseLifecycleService {
         }
         CourseResponse response = toResponse(course);
         if (isStaffOrEnrolled) {
-            MembershipRole role = membership.get().getRole() != null ? membership.get().getRole() : MembershipRole.MEMBER;
+            MembershipRole role = membership.get().getRole() != null ? membership.get().getRole()
+                    : MembershipRole.MEMBER;
             response.setRole(role.name());
             response.setEnrolled(true);
             response.setMembershipStatus(MembershipStatus.ACTIVE);
             enrollmentCodeRepository.findByCourseIdAndActiveTrue(courseId).ifPresent(code -> {
                 response.setEnrollmentCode(code.getCode());
-                boolean isStaff = role == MembershipRole.OWNER || role == MembershipRole.ADMIN || hasAuthority(authentication, "ROLE_ADMIN");
+                boolean isStaff = role == MembershipRole.OWNER || role == MembershipRole.ADMIN
+                        || hasAuthority(authentication, "ROLE_ADMIN");
                 if (isStaff) {
                     response.setInviteToken(code.getCode());
                     response.setInviteUrl("/spaces/join?invite=" + code.getCode());
@@ -340,25 +325,19 @@ public class CourseLifecycleService {
     public PublicCourseResponse getPublicCourse(String courseId) {
         validateCourseId(courseId);
         Course course = courseRepository.findByIdAndStatus(courseId, CourseStatus.ACTIVE)
-                .filter(value -> value.getVisibility() == CourseVisibility.PUBLIC)
+                .filter(value -> value.getAccessType() == CourseAccessType.PUBLIC)
                 .orElseThrow(CourseService.CourseNotFoundException::new);
         PublicCourseResponse response = new PublicCourseResponse();
         response.setId(course.getId());
         response.setTitle(course.getTitle());
-        response.setSpaceType(course.getSpaceType() != null ? course.getSpaceType() : SpaceType.ACADEMIC_CLASS);
         response.setSection(course.getSection());
         response.setSubject(course.getSubject());
         response.setDescription(course.getDescription());
         response.setCoverUrl(course.getCoverUrl());
         response.setLogoUrl(course.getLogoUrl());
         response.setTheme(course.getTheme());
-        response.setMeetingType(course.getMeetingType() != null ? course.getMeetingType() : MeetingType.IN_PERSON);
-        response.setLocation(course.getLocation());
         response.setTags(course.getTags());
-        response.setVisibility(course.getVisibility());
-        response.setAccessType(course.getAccessType() != null
-                ? course.getAccessType()
-                : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.PUBLIC : CourseAccessType.LINK_ONLY));
+        response.setAccessType(course.getAccessType() != null ? course.getAccessType() : CourseAccessType.PUBLIC);
         response.setEnrollmentEnabled(course.isEnrollmentEnabled());
         response.setMemberCount(membershipRepository.countByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE));
         return response;
@@ -376,19 +355,15 @@ public class CourseLifecycleService {
     }
 
     public CourseResponse enroll(String courseId, Authentication authentication, EnrollCourseRequest request) {
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
         if (!course.isEnrollmentEnabled()) {
             throw new CourseService.CourseAccessException("Enrollment is disabled");
         }
         CourseAccessType accessType = course.getAccessType() != null
                 ? course.getAccessType()
-                : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.PUBLIC : CourseAccessType.LINK_ONLY);
-
-        if (accessType == CourseAccessType.INVITE) {
-            throw new CourseService.CourseAccessException(
-                    "This class is invite-only. Please request an invitation from the instructor.");
-        }
+                : CourseAccessType.PUBLIC;
 
         var existingMembership = membershipRepository.findByCourseIdAndUserId(courseId, userId);
         if (existingMembership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE).isPresent()) {
@@ -431,7 +406,8 @@ public class CourseLifecycleService {
             String requesterName = courseProfilePort.findByUserId(userId)
                     .map(UserProfile::getDisplayName)
                     .orElse("A user");
-            List<CourseMembership> staffMembers = membershipRepository.findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE)
+            List<CourseMembership> staffMembers = membershipRepository
+                    .findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE)
                     .stream()
                     .filter(m -> m.getRole() == MembershipRole.OWNER || m.getRole() == MembershipRole.ADMIN)
                     .toList();
@@ -448,8 +424,7 @@ public class CourseLifecycleService {
                         "New Join Request",
                         requesterName + " requested to join " + course.getTitle(),
                         NotificationResourceType.COURSE,
-                        courseId
-                );
+                        courseId);
             }
 
             CourseResponse res = toResponse(course);
@@ -467,7 +442,8 @@ public class CourseLifecycleService {
             enrollmentCodeRepository.findByCodeAndActiveTrue(code.toUpperCase())
                     .filter(value -> value.getCourseId().equals(courseId))
                     .filter(value -> value.getExpiresAt() == null || value.getExpiresAt().isAfter(Instant.now()))
-                    .orElseThrow(() -> new CourseService.CourseAccessException("Invitation link is invalid or has expired."));
+                    .orElseThrow(() -> new CourseService.CourseAccessException(
+                            "Invitation link is invalid or has expired."));
         } else if (accessType == CourseAccessType.PUBLIC) {
             if (request != null && request.getCode() != null && !request.getCode().trim().isEmpty()) {
                 enrollmentCodeRepository.findByCodeAndActiveTrue(request.getCode().trim().toUpperCase())
@@ -515,7 +491,8 @@ public class CourseLifecycleService {
     }
 
     public void leave(String courseId, Authentication authentication) {
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         activeCourse(courseId);
         CourseMembership membership = membershipRepository.findByCourseIdAndUserIdAndStatus(
                 courseId, userId, MembershipStatus.ACTIVE)
@@ -530,7 +507,8 @@ public class CourseLifecycleService {
     }
 
     public void removeMember(String courseId, String memberUserId, Authentication authentication) {
-        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
         CourseMembership callerMembership = courseAccessPolicy.requireAdminOrOwner(
                 courseId, currentUserId,
@@ -566,9 +544,12 @@ public class CourseLifecycleService {
     }
 
     public CourseResponse update(String courseId, Authentication authentication, UpdateCourseRequest request) {
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
-        courseAccessPolicy.requireAdminOrOwner(courseId, userId, () -> new CourseService.CourseAccessException("Course membership required"), () -> new CourseService.CourseAccessException("Course owner or admin role required"));
+        courseAccessPolicy.requireAdminOrOwner(courseId, userId,
+                () -> new CourseService.CourseAccessException("Course membership required"),
+                () -> new CourseService.CourseAccessException("Course owner or admin role required"));
         if (request.getTitle() != null) {
             course.setTitle(normalizeRequired(request.getTitle()));
         }
@@ -585,7 +566,6 @@ public class CourseLifecycleService {
             course.setAccessType(request.getAccessType());
             switch (request.getAccessType()) {
                 case LINK_ONLY -> {
-                    course.setVisibility(CourseVisibility.PRIVATE);
                     course.setEnrollmentEnabled(true);
                     boolean hasActive = enrollmentCodeRepository.findByCourseIdAndActiveTrue(courseId)
                             .filter(c -> c.getExpiresAt() == null || c.getExpiresAt().isAfter(Instant.now()))
@@ -601,15 +581,11 @@ public class CourseLifecycleService {
                     }
                 }
                 case PUBLIC, PRIVATE -> {
-                    course.setVisibility(CourseVisibility.PUBLIC);
                     course.setEnrollmentEnabled(true);
                 }
                 default -> {
                 }
             }
-        }
-        if (request.getVisibility() != null) {
-            course.setVisibility(request.getVisibility());
         }
         if (request.getEnrollmentEnabled() != null) {
             course.setEnrollmentEnabled(request.getEnrollmentEnabled());
@@ -623,15 +599,7 @@ public class CourseLifecycleService {
         if (request.getTheme() != null) {
             course.setTheme(normalize(request.getTheme()));
         }
-        if (request.getSpaceType() != null) {
-            course.setSpaceType(request.getSpaceType());
-        }
-        if (request.getMeetingType() != null) {
-            course.setMeetingType(request.getMeetingType());
-        }
-        if (request.getLocation() != null) {
-            course.setLocation(normalize(request.getLocation()));
-        }
+
         if (request.getTags() != null) {
             course.setTags(request.getTags());
         }
@@ -644,9 +612,12 @@ public class CourseLifecycleService {
     }
 
     public void archive(String courseId, Authentication authentication) {
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
-        courseAccessPolicy.requireAdminOrOwner(courseId, userId, () -> new CourseService.CourseAccessException("Course membership required"), () -> new CourseService.CourseAccessException("Course owner or admin role required"));
+        courseAccessPolicy.requireAdminOrOwner(courseId, userId,
+                () -> new CourseService.CourseAccessException("Course membership required"),
+                () -> new CourseService.CourseAccessException("Course owner or admin role required"));
         course.setStatus(CourseStatus.ARCHIVED);
         course.setArchivedAt(Instant.now());
         Course archivedCourse = courseRepository.save(course);
@@ -655,7 +626,8 @@ public class CourseLifecycleService {
 
     public void deleteCourse(String courseId, Authentication authentication) {
         validateCourseId(courseId);
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(CourseService.CourseNotFoundException::new);
         requireOwnerOrAdmin(course, userId, authentication);
@@ -669,7 +641,8 @@ public class CourseLifecycleService {
     }
 
     public List<CourseMemberResponse> roster(String courseId, Authentication authentication) {
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         activeCourse(courseId);
         if (!hasAuthority(authentication, "ROLE_ADMIN")) {
             courseAccessPolicy.requireActiveMember(courseId, userId, CourseService.CourseNotFoundException::new);
@@ -677,7 +650,7 @@ public class CourseLifecycleService {
         List<CourseMembership> memberships = membershipRepository.findAllByCourseIdAndStatus(courseId,
                 MembershipStatus.ACTIVE);
         Map<String, UserProfile> profileMap = new HashMap<>();
-         {
+        {
             List<String> userIds = memberships.stream().map(CourseMembership::getUserId).toList();
             if (!userIds.isEmpty()) {
                 courseProfilePort.findAllByUserIdIn(userIds).forEach(p -> profileMap.put(p.getUserId(), p));
@@ -752,7 +725,8 @@ public class CourseLifecycleService {
     }
 
     public void cancelJoinRequest(String courseId, Authentication authentication) {
-        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String userId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         activeCourse(courseId);
         membershipRepository.findByCourseIdAndUserId(courseId, userId)
                 .filter(m -> m.getStatus() == MembershipStatus.PENDING)
@@ -760,7 +734,8 @@ public class CourseLifecycleService {
     }
 
     public List<JoinRequestResponse> listPendingRequests(String courseId, Authentication authentication) {
-        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         activeCourse(courseId);
         courseAccessPolicy.requireAdminOrOwner(
                 courseId, currentUserId,
@@ -799,7 +774,8 @@ public class CourseLifecycleService {
     }
 
     public CourseResponse approveJoinRequest(String courseId, String targetUserId, Authentication authentication) {
-        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
         courseAccessPolicy.requireAdminOrOwner(
                 courseId, currentUserId,
@@ -808,7 +784,8 @@ public class CourseLifecycleService {
 
         CourseMembership membership = membershipRepository.findByCourseIdAndUserId(courseId, targetUserId)
                 .filter(m -> m.getStatus() == MembershipStatus.PENDING)
-                .orElseThrow(() -> new CourseService.CourseBadRequestException("No pending join request found for this user"));
+                .orElseThrow(() -> new CourseService.CourseBadRequestException(
+                        "No pending join request found for this user"));
 
         membership.setStatus(MembershipStatus.ACTIVE);
         membership.setRole(MembershipRole.MEMBER);
@@ -821,15 +798,15 @@ public class CourseLifecycleService {
                 "Join Request Approved",
                 "Your request to join " + course.getTitle() + " has been approved.",
                 NotificationResourceType.COURSE,
-                courseId
-        );
+                courseId);
 
         syncDiscovery(course);
         return toResponse(course);
     }
 
     public CourseResponse declineJoinRequest(String courseId, String targetUserId, Authentication authentication) {
-        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         Course course = activeCourse(courseId);
         courseAccessPolicy.requireAdminOrOwner(
                 courseId, currentUserId,
@@ -838,7 +815,8 @@ public class CourseLifecycleService {
 
         CourseMembership membership = membershipRepository.findByCourseIdAndUserId(courseId, targetUserId)
                 .filter(m -> m.getStatus() == MembershipStatus.PENDING)
-                .orElseThrow(() -> new CourseService.CourseBadRequestException("No pending join request found for this user"));
+                .orElseThrow(() -> new CourseService.CourseBadRequestException(
+                        "No pending join request found for this user"));
 
         membership.setStatus(MembershipStatus.REJECTED);
         membership.setRemovedAt(Instant.now());
@@ -850,14 +828,14 @@ public class CourseLifecycleService {
                 "Join Request Declined",
                 "Your request to join " + course.getTitle() + " was declined.",
                 NotificationResourceType.COURSE,
-                courseId
-        );
+                courseId);
 
         return toResponse(course);
     }
 
     public InviteTokenResponse generateInviteLink(String courseId, Authentication authentication) {
-        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
         activeCourse(courseId);
         courseAccessPolicy.requireAdminOrOwner(
                 courseId, currentUserId,
@@ -921,7 +899,6 @@ public class CourseLifecycleService {
                 .coverUrl(course.getCoverUrl())
                 .logoUrl(course.getLogoUrl())
                 .theme(course.getTheme())
-                .spaceType(course.getSpaceType())
                 .accessType(course.getAccessType())
                 .memberCount(memberCount)
                 .ownerName(ownerProfile != null ? ownerProfile.getDisplayName() : "Space Owner")
@@ -1016,22 +993,15 @@ public class CourseLifecycleService {
             response.setEnrollmentCode(enrollmentCode);
         }
         response.setTitle(course.getTitle());
-        response.setSpaceType(course.getSpaceType() != null ? course.getSpaceType() : SpaceType.ACADEMIC_CLASS);
         response.setSection(course.getSection());
         response.setSubject(course.getSubject());
         response.setDescription(course.getDescription());
         response.setCoverUrl(course.getCoverUrl());
         response.setLogoUrl(course.getLogoUrl());
         response.setTheme(course.getTheme());
-        response.setMeetingType(course.getMeetingType() != null ? course.getMeetingType() : MeetingType.IN_PERSON);
-        response.setLocation(course.getLocation());
         response.setTags(course.getTags());
         response.setLinks(course.getLinks() != null ? course.getLinks() : Collections.emptyList());
-        CourseAccessType accessType = course.getAccessType() != null
-                ? course.getAccessType()
-                : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.PUBLIC : CourseAccessType.LINK_ONLY);
-        response.setAccessType(accessType);
-        response.setVisibility(course.getVisibility());
+        response.setAccessType(course.getAccessType() != null ? course.getAccessType() : CourseAccessType.PUBLIC);
         response.setStatus(course.getStatus());
         response.setEnrollmentEnabled(course.isEnrollmentEnabled());
         response.setCreatedAt(course.getCreatedAt());

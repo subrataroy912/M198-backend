@@ -25,7 +25,6 @@ class ExploreServiceTest {
         CourseDiscovery course = CourseDiscovery.builder()
                 .courseId("course-1")
                 .title("Public course")
-                .spaceType(com.M198.Majorproject.core.course.entity.SpaceType.COMMUNITY_HUB)
                 .coverUrl("https://example.com/cover.png")
                 .logoUrl("https://example.com/logo.png")
                 .theme("emerald")
@@ -40,7 +39,6 @@ class ExploreServiceTest {
 
         assertEquals("course-1", result.getContent().get(0).getCourseId());
         assertEquals("Public course", result.getContent().get(0).getTitle());
-        assertEquals(com.M198.Majorproject.core.course.entity.SpaceType.COMMUNITY_HUB, result.getContent().get(0).getSpaceType());
         assertEquals("https://example.com/cover.png", result.getContent().get(0).getCoverUrl());
         assertEquals("https://example.com/logo.png", result.getContent().get(0).getLogoUrl());
         assertEquals("emerald", result.getContent().get(0).getTheme());
