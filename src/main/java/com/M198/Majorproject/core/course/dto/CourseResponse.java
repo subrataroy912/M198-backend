@@ -5,10 +5,7 @@ import java.util.List;
 
 import com.M198.Majorproject.core.course.entity.CourseAccessType;
 import com.M198.Majorproject.core.course.entity.CourseStatus;
-import com.M198.Majorproject.core.course.entity.CourseVisibility;
-import com.M198.Majorproject.core.course.entity.MeetingType;
 import com.M198.Majorproject.core.course.entity.SpaceLink;
-import com.M198.Majorproject.core.course.entity.SpaceType;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -23,18 +20,14 @@ public class CourseResponse {
     private String ownerAvatarUrl;
     private long memberCount;
     private String title;
-    private SpaceType spaceType;
     private String section;
     private String subject;
     private String description;
     private String coverUrl;
     private String logoUrl;
     private String theme;
-    private MeetingType meetingType;
-    private String location;
     private List<String> tags;
     private List<SpaceLink> links;
-    private CourseVisibility visibility;
     private CourseAccessType accessType;
     private CourseStatus status;
     private boolean enrollmentEnabled;

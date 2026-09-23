@@ -3,7 +3,6 @@ package com.M198.Majorproject.core.course.dto;
 import java.time.Instant;
 
 import com.M198.Majorproject.core.course.entity.CourseAccessType;
-import com.M198.Majorproject.core.course.entity.SpaceType;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,7 +24,6 @@ public class InviteValidationResponse {
     private String coverUrl;
     private String logoUrl;
     private String theme;
-    private SpaceType spaceType;
     private CourseAccessType accessType;
     private long memberCount;
     private String ownerName;

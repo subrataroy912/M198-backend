@@ -14,7 +14,6 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import com.M198.Majorproject.core.course.entity.CourseAccessType;
 import com.M198.Majorproject.core.course.entity.CourseStatus;
 import com.M198.Majorproject.core.course.entity.CourseVisibility;
-import com.M198.Majorproject.core.course.entity.SpaceType;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,7 +39,6 @@ public class CourseDiscovery {
     private String courseId;
 
     private String title;
-    private SpaceType spaceType;
     private String subject;
     private List<String> tags;
     private String coverUrl;

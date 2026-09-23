@@ -3,7 +3,7 @@
  * ENTITY     : Course
  * PURPOSE    : Stores the core course and space model for user-created learning spaces and communities.
  *
- * This document holds the course owner, title, section, subject, status, visibility,
+ * This document holds the course owner, title, section, subject, status,
  * and enrollment settings needed for member access and space management.
  */
 package com.M198.Majorproject.core.course.entity;
@@ -32,7 +32,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Document(collection = "courses")
 @CompoundIndex(name = "course_owner_status", def = "{'owner_id': 1, 'status': 1}")
-@CompoundIndex(name = "course_visibility_status", def = "{'visibility': 1, 'status': 1}")
 public class Course {
 
     @Id
@@ -50,24 +49,11 @@ public class Course {
     private String logoUrl;
     private String theme;
 
-    @Field("space_type")
-    @Builder.Default
-    private SpaceType spaceType = SpaceType.ACADEMIC_CLASS;
-
-    @Field("meeting_type")
-    @Builder.Default
-    private MeetingType meetingType = MeetingType.IN_PERSON;
-
-    private String location;
-
     private List<String> tags;
 
     @Field("links")
     @Builder.Default
     private List<SpaceLink> links = new java.util.ArrayList<>();
-
-    @Builder.Default
-    private CourseVisibility visibility = CourseVisibility.PRIVATE;
 
     @Field("access_type")
     @Builder.Default

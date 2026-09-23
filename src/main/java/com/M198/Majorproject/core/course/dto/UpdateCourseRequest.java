@@ -6,10 +6,7 @@ import jakarta.validation.constraints.Size;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.M198.Majorproject.core.course.entity.CourseAccessType;
-import com.M198.Majorproject.core.course.entity.CourseVisibility;
-import com.M198.Majorproject.core.course.entity.MeetingType;
 import com.M198.Majorproject.core.course.entity.SpaceLink;
-import com.M198.Majorproject.core.course.entity.SpaceType;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -21,8 +18,6 @@ public class UpdateCourseRequest {
     @Size(max = 120)
     @JsonAlias("name")
     private String title;
-
-    private SpaceType spaceType;
 
     @Size(max = 80)
     private String section;
@@ -42,13 +37,6 @@ public class UpdateCourseRequest {
     private String logoUrl;
 
     private CourseAccessType accessType;
-
-    private CourseVisibility visibility;
-
-    private MeetingType meetingType;
-
-    @Size(max = 500)
-    private String location;
 
     private List<String> tags;
 

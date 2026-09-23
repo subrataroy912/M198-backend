@@ -3,9 +3,6 @@ package com.M198.Majorproject.core.course.dto;
 import java.util.List;
 
 import com.M198.Majorproject.core.course.entity.CourseAccessType;
-import com.M198.Majorproject.core.course.entity.CourseVisibility;
-import com.M198.Majorproject.core.course.entity.MeetingType;
-import com.M198.Majorproject.core.course.entity.SpaceType;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -16,17 +13,13 @@ public class PublicCourseResponse {
 
   private String id;
   private String title;
-  private SpaceType spaceType;
   private String section;
   private String subject;
   private String description;
   private String coverUrl;
   private String logoUrl;
   private String theme;
-  private MeetingType meetingType;
-  private String location;
   private List<String> tags;
-  private CourseVisibility visibility;
   private CourseAccessType accessType;
   private boolean enrollmentEnabled;
   private long memberCount;
