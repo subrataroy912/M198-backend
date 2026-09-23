@@ -24,7 +24,6 @@ import com.M198.Majorproject.core.course.entity.Course;
 import com.M198.Majorproject.core.course.entity.CourseAccessType;
 import com.M198.Majorproject.core.course.entity.CourseMembership;
 import com.M198.Majorproject.core.course.entity.CourseStatus;
-import com.M198.Majorproject.core.course.entity.CourseVisibility;
 import com.M198.Majorproject.core.course.entity.EnrollmentCode;
 import com.M198.Majorproject.core.course.entity.MembershipRole;
 import com.M198.Majorproject.core.course.entity.MembershipStatus;
@@ -647,10 +646,12 @@ class CourseServiceTest {
                 verify(membershipRepository).save(any(CourseMembership.class));
                 verify(notificationService).sendNotification(
                                 org.mockito.ArgumentMatchers.eq("teacher-1"),
-                                org.mockito.ArgumentMatchers.eq(com.M198.Majorproject.discovery.notification.entity.NotificationType.COURSE_JOIN_REQUEST),
+                                org.mockito.ArgumentMatchers.eq(
+                                                com.M198.Majorproject.discovery.notification.entity.NotificationType.COURSE_JOIN_REQUEST),
                                 org.mockito.ArgumentMatchers.anyString(),
                                 org.mockito.ArgumentMatchers.anyString(),
-                                org.mockito.ArgumentMatchers.eq(com.M198.Majorproject.discovery.notification.entity.NotificationResourceType.COURSE),
+                                org.mockito.ArgumentMatchers.eq(
+                                                com.M198.Majorproject.discovery.notification.entity.NotificationResourceType.COURSE),
                                 org.mockito.ArgumentMatchers.eq("course-private"));
         }
 
@@ -666,7 +667,8 @@ class CourseServiceTest {
                                 .build();
                 when(courseRepository.findByIdAndStatus("course-private", CourseStatus.ACTIVE))
                                 .thenReturn(Optional.of(course));
-                when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-private", "teacher-1", MembershipStatus.ACTIVE))
+                when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-private", "teacher-1",
+                                MembershipStatus.ACTIVE))
                                 .thenReturn(Optional.of(CourseMembership.builder()
                                                 .courseId("course-private").userId("teacher-1")
                                                 .role(MembershipRole.OWNER).status(MembershipStatus.ACTIVE).build()));
@@ -682,10 +684,12 @@ class CourseServiceTest {
                 assertEquals(MembershipStatus.ACTIVE, pending.getStatus());
                 verify(notificationService).sendNotification(
                                 org.mockito.ArgumentMatchers.eq("student-1"),
-                                org.mockito.ArgumentMatchers.eq(com.M198.Majorproject.discovery.notification.entity.NotificationType.COURSE_JOIN_APPROVED),
+                                org.mockito.ArgumentMatchers.eq(
+                                                com.M198.Majorproject.discovery.notification.entity.NotificationType.COURSE_JOIN_APPROVED),
                                 org.mockito.ArgumentMatchers.anyString(),
                                 org.mockito.ArgumentMatchers.anyString(),
-                                org.mockito.ArgumentMatchers.eq(com.M198.Majorproject.discovery.notification.entity.NotificationResourceType.COURSE),
+                                org.mockito.ArgumentMatchers.eq(
+                                                com.M198.Majorproject.discovery.notification.entity.NotificationResourceType.COURSE),
                                 org.mockito.ArgumentMatchers.eq("course-private"));
         }
 
@@ -701,7 +705,8 @@ class CourseServiceTest {
                                 .build();
                 when(courseRepository.findByIdAndStatus("course-link", CourseStatus.ACTIVE))
                                 .thenReturn(Optional.of(course));
-                when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-link", "teacher-1", MembershipStatus.ACTIVE))
+                when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-link", "teacher-1",
+                                MembershipStatus.ACTIVE))
                                 .thenReturn(Optional.of(CourseMembership.builder()
                                                 .courseId("course-link").userId("teacher-1")
                                                 .role(MembershipRole.OWNER).status(MembershipStatus.ACTIVE).build()));

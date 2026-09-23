@@ -37,7 +37,6 @@ import com.M198.Majorproject.core.course.entity.Course;
 import com.M198.Majorproject.core.course.entity.CourseAccessType;
 import com.M198.Majorproject.core.course.entity.CourseMembership;
 import com.M198.Majorproject.core.course.entity.CourseStatus;
-import com.M198.Majorproject.core.course.entity.CourseVisibility;
 import com.M198.Majorproject.core.course.entity.EnrollmentCode;
 import com.M198.Majorproject.core.course.entity.MembershipRole;
 import com.M198.Majorproject.core.course.entity.MembershipStatus;

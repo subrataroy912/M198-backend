@@ -15,13 +15,10 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 import com.M198.Majorproject.core.course.entity.Course;
 import com.M198.Majorproject.core.course.entity.CourseStatus;
-import com.M198.Majorproject.core.course.entity.CourseVisibility;
 
 public interface CourseRepository extends MongoRepository<Course, String> {
 
     List<Course> findAllByOwnerIdAndStatus(String ownerId, CourseStatus status);
-
-    List<Course> findAllByVisibilityAndStatus(CourseVisibility visibility, CourseStatus status);
 
     Optional<Course> findByIdAndStatus(String id, CourseStatus status);
 
