@@ -19,7 +19,7 @@ class MongoCourseDiscoveryAdapter implements CourseDiscoveryPort {
         discovery.setSpaceType(course.getSpaceType() == null ? SpaceType.ACADEMIC_CLASS : course.getSpaceType());
         discovery.setSubject(course.getSubject()); discovery.setTags(course.getTags()); discovery.setCoverUrl(course.getCoverUrl());
         discovery.setLogoUrl(course.getLogoUrl()); discovery.setTheme(course.getTheme()); discovery.setVisibility(course.getVisibility());
-        discovery.setAccessType(course.getAccessType() == null ? CourseAccessType.OPEN : course.getAccessType());
+        discovery.setAccessType(course.getAccessType() == null ? CourseAccessType.PUBLIC : course.getAccessType());
         discovery.setStatus(course.getStatus()); discovery.setEnrollmentCount(enrollmentCount); discovery.setLastActivityAt(Instant.now());
         repository.save(discovery);
     }

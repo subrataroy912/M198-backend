@@ -51,7 +51,7 @@ public class CourseDiscovery {
     private CourseVisibility visibility = CourseVisibility.PRIVATE;
 
     @Builder.Default
-    private CourseAccessType accessType = CourseAccessType.OPEN;
+    private CourseAccessType accessType = CourseAccessType.PUBLIC;
 
     @Builder.Default
     private CourseStatus status = CourseStatus.ACTIVE;

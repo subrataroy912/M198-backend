@@ -71,7 +71,7 @@ public class Course {
 
     @Field("access_type")
     @Builder.Default
-    private CourseAccessType accessType = CourseAccessType.CODE;
+    private CourseAccessType accessType = CourseAccessType.PUBLIC;
 
     @Builder.Default
     private CourseStatus status = CourseStatus.ACTIVE;

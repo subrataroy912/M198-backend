@@ -33,6 +33,12 @@ public class CourseService {
     public void deleteCourse(String id, Authentication a) { lifecycle.deleteCourse(id, a); }
     public List<CourseMemberResponse> roster(String id, Authentication a) { return lifecycle.roster(id, a); }
     public CourseMemberResponse updateMemberRole(String id, String userId, UpdateMemberRoleRequest r, Authentication a) { return lifecycle.updateMemberRole(id, userId, r, a); }
+    public void cancelJoinRequest(String id, Authentication a) { lifecycle.cancelJoinRequest(id, a); }
+    public List<JoinRequestResponse> listPendingRequests(String id, Authentication a) { return lifecycle.listPendingRequests(id, a); }
+    public CourseResponse approveJoinRequest(String id, String userId, Authentication a) { return lifecycle.approveJoinRequest(id, userId, a); }
+    public CourseResponse declineJoinRequest(String id, String userId, Authentication a) { return lifecycle.declineJoinRequest(id, userId, a); }
+    public InviteTokenResponse generateInviteLink(String id, Authentication a) { return lifecycle.generateInviteLink(id, a); }
+    public InviteValidationResponse validateInviteToken(String token) { return lifecycle.validateInviteToken(token); }
     public static class CourseNotFoundException extends RuntimeException { private static final long serialVersionUID = 1L; }
     public static class CourseIdFormatException extends RuntimeException { private static final long serialVersionUID = 1L; }
     public static class CourseBadRequestException extends RuntimeException { private static final long serialVersionUID = 1L; public CourseBadRequestException(String message) { super(message); } }

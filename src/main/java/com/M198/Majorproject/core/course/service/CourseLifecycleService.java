@@ -50,6 +50,12 @@ import com.M198.Majorproject.core.course.port.CourseDiscoveryPort;
 import com.M198.Majorproject.user.profile.entity.UserProfile;
 import com.M198.Majorproject.core.course.port.CourseProfilePort;
 import com.M198.Majorproject.core.course.security.CourseAccessPolicy;
+import com.M198.Majorproject.core.course.dto.InviteTokenResponse;
+import com.M198.Majorproject.core.course.dto.InviteValidationResponse;
+import com.M198.Majorproject.core.course.dto.JoinRequestResponse;
+import com.M198.Majorproject.discovery.notification.entity.NotificationResourceType;
+import com.M198.Majorproject.discovery.notification.entity.NotificationType;
+import com.M198.Majorproject.discovery.notification.service.NotificationService;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -66,6 +72,7 @@ public class CourseLifecycleService {
     private final CourseDeletionCleanupService deletionCleanupService;
     private final CourseMediaService mediaService;
     private final CourseAccessPolicy courseAccessPolicy;
+    private final NotificationService notificationService;
 
     @Autowired
     public CourseLifecycleService(
@@ -76,7 +83,8 @@ public class CourseLifecycleService {
             CourseProfilePort courseProfilePort,
             CourseDeletionCleanupService deletionCleanupService,
             CourseMediaService mediaService,
-            CourseAccessPolicy courseAccessPolicy) {
+            CourseAccessPolicy courseAccessPolicy,
+            NotificationService notificationService) {
         this.courseRepository = courseRepository;
         this.membershipRepository = membershipRepository;
         this.enrollmentCodeRepository = enrollmentCodeRepository;
@@ -85,6 +93,7 @@ public class CourseLifecycleService {
         this.deletionCleanupService = deletionCleanupService;
         this.mediaService = mediaService;
         this.courseAccessPolicy = courseAccessPolicy;
+        this.notificationService = notificationService;
     }
 
     public CourseCoverUploadResponse requestCoverUpload(Authentication authentication) {
@@ -116,19 +125,19 @@ public class CourseLifecycleService {
         CourseVisibility visibility = request.getVisibility();
 
         if (accessType == null) {
-            if (visibility == CourseVisibility.PUBLIC) {
-                accessType = CourseAccessType.OPEN;
-            } else {
-                accessType = CourseAccessType.CODE;
-                visibility = CourseVisibility.PRIVATE;
-            }
-        } else {
-            if (visibility == null) {
-                visibility = accessType == CourseAccessType.OPEN ? CourseVisibility.PUBLIC : CourseVisibility.PRIVATE;
-            }
+            accessType = CourseAccessType.PUBLIC;
         }
+
         boolean isInvite = accessType == CourseAccessType.INVITE;
         boolean enrollmentEnabled = !isInvite;
+
+        if (visibility == null) {
+            visibility = (accessType == CourseAccessType.LINK_ONLY || isInvite)
+                    ? CourseVisibility.PRIVATE
+                    : CourseVisibility.PUBLIC;
+        } else if (accessType == CourseAccessType.LINK_ONLY || isInvite) {
+            visibility = CourseVisibility.PRIVATE;
+        }
 
         SpaceType spaceType = request.getSpaceType() != null ? request.getSpaceType() : SpaceType.ACADEMIC_CLASS;
         MeetingType meetingType = request.getMeetingType() != null ? request.getMeetingType() : MeetingType.IN_PERSON;
@@ -172,11 +181,22 @@ public class CourseLifecycleService {
                         .code(generateEnrollmentCode())
                         .createdBy(userId)
                         .active(true)
+                        .expiresAt(accessType == CourseAccessType.LINK_ONLY
+                                ? Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS)
+                                : null)
                         .build());
                 enrollmentCodeValue = enrollmentCode.getCode();
             }
             CourseResponse response = toResponse(course);
             response.setEnrollmentCode(enrollmentCodeValue);
+            response.setRole(MembershipRole.OWNER.name());
+            response.setEnrolled(true);
+            response.setMembershipStatus(MembershipStatus.ACTIVE);
+            if (accessType == CourseAccessType.LINK_ONLY && enrollmentCodeValue != null) {
+                response.setInviteToken(enrollmentCodeValue);
+                response.setInviteUrl("/spaces/join?invite=" + enrollmentCodeValue);
+                response.setInviteExpiresAt(Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS));
+            }
             syncDiscovery(course);
             return response;
         } catch (RuntimeException exception) {
@@ -276,10 +296,11 @@ public class CourseLifecycleService {
         var membership = membershipRepository.findByCourseIdAndUserId(courseId, userId);
         boolean isStaffOrEnrolled = membership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE)
                 .isPresent();
-        boolean isPublicCourse = course != null && (course.getVisibility() == CourseVisibility.PUBLIC
-                || course.getAccessType() == CourseAccessType.OPEN);
+        boolean isDiscoverable = course != null && (course.getVisibility() == CourseVisibility.PUBLIC
+                || course.getAccessType() == CourseAccessType.PUBLIC
+                || course.getAccessType() == CourseAccessType.PRIVATE);
 
-        if (course == null || course.getStatus() != CourseStatus.ACTIVE || (!isStaffOrEnrolled && !isPublicCourse)) {
+        if (course == null || course.getStatus() != CourseStatus.ACTIVE || (!isStaffOrEnrolled && !isDiscoverable)) {
             logger.warn(
                     "Course access denied: courseId={}, userId={}, courseExists={}, courseStatus={}, membershipExists={}, membershipStatus={}",
                     courseId, userId, course != null, course == null ? null : course.getStatus(),
@@ -289,12 +310,31 @@ public class CourseLifecycleService {
         }
         CourseResponse response = toResponse(course);
         if (isStaffOrEnrolled) {
-            response.setRole(membership.get().getRole() != null ? membership.get().getRole().name() : "MEMBER");
+            MembershipRole role = membership.get().getRole() != null ? membership.get().getRole() : MembershipRole.MEMBER;
+            response.setRole(role.name());
             response.setEnrolled(true);
+            response.setMembershipStatus(MembershipStatus.ACTIVE);
+            enrollmentCodeRepository.findByCourseIdAndActiveTrue(courseId).ifPresent(code -> {
+                response.setEnrollmentCode(code.getCode());
+                boolean isStaff = role == MembershipRole.OWNER || role == MembershipRole.ADMIN || hasAuthority(authentication, "ROLE_ADMIN");
+                if (isStaff) {
+                    response.setInviteToken(code.getCode());
+                    response.setInviteUrl("/spaces/join?invite=" + code.getCode());
+                    response.setInviteExpiresAt(code.getExpiresAt());
+                } else {
+                    response.setInviteToken(null);
+                    response.setInviteUrl(null);
+                    response.setInviteExpiresAt(null);
+                }
+            });
         } else {
             response.setRole("VIEWER");
             response.setEnrolled(false);
             response.setEnrollmentCode(null);
+            response.setInviteToken(null);
+            response.setInviteUrl(null);
+            response.setInviteExpiresAt(null);
+            response.setMembershipStatus(membership.map(CourseMembership::getStatus).orElse(null));
         }
         return response;
     }
@@ -320,7 +360,7 @@ public class CourseLifecycleService {
         response.setVisibility(course.getVisibility());
         response.setAccessType(course.getAccessType() != null
                 ? course.getAccessType()
-                : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.OPEN : CourseAccessType.CODE));
+                : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.PUBLIC : CourseAccessType.LINK_ONLY));
         response.setEnrollmentEnabled(course.isEnrollmentEnabled());
         response.setMemberCount(membershipRepository.countByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE));
         return response;
@@ -332,7 +372,7 @@ public class CourseLifecycleService {
         }
         EnrollmentCode enrollmentCode = enrollmentCodeRepository.findByCodeAndActiveTrue(code.trim().toUpperCase())
                 .filter(value -> value.getExpiresAt() == null || value.getExpiresAt().isAfter(Instant.now()))
-                .orElseThrow(() -> new CourseService.CourseAccessException("Invalid enrollment code"));
+                .orElseThrow(() -> new CourseService.CourseAccessException("Invalid or expired invitation code"));
 
         return enroll(enrollmentCode.getCourseId(), authentication, new EnrollCourseRequest(code.trim().toUpperCase()));
     }
@@ -345,32 +385,13 @@ public class CourseLifecycleService {
         }
         CourseAccessType accessType = course.getAccessType() != null
                 ? course.getAccessType()
-                : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.OPEN : CourseAccessType.CODE);
+                : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.PUBLIC : CourseAccessType.LINK_ONLY);
 
         if (accessType == CourseAccessType.INVITE) {
             throw new CourseService.CourseAccessException(
                     "This class is invite-only. Please request an invitation from the instructor.");
         }
 
-        boolean isPublicCourse = course.getVisibility() == CourseVisibility.PUBLIC;
-
-        if (accessType == CourseAccessType.CODE && !isPublicCourse) {
-            String code = request != null && request.getCode() != null ? request.getCode().trim() : "";
-            if (code.isEmpty()) {
-                throw new CourseService.CourseAccessException("Enrollment code is required");
-            }
-            enrollmentCodeRepository.findByCodeAndActiveTrue(code.toUpperCase())
-                    .filter(value -> value.getCourseId().equals(courseId))
-                    .filter(value -> value.getExpiresAt() == null || value.getExpiresAt().isAfter(Instant.now()))
-                    .orElseThrow(() -> new CourseService.CourseAccessException("Invalid enrollment code"));
-        } else if (accessType == CourseAccessType.OPEN || isPublicCourse) {
-            if (request != null && request.getCode() != null && !request.getCode().trim().isEmpty()) {
-                enrollmentCodeRepository.findByCodeAndActiveTrue(request.getCode().trim().toUpperCase())
-                        .filter(value -> value.getCourseId().equals(courseId))
-                        .filter(value -> value.getExpiresAt() == null || value.getExpiresAt().isAfter(Instant.now()))
-                        .orElseThrow(() -> new CourseService.CourseAccessException("Invalid enrollment code"));
-            }
-        }
         var existingMembership = membershipRepository.findByCourseIdAndUserId(courseId, userId);
         if (existingMembership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE).isPresent()) {
             CourseResponse res = toResponse(course);
@@ -378,8 +399,86 @@ public class CourseLifecycleService {
                 res.setRole(existingMembership.get().getRole().name());
             }
             res.setEnrolled(true);
+            res.setMembershipStatus(MembershipStatus.ACTIVE);
             return res;
         }
+
+        if (accessType == CourseAccessType.PRIVATE) {
+            if (existingMembership.filter(value -> value.getStatus() == MembershipStatus.PENDING).isPresent()) {
+                CourseResponse res = toResponse(course);
+                res.setRole("VIEWER");
+                res.setEnrolled(false);
+                res.setMembershipStatus(MembershipStatus.PENDING);
+                return res;
+            }
+            CourseMembership pendingMembership;
+            if (existingMembership.isPresent()) {
+                pendingMembership = existingMembership.get();
+                pendingMembership.setRole(MembershipRole.MEMBER);
+                pendingMembership.setStatus(MembershipStatus.PENDING);
+                pendingMembership.setJoinedAt(Instant.now());
+                pendingMembership.setRemovedAt(null);
+            } else {
+                pendingMembership = CourseMembership.builder()
+                        .courseId(courseId)
+                        .userId(userId)
+                        .role(MembershipRole.MEMBER)
+                        .status(MembershipStatus.PENDING)
+                        .joinedAt(Instant.now())
+                        .build();
+            }
+            membershipRepository.save(pendingMembership);
+
+            // Notify space staff
+            String requesterName = courseProfilePort.findByUserId(userId)
+                    .map(UserProfile::getDisplayName)
+                    .orElse("A user");
+            List<CourseMembership> staffMembers = membershipRepository.findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE)
+                    .stream()
+                    .filter(m -> m.getRole() == MembershipRole.OWNER || m.getRole() == MembershipRole.ADMIN)
+                    .toList();
+            Set<String> notifyRecipientIds = staffMembers.stream()
+                    .map(CourseMembership::getUserId)
+                    .collect(Collectors.toSet());
+            if (course.getOwnerId() != null) {
+                notifyRecipientIds.add(course.getOwnerId());
+            }
+            for (String staffId : notifyRecipientIds) {
+                notificationService.sendNotification(
+                        staffId,
+                        NotificationType.COURSE_JOIN_REQUEST,
+                        "New Join Request",
+                        requesterName + " requested to join " + course.getTitle(),
+                        NotificationResourceType.COURSE,
+                        courseId
+                );
+            }
+
+            CourseResponse res = toResponse(course);
+            res.setRole("VIEWER");
+            res.setEnrolled(false);
+            res.setMembershipStatus(MembershipStatus.PENDING);
+            return res;
+        }
+
+        if (accessType == CourseAccessType.LINK_ONLY) {
+            String code = request != null && request.getCode() != null ? request.getCode().trim() : "";
+            if (code.isEmpty()) {
+                throw new CourseService.CourseAccessException("This space requires a valid 48-hour invitation link.");
+            }
+            enrollmentCodeRepository.findByCodeAndActiveTrue(code.toUpperCase())
+                    .filter(value -> value.getCourseId().equals(courseId))
+                    .filter(value -> value.getExpiresAt() == null || value.getExpiresAt().isAfter(Instant.now()))
+                    .orElseThrow(() -> new CourseService.CourseAccessException("Invitation link is invalid or has expired."));
+        } else if (accessType == CourseAccessType.PUBLIC) {
+            if (request != null && request.getCode() != null && !request.getCode().trim().isEmpty()) {
+                enrollmentCodeRepository.findByCodeAndActiveTrue(request.getCode().trim().toUpperCase())
+                        .filter(value -> value.getCourseId().equals(courseId))
+                        .filter(value -> value.getExpiresAt() == null || value.getExpiresAt().isAfter(Instant.now()))
+                        .orElseThrow(() -> new CourseService.CourseAccessException("Invalid enrollment code"));
+            }
+        }
+
         if (existingMembership.isPresent()) {
             CourseMembership membership = existingMembership.get();
             membership.setRole(MembershipRole.MEMBER);
@@ -388,7 +487,11 @@ public class CourseLifecycleService {
             membership.setRemovedAt(null);
             membershipRepository.save(membership);
             syncDiscovery(course);
-            return toResponse(course);
+            CourseResponse res = toResponse(course);
+            res.setRole(MembershipRole.MEMBER.name());
+            res.setEnrolled(true);
+            res.setMembershipStatus(MembershipStatus.ACTIVE);
+            return res;
         }
         try {
             membershipRepository.save(CourseMembership.builder()
@@ -402,10 +505,15 @@ public class CourseLifecycleService {
             CourseResponse res = toResponse(course);
             res.setRole("MEMBER");
             res.setEnrolled(true);
+            res.setMembershipStatus(MembershipStatus.ACTIVE);
             return res;
         }
         syncDiscovery(course);
-        return toResponse(course);
+        CourseResponse res = toResponse(course);
+        res.setRole(MembershipRole.MEMBER.name());
+        res.setEnrolled(true);
+        res.setMembershipStatus(MembershipStatus.ACTIVE);
+        return res;
     }
 
     public void leave(String courseId, Authentication authentication) {
@@ -477,23 +585,30 @@ public class CourseLifecycleService {
         }
         if (request.getAccessType() != null) {
             course.setAccessType(request.getAccessType());
-            if (null != request.getAccessType())
-                switch (request.getAccessType()) {
-                    case INVITE -> {
-                        course.setVisibility(CourseVisibility.PRIVATE);
-                        course.setEnrollmentEnabled(false);
-                    }
-                    case OPEN -> {
-                        course.setVisibility(CourseVisibility.PUBLIC);
-                        course.setEnrollmentEnabled(true);
-                    }
-                    case CODE -> {
-                        course.setVisibility(CourseVisibility.PRIVATE);
-                        course.setEnrollmentEnabled(true);
-                    }
-                    default -> {
+            switch (request.getAccessType()) {
+                case LINK_ONLY -> {
+                    course.setVisibility(CourseVisibility.PRIVATE);
+                    course.setEnrollmentEnabled(true);
+                    boolean hasActive = enrollmentCodeRepository.findByCourseIdAndActiveTrue(courseId)
+                            .filter(c -> c.getExpiresAt() == null || c.getExpiresAt().isAfter(Instant.now()))
+                            .isPresent();
+                    if (!hasActive) {
+                        enrollmentCodeRepository.save(EnrollmentCode.builder()
+                                .courseId(courseId)
+                                .code(generateEnrollmentCode())
+                                .createdBy(userId)
+                                .active(true)
+                                .expiresAt(Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS))
+                                .build());
                     }
                 }
+                case PUBLIC, PRIVATE -> {
+                    course.setVisibility(CourseVisibility.PUBLIC);
+                    course.setEnrollmentEnabled(true);
+                }
+                default -> {
+                }
+            }
         }
         if (request.getVisibility() != null) {
             course.setVisibility(request.getVisibility());
@@ -638,6 +753,186 @@ public class CourseLifecycleService {
         return response;
     }
 
+    public void cancelJoinRequest(String courseId, Authentication authentication) {
+        String userId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        activeCourse(courseId);
+        membershipRepository.findByCourseIdAndUserId(courseId, userId)
+                .filter(m -> m.getStatus() == MembershipStatus.PENDING)
+                .ifPresent(membershipRepository::delete);
+    }
+
+    public List<JoinRequestResponse> listPendingRequests(String courseId, Authentication authentication) {
+        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        activeCourse(courseId);
+        courseAccessPolicy.requireAdminOrOwner(
+                courseId, currentUserId,
+                () -> new CourseService.CourseAccessException("Course membership required"),
+                () -> new CourseService.CourseAccessException("Course owner or admin role required"));
+
+        List<CourseMembership> pendingMemberships = membershipRepository.findAllByCourseIdAndStatus(
+                courseId, MembershipStatus.PENDING);
+        if (pendingMemberships.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> userIds = pendingMemberships.stream()
+                .map(CourseMembership::getUserId)
+                .filter(Objects::nonNull)
+                .toList();
+
+        Map<String, UserProfile> profileMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            courseProfilePort.findAllByUserIdIn(userIds).forEach(p -> profileMap.put(p.getUserId(), p));
+        }
+
+        return pendingMemberships.stream()
+                .map(m -> {
+                    UserProfile profile = profileMap.get(m.getUserId());
+                    return JoinRequestResponse.builder()
+                            .id(m.getId())
+                            .userId(m.getUserId())
+                            .displayName(profile != null ? profile.getDisplayName() : "Applicant")
+                            .avatarUrl(profile != null ? profile.getAvatarUrl() : null)
+                            .email(profile != null ? profile.getHandle() : null)
+                            .requestedAt(m.getJoinedAt() != null ? m.getJoinedAt() : m.getCreatedAt())
+                            .build();
+                })
+                .toList();
+    }
+
+    public CourseResponse approveJoinRequest(String courseId, String targetUserId, Authentication authentication) {
+        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        Course course = activeCourse(courseId);
+        courseAccessPolicy.requireAdminOrOwner(
+                courseId, currentUserId,
+                () -> new CourseService.CourseAccessException("Course membership required"),
+                () -> new CourseService.CourseAccessException("Course owner or admin role required"));
+
+        CourseMembership membership = membershipRepository.findByCourseIdAndUserId(courseId, targetUserId)
+                .filter(m -> m.getStatus() == MembershipStatus.PENDING)
+                .orElseThrow(() -> new CourseService.CourseBadRequestException("No pending join request found for this user"));
+
+        membership.setStatus(MembershipStatus.ACTIVE);
+        membership.setRole(MembershipRole.MEMBER);
+        membership.setJoinedAt(Instant.now());
+        membershipRepository.save(membership);
+
+        notificationService.sendNotification(
+                targetUserId,
+                NotificationType.COURSE_JOIN_APPROVED,
+                "Join Request Approved",
+                "Your request to join " + course.getTitle() + " has been approved.",
+                NotificationResourceType.COURSE,
+                courseId
+        );
+
+        syncDiscovery(course);
+        return toResponse(course);
+    }
+
+    public CourseResponse declineJoinRequest(String courseId, String targetUserId, Authentication authentication) {
+        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        Course course = activeCourse(courseId);
+        courseAccessPolicy.requireAdminOrOwner(
+                courseId, currentUserId,
+                () -> new CourseService.CourseAccessException("Course membership required"),
+                () -> new CourseService.CourseAccessException("Course owner or admin role required"));
+
+        CourseMembership membership = membershipRepository.findByCourseIdAndUserId(courseId, targetUserId)
+                .filter(m -> m.getStatus() == MembershipStatus.PENDING)
+                .orElseThrow(() -> new CourseService.CourseBadRequestException("No pending join request found for this user"));
+
+        membership.setStatus(MembershipStatus.REJECTED);
+        membership.setRemovedAt(Instant.now());
+        membershipRepository.save(membership);
+
+        notificationService.sendNotification(
+                targetUserId,
+                NotificationType.COURSE_JOIN_DECLINED,
+                "Join Request Declined",
+                "Your request to join " + course.getTitle() + " was declined.",
+                NotificationResourceType.COURSE,
+                courseId
+        );
+
+        return toResponse(course);
+    }
+
+    public InviteTokenResponse generateInviteLink(String courseId, Authentication authentication) {
+        String currentUserId = courseAccessPolicy.authenticatedUserId(authentication, () -> new CourseService.CourseAccessException("Authentication required"));
+        activeCourse(courseId);
+        courseAccessPolicy.requireAdminOrOwner(
+                courseId, currentUserId,
+                () -> new CourseService.CourseAccessException("Course membership required"),
+                () -> new CourseService.CourseAccessException("Course owner or admin role required"));
+
+        List<EnrollmentCode> existing = enrollmentCodeRepository.findAllByCourseIdOrderByCreatedAtDesc(courseId);
+        for (EnrollmentCode c : existing) {
+            if (c.isActive()) {
+                c.setActive(false);
+                c.setDeactivatedAt(Instant.now());
+                enrollmentCodeRepository.save(c);
+            }
+        }
+
+        String newCode = generateEnrollmentCode();
+        Instant expiresAt = Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS);
+        EnrollmentCode code = enrollmentCodeRepository.save(EnrollmentCode.builder()
+                .courseId(courseId)
+                .code(newCode)
+                .createdBy(currentUserId)
+                .active(true)
+                .expiresAt(expiresAt)
+                .build());
+
+        return InviteTokenResponse.builder()
+                .token(code.getCode())
+                .inviteUrl("/spaces/join?invite=" + code.getCode())
+                .expiresAt(expiresAt)
+                .expired(false)
+                .build();
+    }
+
+    public InviteValidationResponse validateInviteToken(String token) {
+        if (token == null || token.isBlank()) {
+            throw new CourseService.CourseBadRequestException("Invitation token is required");
+        }
+        EnrollmentCode code = enrollmentCodeRepository.findByCodeAndActiveTrue(token.trim().toUpperCase())
+                .orElseThrow(() -> new CourseService.CourseBadRequestException("Invalid or inactive invitation link"));
+
+        if (code.getExpiresAt() != null && code.getExpiresAt().isBefore(Instant.now())) {
+            return InviteValidationResponse.builder()
+                    .expiresAt(code.getExpiresAt())
+                    .expired(true)
+                    .build();
+        }
+
+        Course course = courseRepository.findByIdAndStatus(code.getCourseId(), CourseStatus.ACTIVE)
+                .orElseThrow(CourseService.CourseNotFoundException::new);
+        UserProfile ownerProfile = course.getOwnerId() != null
+                ? courseProfilePort.findByUserId(course.getOwnerId()).orElse(null)
+                : null;
+        long memberCount = membershipRepository.countByCourseIdAndStatus(course.getId(), MembershipStatus.ACTIVE);
+
+        return InviteValidationResponse.builder()
+                .courseId(course.getId())
+                .title(course.getTitle())
+                .section(course.getSection())
+                .subject(course.getSubject())
+                .description(course.getDescription())
+                .coverUrl(course.getCoverUrl())
+                .logoUrl(course.getLogoUrl())
+                .theme(course.getTheme())
+                .spaceType(course.getSpaceType())
+                .accessType(course.getAccessType())
+                .memberCount(memberCount)
+                .ownerName(ownerProfile != null ? ownerProfile.getDisplayName() : "Space Owner")
+                .ownerAvatarUrl(ownerProfile != null ? ownerProfile.getAvatarUrl() : null)
+                .expiresAt(code.getExpiresAt())
+                .expired(false)
+                .build();
+    }
+
     private Course activeCourse(String courseId) {
         return courseRepository.findByIdAndStatus(courseId, CourseStatus.ACTIVE)
                 .orElseThrow(CourseService.CourseNotFoundException::new);
@@ -736,7 +1031,7 @@ public class CourseLifecycleService {
         response.setLinks(course.getLinks() != null ? course.getLinks() : Collections.emptyList());
         CourseAccessType accessType = course.getAccessType() != null
                 ? course.getAccessType()
-                : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.OPEN : CourseAccessType.CODE);
+                : (course.getVisibility() == CourseVisibility.PUBLIC ? CourseAccessType.PUBLIC : CourseAccessType.LINK_ONLY);
         response.setAccessType(accessType);
         response.setVisibility(course.getVisibility());
         response.setStatus(course.getStatus());

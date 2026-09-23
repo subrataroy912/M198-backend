@@ -36,6 +36,9 @@ import com.M198.Majorproject.core.course.dto.CourseCoverUploadResponse;
 import com.M198.Majorproject.core.course.dto.CreateCourseRequest;
 import com.M198.Majorproject.core.course.dto.EnrollCourseRequest;
 import com.M198.Majorproject.core.course.dto.CourseMemberResponse;
+import com.M198.Majorproject.core.course.dto.InviteTokenResponse;
+import com.M198.Majorproject.core.course.dto.InviteValidationResponse;
+import com.M198.Majorproject.core.course.dto.JoinRequestResponse;
 import com.M198.Majorproject.core.course.dto.UpdateCourseRequest;
 import com.M198.Majorproject.core.course.dto.UpdateMemberRoleRequest;
 import com.M198.Majorproject.core.course.service.CourseService;
@@ -168,5 +171,56 @@ public class CourseMainController {
             @Valid @RequestBody UpdateMemberRoleRequest request,
             Authentication authentication) {
         return courseService.updateMemberRole(courseId, userId, request, authentication);
+    }
+
+    @PostMapping("/{courseId}/join")
+    public CourseResponse joinCourse(
+            @PathVariable String courseId,
+            Authentication authentication) {
+        return courseService.enroll(courseId, authentication, null);
+    }
+
+    @DeleteMapping("/{courseId}/join-request")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelJoinRequest(
+            @PathVariable String courseId,
+            Authentication authentication) {
+        courseService.cancelJoinRequest(courseId, authentication);
+    }
+
+    @GetMapping("/{courseId}/join-requests")
+    public List<JoinRequestResponse> listPendingRequests(
+            @PathVariable String courseId,
+            Authentication authentication) {
+        return courseService.listPendingRequests(courseId, authentication);
+    }
+
+    @PostMapping("/{courseId}/join-requests/{userId}/approve")
+    public CourseResponse approveJoinRequest(
+            @PathVariable String courseId,
+            @PathVariable String userId,
+            Authentication authentication) {
+        return courseService.approveJoinRequest(courseId, userId, authentication);
+    }
+
+    @PostMapping("/{courseId}/join-requests/{userId}/decline")
+    public CourseResponse declineJoinRequest(
+            @PathVariable String courseId,
+            @PathVariable String userId,
+            Authentication authentication) {
+        return courseService.declineJoinRequest(courseId, userId, authentication);
+    }
+
+    @PostMapping("/{courseId}/invite-link")
+    public InviteTokenResponse generateInviteLink(
+            @PathVariable String courseId,
+            Authentication authentication) {
+        return courseService.generateInviteLink(courseId, authentication);
+    }
+
+    @GetMapping("/invite/{token}/validate")
+    public InviteValidationResponse validateInviteToken(
+            @PathVariable String token) {
+        return courseService.validateInviteToken(token);
     }
 }

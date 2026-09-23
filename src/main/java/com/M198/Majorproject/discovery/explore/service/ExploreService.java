@@ -55,7 +55,7 @@ public class ExploreService {
         r.setCoverUrl(value.getCoverUrl());
         r.setLogoUrl(value.getLogoUrl());
         r.setTheme(value.getTheme());
-        r.setAccessType(value.getAccessType() != null ? value.getAccessType() : CourseAccessType.OPEN);
+        r.setAccessType(value.getAccessType() != null ? value.getAccessType() : CourseAccessType.PUBLIC);
         r.setEnrollmentCount(value.getEnrollmentCount());
         r.setPopularityScore(value.getPopularityScore());
         r.setLastActivityAt(value.getLastActivityAt());

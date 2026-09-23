@@ -34,6 +34,8 @@ import com.M198.Majorproject.core.course.repository.EnrollmentCodeRepository;
 import com.M198.Majorproject.core.course.security.CourseAccessPolicy;
 import com.M198.Majorproject.core.course.security.CourseMembershipResolver;
 
+import com.M198.Majorproject.discovery.notification.service.NotificationService;
+
 class CourseServiceTest {
 
         private final CourseRepository courseRepository = mock(CourseRepository.class);
@@ -43,11 +45,13 @@ class CourseServiceTest {
         private final CourseProfilePort profilePort = mock(CourseProfilePort.class);
         private final CourseDeletionCleanupService deletionCleanupService = mock(CourseDeletionCleanupService.class);
         private final CourseMediaService mediaService = mock(CourseMediaService.class);
+        private final NotificationService notificationService = mock(NotificationService.class);
         private final CourseAccessPolicy courseAccessPolicy = new CourseAccessPolicy(
                         new CourseMembershipResolver(membershipRepository));
         private final CourseLifecycleService courseService = new CourseLifecycleService(
                         courseRepository, membershipRepository, enrollmentCodeRepository,
-                        discoveryPort, profilePort, deletionCleanupService, mediaService, courseAccessPolicy);
+                        discoveryPort, profilePort, deletionCleanupService, mediaService, courseAccessPolicy,
+                        notificationService);
         private final Authentication teacher = mock(Authentication.class);
         private final Authentication student = mock(Authentication.class);
 
@@ -617,5 +621,102 @@ class CourseServiceTest {
                 var updated = courseService.update("course-1", teacher, updateRequest);
                 org.junit.jupiter.api.Assertions.assertNotNull(updated.getLinks());
                 assertEquals(2, updated.getLinks().size());
+        }
+
+        @Test
+        void privateCourseJoinCreatesPendingRequestAndNotifiesStaff() {
+                Course course = Course.builder()
+                                .id("course-private")
+                                .ownerId("teacher-1")
+                                .title("Private Community")
+                                .status(CourseStatus.ACTIVE)
+                                .accessType(CourseAccessType.PRIVATE)
+                                .enrollmentEnabled(true)
+                                .build();
+                when(courseRepository.findByIdAndStatus("course-private", CourseStatus.ACTIVE))
+                                .thenReturn(Optional.of(course));
+                when(membershipRepository.findByCourseIdAndUserId("course-private", "student-1"))
+                                .thenReturn(Optional.empty());
+                when(membershipRepository.findAllByCourseIdAndStatus("course-private", MembershipStatus.ACTIVE))
+                                .thenReturn(java.util.List.of(CourseMembership.builder()
+                                                .courseId("course-private").userId("teacher-1")
+                                                .role(MembershipRole.OWNER).status(MembershipStatus.ACTIVE).build()));
+
+                var response = courseService.enroll("course-private", student, null);
+
+                org.junit.jupiter.api.Assertions.assertFalse(response.isEnrolled());
+                assertEquals(MembershipStatus.PENDING, response.getMembershipStatus());
+                verify(membershipRepository).save(any(CourseMembership.class));
+                verify(notificationService).sendNotification(
+                                org.mockito.ArgumentMatchers.eq("teacher-1"),
+                                org.mockito.ArgumentMatchers.eq(com.M198.Majorproject.discovery.notification.entity.NotificationType.COURSE_JOIN_REQUEST),
+                                org.mockito.ArgumentMatchers.anyString(),
+                                org.mockito.ArgumentMatchers.anyString(),
+                                org.mockito.ArgumentMatchers.eq(com.M198.Majorproject.discovery.notification.entity.NotificationResourceType.COURSE),
+                                org.mockito.ArgumentMatchers.eq("course-private"));
+        }
+
+        @Test
+        void approveJoinRequestActivatesMembershipAndNotifiesUser() {
+                Course course = Course.builder()
+                                .id("course-private")
+                                .ownerId("teacher-1")
+                                .title("Private Community")
+                                .status(CourseStatus.ACTIVE)
+                                .accessType(CourseAccessType.PRIVATE)
+                                .enrollmentEnabled(true)
+                                .build();
+                when(courseRepository.findByIdAndStatus("course-private", CourseStatus.ACTIVE))
+                                .thenReturn(Optional.of(course));
+                when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-private", "teacher-1", MembershipStatus.ACTIVE))
+                                .thenReturn(Optional.of(CourseMembership.builder()
+                                                .courseId("course-private").userId("teacher-1")
+                                                .role(MembershipRole.OWNER).status(MembershipStatus.ACTIVE).build()));
+                CourseMembership pending = CourseMembership.builder()
+                                .courseId("course-private").userId("student-1")
+                                .role(MembershipRole.MEMBER).status(MembershipStatus.PENDING).build();
+                when(membershipRepository.findByCourseIdAndUserId("course-private", "student-1"))
+                                .thenReturn(Optional.of(pending));
+
+                var response = courseService.approveJoinRequest("course-private", "student-1", teacher);
+
+                org.junit.jupiter.api.Assertions.assertNotNull(response);
+                assertEquals(MembershipStatus.ACTIVE, pending.getStatus());
+                verify(notificationService).sendNotification(
+                                org.mockito.ArgumentMatchers.eq("student-1"),
+                                org.mockito.ArgumentMatchers.eq(com.M198.Majorproject.discovery.notification.entity.NotificationType.COURSE_JOIN_APPROVED),
+                                org.mockito.ArgumentMatchers.anyString(),
+                                org.mockito.ArgumentMatchers.anyString(),
+                                org.mockito.ArgumentMatchers.eq(com.M198.Majorproject.discovery.notification.entity.NotificationResourceType.COURSE),
+                                org.mockito.ArgumentMatchers.eq("course-private"));
+        }
+
+        @Test
+        void generateInviteLinkRevokesPreviousAndCreates48HourToken() {
+                Course course = Course.builder()
+                                .id("course-link")
+                                .ownerId("teacher-1")
+                                .title("Hidden Space")
+                                .status(CourseStatus.ACTIVE)
+                                .accessType(CourseAccessType.LINK_ONLY)
+                                .enrollmentEnabled(true)
+                                .build();
+                when(courseRepository.findByIdAndStatus("course-link", CourseStatus.ACTIVE))
+                                .thenReturn(Optional.of(course));
+                when(membershipRepository.findByCourseIdAndUserIdAndStatus("course-link", "teacher-1", MembershipStatus.ACTIVE))
+                                .thenReturn(Optional.of(CourseMembership.builder()
+                                                .courseId("course-link").userId("teacher-1")
+                                                .role(MembershipRole.OWNER).status(MembershipStatus.ACTIVE).build()));
+
+                EnrollmentCode oldCode = EnrollmentCode.builder()
+                                .courseId("course-link").code("OLD12345").active(true).build();
+                when(enrollmentCodeRepository.findAllByCourseIdOrderByCreatedAtDesc("course-link"))
+                                .thenReturn(java.util.List.of(oldCode));
+
+                var response = courseService.generateInviteLink("course-link", teacher);
+
+                org.junit.jupiter.api.Assertions.assertNotNull(response.getToken());
+                org.junit.jupiter.api.Assertions.assertNotNull(response.getExpiresAt());
+                org.junit.jupiter.api.Assertions.assertFalse(oldCode.isActive());
         }
 }

@@ -13,7 +13,9 @@ import com.M198.Majorproject.discovery.notification.dto.NotificationResponse;
 import com.M198.Majorproject.discovery.notification.dto.NotificationSettingsRequest;
 import com.M198.Majorproject.discovery.notification.dto.NotificationSettingsResponse;
 import com.M198.Majorproject.discovery.notification.entity.Notification;
+import com.M198.Majorproject.discovery.notification.entity.NotificationResourceType;
 import com.M198.Majorproject.discovery.notification.entity.NotificationSettings;
+import com.M198.Majorproject.discovery.notification.entity.NotificationType;
 import com.M198.Majorproject.discovery.notification.repository.NotificationRepository;
 import com.M198.Majorproject.discovery.notification.repository.NotificationSettingsRepository;
 
@@ -23,6 +25,29 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationSettingsRepository settingsRepository;
+
+    public void sendNotification(
+            String recipientId,
+            NotificationType type,
+            String title,
+            String message,
+            NotificationResourceType resourceType,
+            String resourceId) {
+        if (recipientId == null || recipientId.isBlank()) {
+            return;
+        }
+        Notification notification = Notification.builder()
+                .recipientId(recipientId)
+                .type(type)
+                .title(title)
+                .message(message)
+                .resourceType(resourceType)
+                .resourceId(resourceId)
+                .read(false)
+                .createdAt(Instant.now())
+                .build();
+        notificationRepository.save(notification);
+    }
 
     public Page<NotificationResponse> list(Authentication a, boolean unreadOnly, int page, int size) {
         if (page < 0 || size < 1 || size > 100) {

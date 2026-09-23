@@ -41,6 +41,10 @@ public class CourseResponse {
     private String enrollmentCode;
     private String role;
     private boolean enrolled;
+    private com.M198.Majorproject.core.course.entity.MembershipStatus membershipStatus;
+    private String inviteToken;
+    private String inviteUrl;
+    private Instant inviteExpiresAt;
     private Instant createdAt;
     private Instant updatedAt;
 

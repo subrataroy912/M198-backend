@@ -3,6 +3,7 @@ package com.M198.Majorproject.user.profile.dto;
 import java.util.List;
 
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.M198.Majorproject.user.profile.entity.ProfileLink;
@@ -14,8 +15,9 @@ import lombok.Setter;
 @Setter
 public class UpdateUserProfileRequest {
 
-    @Size(max = 31)
-    @Pattern(regexp = "^@?[A-Za-z0-9_]*$", message = "must contain only letters, numbers, or underscores")
+    @NotBlank(message = "Handle cannot be blank")
+    @Size(min = 3, max = 31, message = "Handle must be between 3 and 31 characters")
+    @Pattern(regexp = "^@?[A-Za-z0-9_]+$", message = "Handle must contain only letters, numbers, or underscores (with an optional leading @)")
     private String handle;
 
     @Size(max = 100)
@@ -56,7 +58,7 @@ public class UpdateUserProfileRequest {
     private String gender;
 
     @Size(max = 50)
-    @JsonAlias({"dob", "birthday"})
+    @JsonAlias({ "dob", "birthday" })
     private String dateOfBirth;
 
     @Size(max = 250)
