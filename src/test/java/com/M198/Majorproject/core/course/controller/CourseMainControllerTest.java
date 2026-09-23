@@ -33,7 +33,6 @@ class CourseMainControllerTest {
         private MockMvc mockMvc;
 
         @BeforeEach
-        @SuppressWarnings("unused")
         void setUp() {
                 LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
                 validator.afterPropertiesSet();
@@ -128,4 +127,3 @@ class CourseMainControllerTest {
                                 .andExpect(status().isNoContent());
         }
 }
-

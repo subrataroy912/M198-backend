@@ -9,6 +9,8 @@
 package com.M198.Majorproject.core.course.entity;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -53,6 +55,12 @@ public class Coursework {
 
     @Builder.Default
     private CourseworkStatus status = CourseworkStatus.DRAFT;
+
+    @Builder.Default
+    private boolean pinned = false;
+
+    @Builder.Default
+    private List<CourseworkAttachment> attachments = new ArrayList<>();
 
     @Field("published_at")
     private Instant publishedAt;

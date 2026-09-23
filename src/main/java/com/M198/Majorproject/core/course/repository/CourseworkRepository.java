@@ -13,6 +13,14 @@ import com.M198.Majorproject.core.course.entity.CourseworkType;
 
 public interface CourseworkRepository extends MongoRepository<Coursework, String> {
 
+    /** Students: only PUBLISHED, pinned first, newest published first. */
+    Page<Coursework> findAllByCourseIdAndStatusOrderByPinnedDescPublishedAtDesc(
+            String courseId, CourseworkStatus status, Pageable pageable);
+
+    /** Staff: everything except ARCHIVED, pinned first, newest published first, drafts by createdAt. */
+    Page<Coursework> findAllByCourseIdAndStatusNotOrderByPinnedDescPublishedAtDescCreatedAtDesc(
+            String courseId, CourseworkStatus status, Pageable pageable);
+
     /** Students: only PUBLISHED, newest published first. */
     Page<Coursework> findAllByCourseIdAndStatusOrderByPublishedAtDesc(
             String courseId, CourseworkStatus status, Pageable pageable);

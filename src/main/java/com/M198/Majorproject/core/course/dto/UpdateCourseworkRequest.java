@@ -1,10 +1,12 @@
 package com.M198.Majorproject.core.course.dto;
 
 import java.time.Instant;
+import java.util.List;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
+import com.M198.Majorproject.core.course.entity.CourseworkAttachment;
 import com.M198.Majorproject.core.course.entity.CourseworkStatus;
 
 import lombok.Getter;
@@ -26,4 +28,8 @@ public class UpdateCourseworkRequest {
     private Integer maximumPoints;
 
     private CourseworkStatus status;
+
+    private Boolean pinned;
+
+    private List<CourseworkAttachment> attachments;
 }

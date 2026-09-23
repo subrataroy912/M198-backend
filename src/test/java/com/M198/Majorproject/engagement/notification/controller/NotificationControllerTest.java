@@ -25,45 +25,46 @@ import com.M198.Majorproject.discovery.notification.service.NotificationService;
 @ExtendWith(MockitoExtension.class)
 class NotificationControllerTest {
 
-    @Mock
-    private NotificationService service;
+        @Mock
+        private NotificationService service;
 
-    private MockMvc mockMvc;
+        private MockMvc mockMvc;
 
-    @BeforeEach
-    @SuppressWarnings("unused")
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new NotificationController(service))
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
-    }
+        @BeforeEach
+        void setUp() {
+                mockMvc = MockMvcBuilders.standaloneSetup(new NotificationController(service))
+                                .setControllerAdvice(new GlobalExceptionHandler())
+                                .build();
+        }
 
-    @Test
+        @Test
         void notificationListReturnsForbiddenWithoutAuthentication() throws Exception {
-        when(service.list(null, false, 0, 20)).thenThrow(new NotificationService.NotificationAccessException());
+                when(service.list(null, false, 0, 20)).thenThrow(new NotificationService.NotificationAccessException());
 
-        mockMvc.perform(get("/v1/notifications"))
-                .andExpect(status().isForbidden());
-    }
+                mockMvc.perform(get("/v1/notifications"))
+                                .andExpect(status().isForbidden());
+        }
 
-    @Test
-    void notificationListReturnsPaginationEnvelope() throws Exception {
-        when(service.list(org.mockito.ArgumentMatchers.nullable(Authentication.class), eq(true), eq(1), eq(5)))
-                .thenReturn(new PageImpl<>(List.of(new NotificationResponse())));
+        @Test
+        void notificationListReturnsPaginationEnvelope() throws Exception {
+                when(service.list(org.mockito.ArgumentMatchers.nullable(Authentication.class), eq(true), eq(1), eq(5)))
+                                .thenReturn(new PageImpl<>(List.of(new NotificationResponse())));
 
-        mockMvc.perform(get("/v1/notifications?unreadOnly=true&page=1&size=5"))
-                .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.content").isArray())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.page").value(0));
-    }
+                mockMvc.perform(get("/v1/notifications?unreadOnly=true&page=1&size=5"))
+                                .andExpect(status().isOk())
+                                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                                                .jsonPath("$.content").isArray())
+                                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                                                .jsonPath("$.page").value(0));
+        }
 
-    @Test
-    void missingNotificationReturnsNotFound() throws Exception {
-        when(service.markRead(eq("missing"), org.mockito.ArgumentMatchers.nullable(Authentication.class)))
-                .thenThrow(new NotificationService.NotificationNotFoundException());
+        @Test
+        void missingNotificationReturnsNotFound() throws Exception {
+                when(service.markRead(eq("missing"), org.mockito.ArgumentMatchers.nullable(Authentication.class)))
+                                .thenThrow(new NotificationService.NotificationNotFoundException());
 
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(
-                "/v1/notifications/missing/read"))
-                .andExpect(status().isNotFound());
-    }
+                mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(
+                                "/v1/notifications/missing/read"))
+                                .andExpect(status().isNotFound());
+        }
 }

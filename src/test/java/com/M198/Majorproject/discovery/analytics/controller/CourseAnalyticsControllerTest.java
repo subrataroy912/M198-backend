@@ -23,34 +23,33 @@ import com.M198.Majorproject.core.course.service.AnalyticsService;
 @ExtendWith(MockitoExtension.class)
 class CourseAnalyticsControllerTest {
 
-    @Mock
-    private AnalyticsService service;
+        @Mock
+        private AnalyticsService service;
 
-    private MockMvc mockMvc;
+        private MockMvc mockMvc;
 
-    @BeforeEach
-    @SuppressWarnings("unused")
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new CourseAnalyticsController(service))
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
-    }
+        @BeforeEach
+        void setUp() {
+                mockMvc = MockMvcBuilders.standaloneSetup(new CourseAnalyticsController(service))
+                                .setControllerAdvice(new GlobalExceptionHandler())
+                                .build();
+        }
 
-    @Test
-    void unauthorizedAnalyticsReturnsForbidden() throws Exception {
-        when(service.summary(eq("course-1"), org.mockito.ArgumentMatchers.nullable(Authentication.class)))
-                .thenThrow(new AnalyticsAccessException());
+        @Test
+        void unauthorizedAnalyticsReturnsForbidden() throws Exception {
+                when(service.summary(eq("course-1"), org.mockito.ArgumentMatchers.nullable(Authentication.class)))
+                                .thenThrow(new AnalyticsAccessException());
 
-        mockMvc.perform(get("/v1/analytics/courses/course-1/summary"))
-                .andExpect(status().isForbidden());
-    }
+                mockMvc.perform(get("/v1/analytics/courses/course-1/summary"))
+                                .andExpect(status().isForbidden());
+        }
 
-    @Test
-    void missingAnalyticsReturnsNotFound() throws Exception {
-        when(service.summary(eq("course-1"), org.mockito.ArgumentMatchers.nullable(Authentication.class)))
-                .thenThrow(new AnalyticsNotFoundException());
+        @Test
+        void missingAnalyticsReturnsNotFound() throws Exception {
+                when(service.summary(eq("course-1"), org.mockito.ArgumentMatchers.nullable(Authentication.class)))
+                                .thenThrow(new AnalyticsNotFoundException());
 
-        mockMvc.perform(get("/v1/analytics/courses/course-1/summary"))
-                .andExpect(status().isNotFound());
-    }
+                mockMvc.perform(get("/v1/analytics/courses/course-1/summary"))
+                                .andExpect(status().isNotFound());
+        }
 }

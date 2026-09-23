@@ -42,7 +42,6 @@ class AnalyticsServiceTest {
         private final Authentication teacher = mock(Authentication.class);
 
         @BeforeEach
-        @SuppressWarnings("unchecked")
         void setUp() {
                 when(teacher.isAuthenticated()).thenReturn(true);
                 when(teacher.getName()).thenReturn("teacher-1");

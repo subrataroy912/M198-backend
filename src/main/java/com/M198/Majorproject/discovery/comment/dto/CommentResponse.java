@@ -13,6 +13,9 @@ public class CommentResponse {
     private String id;
     private String courseId;
     private String authorId;
+    private String authorName;
+    private String authorAvatarUrl;
+    private String authorHandle;
     private String targetId;
     private CommentVisibility visibility;
     private String body;
