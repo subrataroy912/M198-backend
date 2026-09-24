@@ -36,6 +36,8 @@ server:
   port: ${PORT:8080}
   address: ${SERVER_ADDRESS:0.0.0.0}
 app:
+  seed:
+    enabled: ${APP_SEED_ENABLED:false}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
   cookies:
