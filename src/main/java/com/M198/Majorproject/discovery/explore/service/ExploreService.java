@@ -25,19 +25,19 @@ public class ExploreService {
         Pageable pageable = pageable(page, size);
         Page<CourseDiscovery> courses;
 
-        List<CourseVisibility> allowedVisibilities = List.of(
-                CourseVisibility.PUBLIC,
-                CourseVisibility.PRIVATE);
+        List<CourseAccessType> allowedAccessTypes = List.of(
+                CourseAccessType.PUBLIC,
+                CourseAccessType.PRIVATE);
 
         if (subject == null || subject.isBlank()) {
             courses = repository.findFeed(
-                    allowedVisibilities,
+                    allowedAccessTypes,
                     CourseStatus.ACTIVE,
                     pageable);
         } else {
             courses = repository.findFeedBySubject(
                     subject.trim(),
-                    allowedVisibilities,
+                    allowedAccessTypes,
                     CourseStatus.ACTIVE,
                     pageable);
         }
@@ -50,13 +50,13 @@ public class ExploreService {
             throw new IllegalArgumentException("q must not be blank");
         }
 
-        List<CourseVisibility> allowedVisibilities = List.of(
-                CourseVisibility.PUBLIC,
-                CourseVisibility.PRIVATE);
+        List<CourseAccessType> allowedAccessTypes = List.of(
+                CourseAccessType.PUBLIC,
+                CourseAccessType.PRIVATE);
 
         return repository.searchFeedByTitle(
                 query.trim(),
-                allowedVisibilities,
+                allowedAccessTypes,
                 CourseStatus.ACTIVE,
                 pageable(page, size)).map(this::response);
     }

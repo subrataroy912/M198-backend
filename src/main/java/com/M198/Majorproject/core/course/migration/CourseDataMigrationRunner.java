@@ -63,14 +63,13 @@ public class CourseDataMigrationRunner implements ApplicationRunner {
                 logger.info("Migrated {} course_discovery from OPEN to PUBLIC", res4.getModifiedCount());
             }
 
-            // 5. Migrate course_discovery: CODE / INVITE -> LINK_ONLY
-            var res5 = mongoTemplate.updateMulti(
-                    Query.query(Criteria.where("accessType").in("CODE", "INVITE")),
-                    Update.update("accessType", "LINK_ONLY"),
+            // 5. Remove LINK_ONLY / CODE / INVITE courses from course_discovery (explore feed is strictly PUBLIC and PRIVATE)
+            var res5 = mongoTemplate.remove(
+                    Query.query(Criteria.where("accessType").in("CODE", "INVITE", "LINK_ONLY")),
                     "course_discovery"
             );
-            if (res5.getModifiedCount() > 0) {
-                logger.info("Migrated {} course_discovery from CODE/INVITE to LINK_ONLY", res5.getModifiedCount());
+            if (res5.getDeletedCount() > 0) {
+                logger.info("Removed {} non-discoverable LINK_ONLY courses from course_discovery", res5.getDeletedCount());
             }
 
             // 6. Remove obsolete spaceType from course_discovery

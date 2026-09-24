@@ -22,25 +22,25 @@ public interface CourseDiscoveryRepository extends MongoRepository<CourseDiscove
         void deleteByCourseId(String courseId);
 
         // Just find public/private active courses
-        @Query("{ 'visibility' : { $in: ?0 }, 'status' : ?1 }")
+        @Query("{ 'accessType' : { $in: ?0 }, 'status' : ?1 }")
         Page<CourseDiscovery> findFeed(
-                        List<CourseVisibility> allowedVisibilities,
+                        List<com.M198.Majorproject.core.course.entity.CourseAccessType> allowedAccessTypes,
                         CourseStatus status,
                         Pageable pageable);
 
         // Filter by subject
-        @Query("{ 'subject' : ?0, 'visibility' : { $in: ?1 }, 'status' : ?2 }")
+        @Query("{ 'subject' : ?0, 'accessType' : { $in: ?1 }, 'status' : ?2 }")
         Page<CourseDiscovery> findFeedBySubject(
                         String subject,
-                        List<CourseVisibility> allowedVisibilities,
+                        List<com.M198.Majorproject.core.course.entity.CourseAccessType> allowedAccessTypes,
                         CourseStatus status,
                         Pageable pageable);
 
         // Search by title (regex with 'i' for ignore case)
-        @Query("{ 'title' : { $regex: ?0, $options: 'i' }, 'visibility' : { $in: ?1 }, 'status' : ?2 }")
+        @Query("{ 'title' : { $regex: ?0, $options: 'i' }, 'accessType' : { $in: ?1 }, 'status' : ?2 }")
         Page<CourseDiscovery> searchFeedByTitle(
                         String title,
-                        List<CourseVisibility> visibilities,
+                        List<com.M198.Majorproject.core.course.entity.CourseAccessType> allowedAccessTypes,
                         CourseStatus status,
                         Pageable pageable);
 }

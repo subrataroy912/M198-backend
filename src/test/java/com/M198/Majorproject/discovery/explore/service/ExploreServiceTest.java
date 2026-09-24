@@ -10,8 +10,8 @@ import static org.mockito.Mockito.when;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
+import com.M198.Majorproject.core.course.entity.CourseAccessType;
 import com.M198.Majorproject.core.course.entity.CourseStatus;
-import com.M198.Majorproject.core.course.entity.CourseVisibility;
 import com.M198.Majorproject.discovery.explore.entity.CourseDiscovery;
 import com.M198.Majorproject.discovery.explore.repository.CourseDiscoveryRepository;
 
@@ -20,10 +20,9 @@ class ExploreServiceTest {
         private final CourseDiscoveryRepository repository = mock(CourseDiscoveryRepository.class);
         private final ExploreService service = new ExploreService(repository);
 
-        // Defined as a constant to keep the tests clean and readable
-        private final List<CourseVisibility> allowedVisibilities = List.of(
-                        CourseVisibility.PUBLIC,
-                        CourseVisibility.PRIVATE);
+        private final List<CourseAccessType> allowedAccessTypes = List.of(
+                        CourseAccessType.PUBLIC,
+                        CourseAccessType.PRIVATE);
 
         @Test
         void feedRequestsPublicAndPrivateActiveCourses() {
@@ -33,13 +32,12 @@ class ExploreServiceTest {
                                 .coverUrl("https://example.com/cover.png")
                                 .logoUrl("https://example.com/logo.png")
                                 .theme("emerald")
-                                .visibility(CourseVisibility.PUBLIC)
+                                .accessType(CourseAccessType.PUBLIC)
                                 .status(CourseStatus.ACTIVE)
                                 .build();
 
-                // Updated to use the list of visibilities
                 when(repository.findFeed(
-                                allowedVisibilities, CourseStatus.ACTIVE, PageRequest.of(0, 20)))
+                                allowedAccessTypes, CourseStatus.ACTIVE, PageRequest.of(0, 20)))
                                 .thenReturn(new PageImpl<>(List.of(course), PageRequest.of(0, 20), 1));
 
                 var result = service.feed(null, 0, 20);
@@ -52,22 +50,19 @@ class ExploreServiceTest {
                 assertEquals("https://example.com/cover.png", result.getContent().get(0).getCover());
                 assertEquals("https://example.com/logo.png", result.getContent().get(0).getLogo());
 
-                // Updated to verify using the list of visibilities
                 verify(repository).findFeed(
-                                allowedVisibilities, CourseStatus.ACTIVE, PageRequest.of(0, 20));
+                                allowedAccessTypes, CourseStatus.ACTIVE, PageRequest.of(0, 20));
         }
 
         @Test
         void archivedCoursesAreExcludedByFeedQuery() {
-                // Updated to use the list of visibilities
                 when(repository.findFeed(
-                                allowedVisibilities, CourseStatus.ACTIVE, PageRequest.of(0, 20)))
+                                allowedAccessTypes, CourseStatus.ACTIVE, PageRequest.of(0, 20)))
                                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 
                 service.feed(null, 0, 20);
 
-                // Updated to verify using the list of visibilities
                 verify(repository).findFeed(
-                                allowedVisibilities, CourseStatus.ACTIVE, PageRequest.of(0, 20));
+                                allowedAccessTypes, CourseStatus.ACTIVE, PageRequest.of(0, 20));
         }
 }

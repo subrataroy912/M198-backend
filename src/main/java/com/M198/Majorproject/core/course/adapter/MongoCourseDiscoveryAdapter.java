@@ -15,6 +15,17 @@ class MongoCourseDiscoveryAdapter implements CourseDiscoveryPort {
     private final CourseDiscoveryRepository repository;
 
     public void sync(Course course, long enrollmentCount) {
+        if (course.getId() == null) {
+            return;
+        }
+
+        // Only PUBLIC and PRIVATE active courses belong in discovery; LINK_ONLY are private/invite-only
+        if (course.getResolvedAccessType() == com.M198.Majorproject.core.course.entity.CourseAccessType.LINK_ONLY
+                || course.getStatus() != com.M198.Majorproject.core.course.entity.CourseStatus.ACTIVE) {
+            repository.deleteByCourseId(course.getId());
+            return;
+        }
+
         // Searching course by id from db
         CourseDiscovery discovery = repository
                 .findByCourseId(course.getId())
