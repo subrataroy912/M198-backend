@@ -1,23 +1,14 @@
 /**
  * CREATED BY : SUBRATA ROY
  * CONTROLLER : ProfileController
- * PURPOSE    : Exposes endpoints for viewing and updating the current user's profile and public profile data.
- *
- * This controller sits in front of the profile service and ensures account owners can access
- * their own information, while visibility rules still protect private data from unrelated users.
  */
 package com.M198.Majorproject.user.profile.controller;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.M198.Majorproject.user.profile.dto.PublicUserProfileResponse;
@@ -26,28 +17,24 @@ import com.M198.Majorproject.user.profile.dto.UserProfileResponse;
 import com.M198.Majorproject.user.profile.service.ProfileService;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/v1/users")
 public class ProfileController {
 
 	private final ProfileService profileService;
 
-	public ProfileController(ProfileService profileService) {
-		this.profileService = profileService;
-	}
-
 	@GetMapping
-	public Object getPublicProfiles(
-			@org.springframework.web.bind.annotation.RequestParam(value = "q", required = false) String query,
-			@org.springframework.web.bind.annotation.RequestParam(value = "page", required = false) Integer page,
-			@org.springframework.web.bind.annotation.RequestParam(value = "size", required = false) Integer size) {
-		if (page != null || size != null || (query != null && !query.isBlank())) {
-			int pageNumber = page != null && page >= 0 ? page : 0;
-			int pageSize = size != null && size > 0 ? Math.min(size, 100) : 20;
-			return profileService.getPublicProfiles(query, org.springframework.data.domain.PageRequest.of(pageNumber, pageSize));
-		}
-		return profileService.getPublicProfiles();
+	public Page<PublicUserProfileResponse> getPublicProfiles(
+			@RequestParam(value = "q", required = false) String query,
+			@RequestParam(value = "page", defaultValue = "0") int page,
+			@RequestParam(value = "size", defaultValue = "20") int size) {
+
+		int safeSize = Math.min(size, 100);
+
+		return profileService.getPublicProfiles(query, PageRequest.of(page, safeSize));
 	}
 
 	@GetMapping("/me")

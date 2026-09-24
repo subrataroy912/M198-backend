@@ -8,17 +8,15 @@ import com.M198.Majorproject.core.course.dto.PublicCourseResponse;
 import com.M198.Majorproject.core.course.service.CourseService;
 import com.M198.Majorproject.discovery.explore.service.ExploreService;
 
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/v1/explore")
 public class ExploreController {
 
     private final ExploreService service;
     private final CourseService courseService;
-
-    public ExploreController(ExploreService service, CourseService courseService) {
-        this.service = service;
-        this.courseService = courseService;
-    }
 
     @GetMapping("/feed")
     public PageResponse<CourseDiscoveryResponse> feed(@RequestParam(required = false) String subject,

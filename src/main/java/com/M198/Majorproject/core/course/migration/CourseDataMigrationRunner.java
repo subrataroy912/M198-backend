@@ -82,6 +82,28 @@ public class CourseDataMigrationRunner implements ApplicationRunner {
             if (res6.getModifiedCount() > 0) {
                 logger.info("Cleaned obsolete spaceType from {} course_discovery documents", res6.getModifiedCount());
             }
+
+            // 7. Repair enrollment_enabled on courses collection
+            var res7a = mongoTemplate.updateMulti(
+                    Query.query(Criteria.where("enrollmentEnabled").exists(true)),
+                    new Update().rename("enrollmentEnabled", "enrollment_enabled"),
+                    "courses"
+            );
+            if (res7a.getModifiedCount() > 0) {
+                logger.info("Renamed enrollmentEnabled to enrollment_enabled in {} courses", res7a.getModifiedCount());
+            }
+
+            var res7b = mongoTemplate.updateMulti(
+                    Query.query(new Criteria().orOperator(
+                            Criteria.where("enrollment_enabled").exists(false),
+                            Criteria.where("enrollment_enabled").is(null)
+                    )),
+                    Update.update("enrollment_enabled", true),
+                    "courses"
+            );
+            if (res7b.getModifiedCount() > 0) {
+                logger.info("Ensured enrollment_enabled is true for {} courses", res7b.getModifiedCount());
+            }
         } catch (Exception e) {
             logger.warn("Course data migration skipped or failed: {}", e.getMessage());
         }

@@ -8,16 +8,14 @@ import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
 import com.M198.Majorproject.core.course.repository.CourseRepository;
 import com.M198.Majorproject.user.profile.port.ProfileCoursePort;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 class MongoProfileCourseAdapter implements ProfileCoursePort {
 
     private final CourseRepository courseRepository;
     private final CourseMembershipRepository courseMembershipRepository;
-
-    MongoProfileCourseAdapter(CourseRepository courseRepository, CourseMembershipRepository courseMembershipRepository) {
-        this.courseRepository = courseRepository;
-        this.courseMembershipRepository = courseMembershipRepository;
-    }
 
     @Override
     public long countCreatedCourses(String userId) {

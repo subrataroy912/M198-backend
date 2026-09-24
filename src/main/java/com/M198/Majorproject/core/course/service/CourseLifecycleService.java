@@ -567,26 +567,18 @@ public class CourseLifecycleService {
         }
         if (request.getAccessType() != null) {
             course.setAccessType(request.getAccessType());
-            switch (request.getAccessType()) {
-                case LINK_ONLY -> {
-                    course.setEnrollmentEnabled(true);
-                    boolean hasActive = enrollmentCodeRepository.findByCourseIdAndActiveTrue(courseId)
-                            .filter(c -> c.getExpiresAt() == null || c.getExpiresAt().isAfter(Instant.now()))
-                            .isPresent();
-                    if (!hasActive) {
-                        enrollmentCodeRepository.save(EnrollmentCode.builder()
-                                .courseId(courseId)
-                                .code(generateEnrollmentCode())
-                                .createdBy(userId)
-                                .active(true)
-                                .expiresAt(Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS))
-                                .build());
-                    }
-                }
-                case PUBLIC, PRIVATE -> {
-                    course.setEnrollmentEnabled(true);
-                }
-                default -> {
+            if (request.getAccessType() == CourseAccessType.LINK_ONLY) {
+                boolean hasActive = enrollmentCodeRepository.findByCourseIdAndActiveTrue(courseId)
+                        .filter(c -> c.getExpiresAt() == null || c.getExpiresAt().isAfter(Instant.now()))
+                        .isPresent();
+                if (!hasActive) {
+                    enrollmentCodeRepository.save(EnrollmentCode.builder()
+                            .courseId(courseId)
+                            .code(generateEnrollmentCode())
+                            .createdBy(userId)
+                            .active(true)
+                            .expiresAt(Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS))
+                            .build());
                 }
             }
         }
@@ -611,7 +603,18 @@ public class CourseLifecycleService {
         }
         Course savedCourse = courseRepository.save(course);
         syncDiscovery(savedCourse);
-        return toResponse(savedCourse);
+        
+        CourseResponse response = toResponse(savedCourse);
+        membershipRepository.findByCourseIdAndUserId(courseId, userId).ifPresent(m -> {
+            MembershipRole role = m.getRole() != null ? m.getRole() : MembershipRole.MEMBER;
+            response.setRole(role.name());
+            response.setEnrolled(true);
+            response.setMembershipStatus(MembershipStatus.ACTIVE);
+        });
+        enrollmentCodeRepository.findByCourseIdAndActiveTrue(courseId).ifPresent(code -> {
+            response.setEnrollmentCode(code.getCode());
+        });
+        return response;
     }
 
     public void archive(String courseId, Authentication authentication) {
@@ -1038,6 +1041,8 @@ public class CourseLifecycleService {
      * queries additionally filter it to PUBLIC and ACTIVE courses.
      */
     private void syncDiscovery(Course course) {
+        if (course.getId() == null)
+            return;
         courseDiscoveryPort.sync(course,
                 membershipRepository.countByCourseIdAndStatus(course.getId(), MembershipStatus.ACTIVE));
     }

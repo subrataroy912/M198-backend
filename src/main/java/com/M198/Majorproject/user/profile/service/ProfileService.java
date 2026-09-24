@@ -48,39 +48,42 @@ public class ProfileService {
     private final HandleChangePolicy handleChangePolicy;
     private final MediaStorageService mediaStorageService;
 
-    public UserProfileResponse getMyProfile(Authentication authentication)
-    {
+    public UserProfileResponse getMyProfile(Authentication authentication) {
         UserContext context = userResolver.resolveCurrentUser(authentication);
         UserProfileResponse response = profileMapper.toOwnerResponse(context.user(), context.profile());
         enrichOwnerProfile(response, context.user(), context.profile());
         return response;
     }
 
-    public List<PublicUserProfileResponse> getPublicProfiles()
-    {
-        List<UserProfile> profiles = profileRepository.findAllByProfileVisibilityAndDeletedAtIsNull(ProfileVisibility.PUBLIC);
+    public List<PublicUserProfileResponse> getPublicProfiles() {
+        List<UserProfile> profiles = profileRepository
+                .findAllByProfileVisibilityAndDeletedAtIsNull(ProfileVisibility.PUBLIC);
         return profiles.stream()
                 .map(this::mapAndEnrichPublicProfile)
                 .toList();
     }
 
-    public Page<PublicUserProfileResponse> getPublicProfiles(
-            String query,
-            Pageable pageable)
-    {
+    public Page<PublicUserProfileResponse> getPublicProfiles(String query, Pageable pageable) {
+
         Page<UserProfile> profilesPage;
-        if (query != null && !query.trim().isBlank()) {
-            profilesPage = profileRepository.searchPublicProfiles(ProfileVisibility.PUBLIC, query.trim(), pageable);
+
+        if (query != null && !query.isBlank()) {
+            profilesPage = profileRepository.searchPublicProfiles(
+                    ProfileVisibility.PUBLIC,
+                    query.trim(),
+                    pageable);
         } else {
-            profilesPage = profileRepository.findAllByProfileVisibilityAndDeletedAtIsNull(ProfileVisibility.PUBLIC, pageable);
+            profilesPage = profileRepository.findAllByProfileVisibilityAndDeletedAtIsNull(
+                    ProfileVisibility.PUBLIC,
+                    pageable);
         }
+
         return profilesPage.map(this::mapAndEnrichPublicProfile);
     }
 
     public PublicUserProfileResponse getUserProfile(
             String identifier,
-            Authentication authentication)
-    {
+            Authentication authentication) {
         UserContext context = userResolver.resolveUserByIdentifier(identifier);
         String authenticatedUserId = userResolver.resolveAuthenticatedUserIdSafe(authentication);
         if (!context.profile().getUserId().equals(authenticatedUserId)
@@ -96,8 +99,7 @@ public class ProfileService {
     }
 
     public UserProfileResponse unlockCreator(
-            Authentication authentication)
-    {
+            Authentication authentication) {
         UserContext context = userResolver.resolveCurrentUser(authentication);
         User user = context.user();
         UserProfile profile = context.profile();
@@ -121,8 +123,7 @@ public class ProfileService {
 
     public UserProfileResponse updateMyProfile(
             Authentication authentication,
-            UpdateUserProfileRequest request)
-    {
+            UpdateUserProfileRequest request) {
         return updateMyProfile(authentication, request, null, null);
     }
 
@@ -130,8 +131,7 @@ public class ProfileService {
             Authentication authentication,
             UpdateUserProfileRequest request,
             MultipartFile avatarFile,
-            MultipartFile bannerFile)
-    {
+            MultipartFile bannerFile) {
         UserContext context = userResolver.resolveCurrentUser(authentication);
         User user = context.user();
         UserProfile profile = context.profile();
@@ -154,8 +154,7 @@ public class ProfileService {
     private void applyMediaFiles(
             UserProfile profile,
             MultipartFile avatarFile,
-            MultipartFile bannerFile)
-    {
+            MultipartFile bannerFile) {
         if (mediaStorageService.hasContent(avatarFile)) {
             String oldAvatar = profile.getAvatarUrl();
             String newAvatar = mediaStorageService.uploadImage(avatarFile, "user_avatars");
@@ -174,8 +173,7 @@ public class ProfileService {
         }
     }
 
-    private PublicUserProfileResponse mapAndEnrichPublicProfile(UserProfile profile)
-    {
+    private PublicUserProfileResponse mapAndEnrichPublicProfile(UserProfile profile) {
         PublicUserProfileResponse response = profileMapper.toPublicResponse(profile);
         User user = userRepository.findById(profile.getUserId()).orElse(null);
         if (user != null && user.isCanCreateCourses()) {
@@ -188,8 +186,7 @@ public class ProfileService {
     private void enrichOwnerProfile(
             UserProfileResponse response,
             User user,
-            UserProfile profile)
-    {
+            UserProfile profile) {
         if (response == null || user == null) {
             return;
         }
@@ -211,8 +208,7 @@ public class ProfileService {
     private void enrichPublicProfile(
             PublicUserProfileResponse response,
             User user,
-            UserProfile profile)
-    {
+            UserProfile profile) {
         if (response == null) {
             return;
         }

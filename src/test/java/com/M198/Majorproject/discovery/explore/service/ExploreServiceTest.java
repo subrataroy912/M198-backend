@@ -17,46 +17,57 @@ import com.M198.Majorproject.discovery.explore.repository.CourseDiscoveryReposit
 
 class ExploreServiceTest {
 
-    private final CourseDiscoveryRepository repository = mock(CourseDiscoveryRepository.class);
-    private final ExploreService service = new ExploreService(repository);
+        private final CourseDiscoveryRepository repository = mock(CourseDiscoveryRepository.class);
+        private final ExploreService service = new ExploreService(repository);
 
-    @Test
-    void feedRequestsOnlyPublicActiveCourses() {
-        CourseDiscovery course = CourseDiscovery.builder()
-                .courseId("course-1")
-                .title("Public course")
-                .coverUrl("https://example.com/cover.png")
-                .logoUrl("https://example.com/logo.png")
-                .theme("emerald")
-                .visibility(CourseVisibility.PUBLIC)
-                .status(CourseStatus.ACTIVE)
-                .build();
-        when(repository.findAllByVisibilityAndStatusOrderByPopularityScoreDescLastActivityAtDesc(
-                CourseVisibility.PUBLIC, CourseStatus.ACTIVE, PageRequest.of(0, 20)))
-                .thenReturn(new PageImpl<>(List.of(course), PageRequest.of(0, 20), 1));
+        // Defined as a constant to keep the tests clean and readable
+        private final List<CourseVisibility> allowedVisibilities = List.of(
+                        CourseVisibility.PUBLIC,
+                        CourseVisibility.PRIVATE);
 
-        var result = service.feed(null, 0, 20);
+        @Test
+        void feedRequestsPublicAndPrivateActiveCourses() {
+                CourseDiscovery course = CourseDiscovery.builder()
+                                .courseId("course-1")
+                                .title("Public course")
+                                .coverUrl("https://example.com/cover.png")
+                                .logoUrl("https://example.com/logo.png")
+                                .theme("emerald")
+                                .visibility(CourseVisibility.PUBLIC)
+                                .status(CourseStatus.ACTIVE)
+                                .build();
 
-        assertEquals("course-1", result.getContent().get(0).getCourseId());
-        assertEquals("Public course", result.getContent().get(0).getTitle());
-        assertEquals("https://example.com/cover.png", result.getContent().get(0).getCoverUrl());
-        assertEquals("https://example.com/logo.png", result.getContent().get(0).getLogoUrl());
-        assertEquals("emerald", result.getContent().get(0).getTheme());
-        assertEquals("https://example.com/cover.png", result.getContent().get(0).getCover());
-        assertEquals("https://example.com/logo.png", result.getContent().get(0).getLogo());
-        verify(repository).findAllByVisibilityAndStatusOrderByPopularityScoreDescLastActivityAtDesc(
-                CourseVisibility.PUBLIC, CourseStatus.ACTIVE, PageRequest.of(0, 20));
-    }
+                // Updated to use the list of visibilities
+                when(repository.findFeed(
+                                allowedVisibilities, CourseStatus.ACTIVE, PageRequest.of(0, 20)))
+                                .thenReturn(new PageImpl<>(List.of(course), PageRequest.of(0, 20), 1));
 
-    @Test
-    void privateAndArchivedCoursesAreExcludedByPublicFeedQuery() {
-        when(repository.findAllByVisibilityAndStatusOrderByPopularityScoreDescLastActivityAtDesc(
-                CourseVisibility.PUBLIC, CourseStatus.ACTIVE, PageRequest.of(0, 20)))
-                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+                var result = service.feed(null, 0, 20);
 
-        service.feed(null, 0, 20);
+                assertEquals("course-1", result.getContent().get(0).getCourseId());
+                assertEquals("Public course", result.getContent().get(0).getTitle());
+                assertEquals("https://example.com/cover.png", result.getContent().get(0).getCoverUrl());
+                assertEquals("https://example.com/logo.png", result.getContent().get(0).getLogoUrl());
+                assertEquals("emerald", result.getContent().get(0).getTheme());
+                assertEquals("https://example.com/cover.png", result.getContent().get(0).getCover());
+                assertEquals("https://example.com/logo.png", result.getContent().get(0).getLogo());
 
-        verify(repository).findAllByVisibilityAndStatusOrderByPopularityScoreDescLastActivityAtDesc(
-                CourseVisibility.PUBLIC, CourseStatus.ACTIVE, PageRequest.of(0, 20));
-    }
+                // Updated to verify using the list of visibilities
+                verify(repository).findFeed(
+                                allowedVisibilities, CourseStatus.ACTIVE, PageRequest.of(0, 20));
+        }
+
+        @Test
+        void archivedCoursesAreExcludedByFeedQuery() {
+                // Updated to use the list of visibilities
+                when(repository.findFeed(
+                                allowedVisibilities, CourseStatus.ACTIVE, PageRequest.of(0, 20)))
+                                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+
+                service.feed(null, 0, 20);
+
+                // Updated to verify using the list of visibilities
+                verify(repository).findFeed(
+                                allowedVisibilities, CourseStatus.ACTIVE, PageRequest.of(0, 20));
+        }
 }

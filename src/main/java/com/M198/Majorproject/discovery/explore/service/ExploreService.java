@@ -1,5 +1,7 @@
 package com.M198.Majorproject.discovery.explore.service;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,16 +23,42 @@ public class ExploreService {
 
     public Page<CourseDiscoveryResponse> feed(String subject, int page, int size) {
         Pageable pageable = pageable(page, size);
-        return (subject == null || subject.isBlank()
-                ? repository.findAllByVisibilityAndStatusOrderByPopularityScoreDescLastActivityAtDesc(CourseVisibility.PUBLIC, CourseStatus.ACTIVE, pageable)
-                : repository.findAllBySubjectAndVisibilityAndStatusOrderByPopularityScoreDescLastActivityAtDesc(subject.trim(), CourseVisibility.PUBLIC, CourseStatus.ACTIVE, pageable)).map(this::response);
+        Page<CourseDiscovery> courses;
+
+        List<CourseVisibility> allowedVisibilities = List.of(
+                CourseVisibility.PUBLIC,
+                CourseVisibility.PRIVATE);
+
+        if (subject == null || subject.isBlank()) {
+            courses = repository.findFeed(
+                    allowedVisibilities,
+                    CourseStatus.ACTIVE,
+                    pageable);
+        } else {
+            courses = repository.findFeedBySubject(
+                    subject.trim(),
+                    allowedVisibilities,
+                    CourseStatus.ACTIVE,
+                    pageable);
+        }
+
+        return courses.map(this::response);
     }
 
     public Page<CourseDiscoveryResponse> search(String query, int page, int size) {
         if (query == null || query.isBlank()) {
             throw new IllegalArgumentException("q must not be blank");
         }
-        return repository.findAllByTitleContainingIgnoreCaseAndVisibilityAndStatusOrderByPopularityScoreDesc(query.trim(), CourseVisibility.PUBLIC, CourseStatus.ACTIVE, pageable(page, size)).map(this::response);
+
+        List<CourseVisibility> allowedVisibilities = List.of(
+                CourseVisibility.PUBLIC,
+                CourseVisibility.PRIVATE);
+
+        return repository.searchFeedByTitle(
+                query.trim(),
+                allowedVisibilities,
+                CourseStatus.ACTIVE,
+                pageable(page, size)).map(this::response);
     }
 
     public Page<CourseDiscoveryResponse> recommendations(int page, int size) {

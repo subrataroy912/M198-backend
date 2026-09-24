@@ -64,7 +64,11 @@ public class Course {
 
     @Field("enrollment_enabled")
     @Builder.Default
-    private boolean enrollmentEnabled = true;
+    private Boolean enrollmentEnabled = true;
+
+    public boolean isEnrollmentEnabled() {
+        return enrollmentEnabled == null || Boolean.TRUE.equals(enrollmentEnabled);
+    }
 
     @Field("created_at")
     @CreatedDate
@@ -76,4 +80,14 @@ public class Course {
 
     @Field("archived_at")
     private Instant archivedAt;
+
+    public CourseAccessType getResolvedAccessType() {
+        return this.accessType != null ? this.accessType : CourseAccessType.PUBLIC;
+    }
+
+    public CourseVisibility getVisibility() {
+        return getResolvedAccessType() == CourseAccessType.PUBLIC
+                ? CourseVisibility.PUBLIC
+                : CourseVisibility.PRIVATE;
+    }
 }
