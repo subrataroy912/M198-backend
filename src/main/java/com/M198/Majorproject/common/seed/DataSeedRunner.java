@@ -3,8 +3,6 @@ package com.M198.Majorproject.common.seed;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -568,15 +566,14 @@ public class DataSeedRunner implements CommandLineRunner {
                         .build();
 
                 courseMembershipRepository.save(membership);
-                if (assign.role == MembershipRole.MEMBER) {
-                    memberCount++;
-                }
+                memberCount++;
             }
 
             // Update discovery enrollment count
+            final long totalMembers = memberCount;
             courseDiscoveryRepository.findByCourseId(course.getId()).ifPresent(d -> {
-                d.setEnrollmentCount(entry.getValue().size());
-                d.setPopularityScore(50.0 + (entry.getValue().size() * 10));
+                d.setEnrollmentCount(totalMembers);
+                d.setPopularityScore(50.0 + (totalMembers * 10));
                 courseDiscoveryRepository.save(d);
             });
         }
