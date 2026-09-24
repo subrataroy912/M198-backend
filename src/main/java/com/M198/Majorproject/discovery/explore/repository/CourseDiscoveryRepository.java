@@ -11,7 +11,6 @@ import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.M198.Majorproject.core.course.entity.CourseStatus;
-import com.M198.Majorproject.core.course.entity.CourseVisibility;
 import com.M198.Majorproject.discovery.explore.entity.CourseDiscovery;
 
 @Repository

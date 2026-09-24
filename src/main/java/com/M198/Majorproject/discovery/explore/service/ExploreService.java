@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import com.M198.Majorproject.discovery.explore.dto.CourseDiscoveryResponse;
 import com.M198.Majorproject.core.course.entity.CourseAccessType;
 import com.M198.Majorproject.core.course.entity.CourseStatus;
-import com.M198.Majorproject.core.course.entity.CourseVisibility;
 import com.M198.Majorproject.discovery.explore.entity.CourseDiscovery;
 import com.M198.Majorproject.discovery.explore.repository.CourseDiscoveryRepository;
 

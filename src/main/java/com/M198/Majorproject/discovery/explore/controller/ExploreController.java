@@ -8,6 +8,9 @@ import com.M198.Majorproject.core.course.dto.PublicCourseResponse;
 import com.M198.Majorproject.core.course.service.CourseService;
 import com.M198.Majorproject.discovery.explore.service.ExploreService;
 
+import com.M198.Majorproject.discovery.explore.dto.RecommendedUserResponse;
+import com.M198.Majorproject.discovery.explore.service.UserRecommendationService;
+
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -17,6 +20,7 @@ public class ExploreController {
 
     private final ExploreService service;
     private final CourseService courseService;
+    private final UserRecommendationService userRecommendationService;
 
     @GetMapping("/feed")
     public PageResponse<CourseDiscoveryResponse> feed(@RequestParam(required = false) String subject,
@@ -39,5 +43,13 @@ public class ExploreController {
     public PageResponse<CourseDiscoveryResponse> recommendations(Authentication authentication,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         return PageResponse.from(service.recommendations(page, size));
+    }
+
+    @GetMapping("/people/recommendations")
+    public PageResponse<RecommendedUserResponse> peopleRecommendations(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return PageResponse.from(userRecommendationService.getRecommendedUsers(authentication, page, size));
     }
 }

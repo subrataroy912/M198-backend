@@ -77,6 +77,8 @@ public class SecurityConfig {
                                 "/v1/explore/feed",
                                 "/v1/explore/courses/search",
                                 "/v1/explore/courses/*",
+                                "/v1/explore/recommendations",
+                                "/v1/explore/people/recommendations",
                                 "/v1/users",
                                 "/v1/health",
                                 "/health",

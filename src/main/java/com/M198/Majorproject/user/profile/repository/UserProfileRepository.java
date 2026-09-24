@@ -41,6 +41,10 @@ public interface UserProfileRepository extends MongoRepository<UserProfile, Stri
                         ProfileVisibility profileVisibility,
                         Pageable pageable);
 
+        List<UserProfile> findAllByCanCreateCoursesTrueAndProfileVisibilityAndDeletedAtIsNull(
+                        ProfileVisibility profileVisibility,
+                        Pageable pageable);
+
         @Query("{ 'profile_visibility': ?0, 'deleted_at': null, $or: [ "
                         + "{ 'handle': { $regex: ?1, $options: 'i' } }, "
                         + "{ 'display_name': { $regex: ?1, $options: 'i' } }, "

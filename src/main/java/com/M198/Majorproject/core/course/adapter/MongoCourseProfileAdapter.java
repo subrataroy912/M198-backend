@@ -15,11 +15,19 @@ import lombok.RequiredArgsConstructor;
 class MongoCourseProfileAdapter implements CourseProfilePort {
     private final UserProfileRepository repository;
 
+    @Override
     public Optional<UserProfile> findByUserId(String userId) {
-        return repository.findByUserId(userId);
+        if (userId == null || userId.isBlank()) {
+            return Optional.empty();
+        }
+        return repository.findByUserIdAndDeletedAtIsNull(userId);
     }
 
+    @Override
     public List<UserProfile> findAllByUserIdIn(Collection<String> userIds) {
-        return repository.findAllByUserIdIn(userIds);
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return repository.findAllByUserIdInAndDeletedAtIsNull(userIds);
     }
 }

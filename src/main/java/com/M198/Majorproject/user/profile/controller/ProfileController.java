@@ -6,6 +6,7 @@ package com.M198.Majorproject.user.profile.controller;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -32,9 +33,11 @@ public class ProfileController {
 			@RequestParam(value = "page", defaultValue = "0") int page,
 			@RequestParam(value = "size", defaultValue = "20") int size) {
 
-		int safeSize = Math.min(size, 100);
+		int safeSize = Math.min(Math.max(1, size), 100);
 
-		return profileService.getPublicProfiles(query, PageRequest.of(page, safeSize));
+		Sort defaultSort = Sort.by(Sort.Direction.DESC, "createdAt");
+
+		return profileService.getPublicProfiles(query, PageRequest.of(page, safeSize, defaultSort));
 	}
 
 	@GetMapping("/me")
