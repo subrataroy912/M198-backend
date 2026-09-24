@@ -1,10 +1,6 @@
 /**
  * CREATED BY : SUBRATA ROY
  * ENTITY     : Course
- * PURPOSE    : Stores the core course and space model for user-created learning spaces and communities.
- *
- * This document holds the course owner, title, section, subject, status,
- * and enrollment settings needed for member access and space management.
  */
 package com.M198.Majorproject.core.course.entity;
 

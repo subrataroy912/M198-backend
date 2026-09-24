@@ -35,5 +35,7 @@ public interface CourseMembershipRepository extends MongoRepository<CourseMember
 
     List<CourseMembership> findAllByCourseIdInAndStatus(java.util.Collection<String> courseIds, MembershipStatus status);
 
+    List<CourseMembership> findAllByUserIdInAndStatus(java.util.Collection<String> userIds, MembershipStatus status);
+
     void deleteAllByCourseId(String courseId);
 }

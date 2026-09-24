@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -35,8 +36,7 @@ import lombok.RequiredArgsConstructor;
 public class UserRecommendationService {
 
     public static final String REASON_SHARED_SPACES = "SHARED_SPACES";
-    public static final String REASON_SAME_DEPARTMENT = "SAME_DEPARTMENT";
-    public static final String REASON_FEATURED_CREATOR = "FEATURED_CREATOR";
+    public static final String REASON_MUTUAL_SPACE_PEERS = "MUTUAL_SPACE_PEERS";
 
     private final UserProfileRepository userProfileRepository;
     private final CourseMembershipRepository courseMembershipRepository;
@@ -46,69 +46,12 @@ public class UserRecommendationService {
     public Page<RecommendedUserResponse> getRecommendedUsers(Authentication authentication, int page, int size) {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(1, size), 50);
+        Pageable pageable = PageRequest.of(safePage, safeSize);
 
         String currentUserId = authenticatedUserResolver.resolveAuthenticatedUserIdSafe(authentication);
-
-        List<ScoredRecommendation> scoredCandidates;
         if (currentUserId == null || currentUserId.isBlank()) {
-            scoredCandidates = getGuestRecommendations(safePage, safeSize);
-        } else {
-            scoredCandidates = getPersonalizedRecommendations(currentUserId, safePage, safeSize);
+            return new PageImpl<>(List.of(), pageable, 0);
         }
-
-        int total = scoredCandidates.size();
-        int fromIndex = Math.min(safePage * safeSize, total);
-        int toIndex = Math.min(fromIndex + safeSize, total);
-
-        List<RecommendedUserResponse> pageContent = scoredCandidates.subList(fromIndex, toIndex).stream()
-                .map(this::toResponse)
-                .toList();
-
-        Pageable pageable = PageRequest.of(safePage, safeSize);
-        return new PageImpl<>(pageContent, pageable, total);
-    }
-
-    private List<ScoredRecommendation> getGuestRecommendations(int page, int size) {
-        int targetCount = (page + 1) * size;
-        Pageable fetchPageable = PageRequest.of(0, Math.max(targetCount, 20));
-
-        List<UserProfile> creators = userProfileRepository
-                .findAllByCanCreateCoursesTrueAndProfileVisibilityAndDeletedAtIsNull(ProfileVisibility.PUBLIC,
-                        fetchPageable);
-
-        Set<String> seenUserIds = new HashSet<>();
-        List<ScoredRecommendation> results = new ArrayList<>();
-
-        if (creators != null) {
-            for (UserProfile p : creators) {
-                if (p != null && p.getUserId() != null && seenUserIds.add(p.getUserId())) {
-                    results.add(new ScoredRecommendation(p, 0, List.of(), false, REASON_FEATURED_CREATOR, 10));
-                }
-            }
-        }
-
-        if (results.size() < targetCount) {
-            Page<UserProfile> publicProfiles = userProfileRepository
-                    .findAllByProfileVisibilityAndDeletedAtIsNull(ProfileVisibility.PUBLIC, fetchPageable);
-            if (publicProfiles != null) {
-                for (UserProfile p : publicProfiles) {
-                    if (p != null && p.getUserId() != null && seenUserIds.add(p.getUserId())) {
-                        results.add(new ScoredRecommendation(p, 0, List.of(), false, REASON_FEATURED_CREATOR, 1));
-                    }
-                }
-            }
-        }
-
-        return results;
-    }
-
-    private List<ScoredRecommendation> getPersonalizedRecommendations(String currentUserId, int page, int size) {
-        int targetCount = (page + 1) * size;
-
-        UserProfile myProfile = userProfileRepository.findByUserIdAndDeletedAtIsNull(currentUserId).orElse(null);
-        String myDepartment = myProfile != null && myProfile.getHeadline() != null
-                ? myProfile.getHeadline().trim().toLowerCase()
-                : "";
 
         List<CourseMembership> myMemberships = courseMembershipRepository
                 .findAllByUserIdAndStatus(currentUserId, MembershipStatus.ACTIVE);
@@ -119,97 +62,139 @@ public class UserRecommendationService {
                 .distinct()
                 .toList();
 
+        if (myCourseIds.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
+        List<ScoredRecommendation> scoredCandidates = getSpaceConnectedRecommendations(currentUserId, myCourseIds);
+
+        int total = scoredCandidates.size();
+        int fromIndex = Math.min(safePage * safeSize, total);
+        int toIndex = Math.min(fromIndex + safeSize, total);
+
+        List<RecommendedUserResponse> pageContent = scoredCandidates.subList(fromIndex, toIndex).stream()
+                .map(this::toResponse)
+                .toList();
+
+        return new PageImpl<>(pageContent, pageable, total);
+    }
+
+    private List<ScoredRecommendation> getSpaceConnectedRecommendations(String currentUserId,
+            List<String> myCourseIds) {
+        UserProfile myProfile = userProfileRepository.findByUserIdAndDeletedAtIsNull(currentUserId).orElse(null);
+        String myDepartment = myProfile != null && myProfile.getHeadline() != null
+                ? myProfile.getHeadline().trim().toLowerCase()
+                : "";
+
         Map<String, String> courseTitleMap = new HashMap<>();
-        Map<String, List<CourseMembership>> peerCourseMap = new HashMap<>();
+        courseRepository.findAllByIdInAndStatus(myCourseIds, CourseStatus.ACTIVE)
+                .forEach(c -> courseTitleMap.put(c.getId(), c.getTitle()));
 
-        if (!myCourseIds.isEmpty()) {
-            courseRepository.findAllByIdInAndStatus(myCourseIds, CourseStatus.ACTIVE)
-                    .forEach(c -> courseTitleMap.put(c.getId(), c.getTitle()));
+        // 1st-degree: direct space classmates
+        List<CourseMembership> directMemberships = courseMembershipRepository
+                .findAllByCourseIdInAndStatus(myCourseIds, MembershipStatus.ACTIVE);
 
-            List<CourseMembership> peerMemberships = courseMembershipRepository
-                    .findAllByCourseIdInAndStatus(myCourseIds, MembershipStatus.ACTIVE);
+        Map<String, List<CourseMembership>> directPeerCourseMap = new HashMap<>();
+        for (CourseMembership m : directMemberships) {
+            if (m.getUserId() != null && !m.getUserId().equals(currentUserId)) {
+                directPeerCourseMap.computeIfAbsent(m.getUserId(), k -> new ArrayList<>()).add(m);
+            }
+        }
 
-            for (CourseMembership m : peerMemberships) {
-                if (m.getUserId() != null && !m.getUserId().equals(currentUserId)) {
-                    peerCourseMap.computeIfAbsent(m.getUserId(), k -> new ArrayList<>()).add(m);
+        Set<String> directPeerIds = directPeerCourseMap.keySet();
+
+        // 2nd-degree: mutual space peers (peers who share spaces with your classmates)
+        Map<String, Set<String>> mutualPeersMap = new HashMap<>();
+        if (!directPeerIds.isEmpty()) {
+            List<CourseMembership> peerOtherMemberships = courseMembershipRepository
+                    .findAllByUserIdInAndStatus(directPeerIds, MembershipStatus.ACTIVE);
+
+            Set<String> otherCourseIds = peerOtherMemberships.stream()
+                    .map(CourseMembership::getCourseId)
+                    .filter(id -> id != null && !myCourseIds.contains(id))
+                    .collect(Collectors.toSet());
+
+            if (!otherCourseIds.isEmpty()) {
+                Map<String, Set<String>> otherCourseToDirectPeers = new HashMap<>();
+                for (CourseMembership m : peerOtherMemberships) {
+                    if (otherCourseIds.contains(m.getCourseId()) && m.getUserId() != null) {
+                        otherCourseToDirectPeers.computeIfAbsent(m.getCourseId(), k -> new HashSet<>())
+                                .add(m.getUserId());
+                    }
+                }
+
+                List<CourseMembership> secondDegreeMemberships = courseMembershipRepository
+                        .findAllByCourseIdInAndStatus(otherCourseIds, MembershipStatus.ACTIVE);
+
+                for (CourseMembership m : secondDegreeMemberships) {
+                    String candidateId = m.getUserId();
+                    if (candidateId != null && !candidateId.equals(currentUserId)
+                            && !directPeerIds.contains(candidateId)) {
+                        Set<String> mutualPeers = otherCourseToDirectPeers.getOrDefault(m.getCourseId(),
+                                Collections.emptySet());
+                        if (!mutualPeers.isEmpty()) {
+                            mutualPeersMap.computeIfAbsent(candidateId, k -> new HashSet<>()).addAll(mutualPeers);
+                        }
+                    }
                 }
             }
         }
 
-        Set<String> candidateUserIds = new HashSet<>(peerCourseMap.keySet());
-        List<UserProfile> candidateProfiles = candidateUserIds.isEmpty()
-                ? Collections.emptyList()
-                : userProfileRepository.findAllByUserIdInAndDeletedAtIsNull(candidateUserIds);
+        Set<String> allCandidateIds = new HashSet<>(directPeerIds);
+        allCandidateIds.addAll(mutualPeersMap.keySet());
 
-        Set<String> seenUserIds = new HashSet<>();
-        seenUserIds.add(currentUserId);
+        if (allCandidateIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<UserProfile> candidateProfiles = userProfileRepository
+                .findAllByUserIdInAndDeletedAtIsNull(allCandidateIds);
 
         List<ScoredRecommendation> results = new ArrayList<>();
 
         for (UserProfile profile : candidateProfiles) {
-            if (profile.getUserId() == null || profile.getProfileVisibility() != ProfileVisibility.PUBLIC) {
+            if (profile == null || profile.getUserId() == null
+                    || profile.getProfileVisibility() != ProfileVisibility.PUBLIC) {
                 continue;
             }
 
-            seenUserIds.add(profile.getUserId());
-
-            List<String> sharedTitles = peerCourseMap.getOrDefault(profile.getUserId(), List.of()).stream()
-                    .map(m -> courseTitleMap.get(m.getCourseId()))
-                    .filter(Objects::nonNull)
-                    .distinct()
-                    .toList();
-
-            long sharedCount = sharedTitles.size();
+            String candidateId = profile.getUserId();
             boolean sameDept = !myDepartment.isEmpty()
                     && profile.getHeadline() != null
                     && profile.getHeadline().trim().toLowerCase().equals(myDepartment);
 
-            int score = (int) (sharedCount * 10) + (sameDept ? 5 : 0) + (profile.isCanCreateCourses() ? 2 : 0);
-            String reason = sharedCount > 0
-                    ? REASON_SHARED_SPACES
-                    : (sameDept ? REASON_SAME_DEPARTMENT : REASON_FEATURED_CREATOR);
+            if (directPeerIds.contains(candidateId)) {
+                // Direct space classmate
+                List<String> sharedTitles = directPeerCourseMap.getOrDefault(candidateId, List.of()).stream()
+                        .map(m -> courseTitleMap.get(m.getCourseId()))
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList();
 
-            results.add(new ScoredRecommendation(profile, sharedCount, sharedTitles, sameDept, reason, score));
-        }
+                long sharedCount = sharedTitles.size();
+                int score = (int) (sharedCount * 10) + (sameDept ? 5 : 0) + (profile.isCanCreateCourses() ? 2 : 0);
 
-        // If candidates are fewer than target, supplement with creators
-        if (results.size() < targetCount) {
-            Pageable supplementPageable = PageRequest.of(0, Math.max(targetCount, 20));
-            List<UserProfile> creators = userProfileRepository
-                    .findAllByCanCreateCoursesTrueAndProfileVisibilityAndDeletedAtIsNull(ProfileVisibility.PUBLIC,
-                            supplementPageable);
+                results.add(new ScoredRecommendation(
+                        profile,
+                        sharedCount,
+                        sharedTitles,
+                        0,
+                        sameDept,
+                        REASON_SHARED_SPACES,
+                        score));
+            } else if (mutualPeersMap.containsKey(candidateId)) {
+                // 2nd-degree space-joined mutual friend
+                long mutualCount = mutualPeersMap.get(candidateId).size();
+                int score = (int) (mutualCount * 3) + (sameDept ? 2 : 0) + (profile.isCanCreateCourses() ? 1 : 0);
 
-            if (creators != null) {
-                for (UserProfile creator : creators) {
-                    if (creator != null && creator.getUserId() != null && seenUserIds.add(creator.getUserId())) {
-                        boolean sameDept = !myDepartment.isEmpty()
-                                && creator.getHeadline() != null
-                                && creator.getHeadline().trim().toLowerCase().equals(myDepartment);
-                        int score = (sameDept ? 5 : 0) + 2;
-                        String reason = sameDept ? REASON_SAME_DEPARTMENT : REASON_FEATURED_CREATOR;
-                        results.add(new ScoredRecommendation(creator, 0, List.of(), sameDept, reason, score));
-                    }
-                }
-            }
-        }
-
-        // If still fewer than target, supplement with general public profiles
-        if (results.size() < targetCount) {
-            Pageable supplementPageable = PageRequest.of(0, Math.max(targetCount, 20));
-            Page<UserProfile> publicProfiles = userProfileRepository
-                    .findAllByProfileVisibilityAndDeletedAtIsNull(ProfileVisibility.PUBLIC, supplementPageable);
-
-            if (publicProfiles != null) {
-                for (UserProfile p : publicProfiles) {
-                    if (p != null && p.getUserId() != null && seenUserIds.add(p.getUserId())) {
-                        boolean sameDept = !myDepartment.isEmpty()
-                                && p.getHeadline() != null
-                                && p.getHeadline().trim().toLowerCase().equals(myDepartment);
-                        int score = sameDept ? 5 : 1;
-                        String reason = sameDept ? REASON_SAME_DEPARTMENT : REASON_FEATURED_CREATOR;
-                        results.add(new ScoredRecommendation(p, 0, List.of(), sameDept, reason, score));
-                    }
-                }
+                results.add(new ScoredRecommendation(
+                        profile,
+                        0,
+                        List.of(),
+                        mutualCount,
+                        sameDept,
+                        REASON_MUTUAL_SPACE_PEERS,
+                        score));
             }
         }
 
@@ -232,6 +217,7 @@ public class UserRecommendationService {
                 .canCreateCourses(p.isCanCreateCourses())
                 .sharedCoursesCount(rec.sharedCount())
                 .sharedCourseTitles(rec.sharedTitles())
+                .mutualPeersCount(rec.mutualPeersCount())
                 .sameDepartment(rec.sameDept())
                 .recommendationReason(rec.reason())
                 .build();
@@ -241,6 +227,7 @@ public class UserRecommendationService {
             UserProfile profile,
             long sharedCount,
             List<String> sharedTitles,
+            long mutualPeersCount,
             boolean sameDept,
             String reason,
             int score) {

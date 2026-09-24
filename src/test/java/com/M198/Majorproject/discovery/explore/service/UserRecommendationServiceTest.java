@@ -7,11 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.Authentication;
 
 import com.M198.Majorproject.core.course.entity.Course;
@@ -28,154 +26,183 @@ import com.M198.Majorproject.user.profile.security.AuthenticatedUserResolver;
 
 class UserRecommendationServiceTest {
 
-        private final UserProfileRepository userProfileRepository = mock(UserProfileRepository.class);
-        private final CourseMembershipRepository courseMembershipRepository = mock(CourseMembershipRepository.class);
-        private final CourseRepository courseRepository = mock(CourseRepository.class);
-        private final AuthenticatedUserResolver authenticatedUserResolver = mock(AuthenticatedUserResolver.class);
+    private final UserProfileRepository userProfileRepository = mock(UserProfileRepository.class);
+    private final CourseMembershipRepository courseMembershipRepository = mock(CourseMembershipRepository.class);
+    private final CourseRepository courseRepository = mock(CourseRepository.class);
+    private final AuthenticatedUserResolver authenticatedUserResolver = mock(AuthenticatedUserResolver.class);
 
-        private final UserRecommendationService service = new UserRecommendationService(
-                        userProfileRepository,
-                        courseMembershipRepository,
-                        courseRepository,
-                        authenticatedUserResolver);
+    private final UserRecommendationService service = new UserRecommendationService(
+            userProfileRepository,
+            courseMembershipRepository,
+            courseRepository,
+            authenticatedUserResolver
+    );
 
-        @Test
-        void unauthenticatedReturnsPublicCreatorsWithFeaturedReason() {
-                Authentication auth = mock(Authentication.class);
-                when(authenticatedUserResolver.resolveAuthenticatedUserIdSafe(auth)).thenReturn(null);
+    @Test
+    void unauthenticatedReturnsEmptyList() {
+        Authentication auth = mock(Authentication.class);
+        when(authenticatedUserResolver.resolveAuthenticatedUserIdSafe(auth)).thenReturn(null);
 
-                UserProfile creator = UserProfile.builder()
-                                .userId("creator-1")
-                                .displayName("Dr. Alan Turing")
-                                .headline("Computer Science")
-                                .canCreateCourses(true)
-                                .profileVisibility(ProfileVisibility.PUBLIC)
-                                .build();
+        Page<RecommendedUserResponse> page = service.getRecommendedUsers(auth, 0, 10);
 
-                when(userProfileRepository.findAllByCanCreateCoursesTrueAndProfileVisibilityAndDeletedAtIsNull(
-                                eq(ProfileVisibility.PUBLIC), any()))
-                                .thenReturn(List.of(creator));
+        assertTrue(page.getContent().isEmpty());
+        assertEquals(0, page.getTotalElements());
+    }
 
-                Page<RecommendedUserResponse> page = service.getRecommendedUsers(auth, 0, 10);
+    @Test
+    void userWithZeroJoinedSpacesReturnsEmptyList() {
+        Authentication auth = mock(Authentication.class);
+        when(authenticatedUserResolver.resolveAuthenticatedUserIdSafe(auth)).thenReturn("rahul-biswas");
 
-                assertEquals(1, page.getTotalElements());
-                RecommendedUserResponse first = page.getContent().get(0);
-                assertEquals("creator-1", first.getId());
-                assertEquals("Dr. Alan Turing", first.getName());
-                assertEquals(UserRecommendationService.REASON_FEATURED_CREATOR, first.getRecommendationReason());
-                assertEquals(0, first.getSharedCoursesCount());
-        }
+        when(courseMembershipRepository.findAllByUserIdAndStatus("rahul-biswas", MembershipStatus.ACTIVE))
+                .thenReturn(List.of());
 
-        @Test
-        void authenticatedUserRecommendsPeersWithSharedSpacesAndDepartment() {
-                Authentication auth = mock(Authentication.class);
-                when(authenticatedUserResolver.resolveAuthenticatedUserIdSafe(auth)).thenReturn("user-current");
+        Page<RecommendedUserResponse> page = service.getRecommendedUsers(auth, 0, 10);
 
-                UserProfile currentProfile = UserProfile.builder()
-                                .userId("user-current")
-                                .displayName("Me")
-                                .headline("Software Engineering")
-                                .profileVisibility(ProfileVisibility.PUBLIC)
-                                .build();
-                when(userProfileRepository.findByUserIdAndDeletedAtIsNull("user-current"))
-                                .thenReturn(Optional.of(currentProfile));
+        assertTrue(page.getContent().isEmpty());
+        assertEquals(0, page.getTotalElements());
+    }
 
-                // Enrolled courses
-                CourseMembership myMembership = CourseMembership.builder()
-                                .userId("user-current")
-                                .courseId("course-algorithms")
-                                .status(MembershipStatus.ACTIVE)
-                                .build();
-                when(courseMembershipRepository.findAllByUserIdAndStatus("user-current", MembershipStatus.ACTIVE))
-                                .thenReturn(List.of(myMembership));
+    @Test
+    void recommendsDirectClassmatesAndSecondDegreeMutualSpacePeers() {
+        Authentication auth = mock(Authentication.class);
+        when(authenticatedUserResolver.resolveAuthenticatedUserIdSafe(auth)).thenReturn("user-current");
 
-                Course course = Course.builder()
-                                .id("course-algorithms")
-                                .title("Algorithms & Data Structures")
-                                .status(CourseStatus.ACTIVE)
-                                .build();
-                when(courseRepository.findAllByIdInAndStatus(List.of("course-algorithms"), CourseStatus.ACTIVE))
-                                .thenReturn(List.of(course));
+        UserProfile currentProfile = UserProfile.builder()
+                .userId("user-current")
+                .displayName("Current User")
+                .headline("ETCE")
+                .profileVisibility(ProfileVisibility.PUBLIC)
+                .build();
+        when(userProfileRepository.findByUserIdAndDeletedAtIsNull("user-current"))
+                .thenReturn(Optional.of(currentProfile));
 
-                // Peer in the same course
-                CourseMembership peerMembership = CourseMembership.builder()
-                                .userId("peer-1")
-                                .courseId("course-algorithms")
-                                .status(MembershipStatus.ACTIVE)
-                                .build();
-                when(courseMembershipRepository.findAllByCourseIdInAndStatus(List.of("course-algorithms"),
-                                MembershipStatus.ACTIVE))
-                                .thenReturn(List.of(myMembership, peerMembership));
+        // Current user is enrolled in course-1
+        CourseMembership myMembership = CourseMembership.builder()
+                .userId("user-current")
+                .courseId("course-1")
+                .status(MembershipStatus.ACTIVE)
+                .build();
+        when(courseMembershipRepository.findAllByUserIdAndStatus("user-current", MembershipStatus.ACTIVE))
+                .thenReturn(List.of(myMembership));
 
-                UserProfile peerProfile = UserProfile.builder()
-                                .userId("peer-1")
-                                .displayName("Ada Lovelace")
-                                .headline("Software Engineering")
-                                .profileVisibility(ProfileVisibility.PUBLIC)
-                                .build();
-                when(userProfileRepository.findAllByUserIdInAndDeletedAtIsNull(any()))
-                                .thenReturn(List.of(peerProfile));
+        Course course1 = Course.builder()
+                .id("course-1")
+                .title("Electronics 101")
+                .status(CourseStatus.ACTIVE)
+                .build();
+        when(courseRepository.findAllByIdInAndStatus(List.of("course-1"), CourseStatus.ACTIVE))
+                .thenReturn(List.of(course1));
 
-                when(userProfileRepository.findAllByCanCreateCoursesTrueAndProfileVisibilityAndDeletedAtIsNull(any(),
-                                any()))
-                                .thenReturn(List.of());
-                when(userProfileRepository.findAllByProfileVisibilityAndDeletedAtIsNull(any(), any()))
-                                .thenReturn(new PageImpl<>(List.of()));
+        // 1st-degree peer (Alice) is in course-1
+        CourseMembership aliceMembership = CourseMembership.builder()
+                .userId("alice-1")
+                .courseId("course-1")
+                .status(MembershipStatus.ACTIVE)
+                .build();
+        // Alice is also enrolled in course-2 (outside current user's courses)
+        CourseMembership aliceInCourse2 = CourseMembership.builder()
+                .userId("alice-1")
+                .courseId("course-2")
+                .status(MembershipStatus.ACTIVE)
+                .build();
 
-                Page<RecommendedUserResponse> page = service.getRecommendedUsers(auth, 0, 10);
+        // 2nd-degree peer (Bob) is in course-2 with Alice
+        CourseMembership bobInCourse2 = CourseMembership.builder()
+                .userId("bob-2")
+                .courseId("course-2")
+                .status(MembershipStatus.ACTIVE)
+                .build();
 
-                assertEquals(1, page.getTotalElements());
-                RecommendedUserResponse rec = page.getContent().get(0);
-                assertEquals("peer-1", rec.getId());
-                assertEquals("Ada Lovelace", rec.getName());
-                assertEquals(1, rec.getSharedCoursesCount());
-                assertEquals(List.of("Algorithms & Data Structures"), rec.getSharedCourseTitles());
-                assertTrue(rec.isSameDepartment());
-                assertEquals(UserRecommendationService.REASON_SHARED_SPACES, rec.getRecommendationReason());
-        }
+        when(courseMembershipRepository.findAllByCourseIdInAndStatus(any(), any()))
+                .thenAnswer(invocation -> {
+                    java.util.Collection<?> courseIds = invocation.getArgument(0);
+                    if (courseIds != null && courseIds.contains("course-1")) {
+                        return List.of(myMembership, aliceMembership);
+                    }
+                    if (courseIds != null && courseIds.contains("course-2")) {
+                        return List.of(aliceInCourse2, bobInCourse2);
+                    }
+                    return List.of();
+                });
 
-        @Test
-        void ignoresDeletedAndPrivateProfiles() {
-                Authentication auth = mock(Authentication.class);
-                when(authenticatedUserResolver.resolveAuthenticatedUserIdSafe(auth)).thenReturn("user-current");
+        when(courseMembershipRepository.findAllByUserIdInAndStatus(any(), any()))
+                .thenReturn(List.of(aliceMembership, aliceInCourse2));
 
-                when(userProfileRepository.findByUserIdAndDeletedAtIsNull("user-current"))
-                                .thenReturn(Optional.empty());
+        UserProfile aliceProfile = UserProfile.builder()
+                .userId("alice-1")
+                .displayName("Alice")
+                .headline("ETCE")
+                .profileVisibility(ProfileVisibility.PUBLIC)
+                .build();
+        UserProfile bobProfile = UserProfile.builder()
+                .userId("bob-2")
+                .displayName("Bob")
+                .headline("Physics")
+                .profileVisibility(ProfileVisibility.PUBLIC)
+                .build();
 
-                CourseMembership myMembership = CourseMembership.builder()
-                                .userId("user-current")
-                                .courseId("course-1")
-                                .status(MembershipStatus.ACTIVE)
-                                .build();
-                CourseMembership peerMembership = CourseMembership.builder()
-                                .userId("private-user")
-                                .courseId("course-1")
-                                .status(MembershipStatus.ACTIVE)
-                                .build();
+        when(userProfileRepository.findAllByUserIdInAndDeletedAtIsNull(any()))
+                .thenReturn(List.of(aliceProfile, bobProfile));
 
-                when(courseMembershipRepository.findAllByUserIdAndStatus("user-current", MembershipStatus.ACTIVE))
-                                .thenReturn(List.of(myMembership));
-                when(courseMembershipRepository.findAllByCourseIdInAndStatus(List.of("course-1"), MembershipStatus.ACTIVE))
-                                .thenReturn(List.of(myMembership, peerMembership));
+        Page<RecommendedUserResponse> page = service.getRecommendedUsers(auth, 0, 10);
 
-                // Private profile
-                UserProfile privateProfile = UserProfile.builder()
-                                .userId("private-user")
-                                .displayName("Hidden User")
-                                .profileVisibility(ProfileVisibility.PRIVATE)
-                                .build();
+        assertEquals(2, page.getTotalElements());
 
-                when(userProfileRepository.findAllByUserIdInAndDeletedAtIsNull(any()))
-                                .thenReturn(List.of(privateProfile));
+        // Alice (1st-degree direct classmate) should rank first
+        RecommendedUserResponse first = page.getContent().get(0);
+        assertEquals("alice-1", first.getId());
+        assertEquals(UserRecommendationService.REASON_SHARED_SPACES, first.getRecommendationReason());
+        assertEquals(1, first.getSharedCoursesCount());
+        assertEquals(List.of("Electronics 101"), first.getSharedCourseTitles());
+        assertTrue(first.isSameDepartment());
 
-                when(userProfileRepository.findAllByCanCreateCoursesTrueAndProfileVisibilityAndDeletedAtIsNull(any(),
-                                any()))
-                                .thenReturn(List.of());
-                when(userProfileRepository.findAllByProfileVisibilityAndDeletedAtIsNull(any(), any()))
-                                .thenReturn(new PageImpl<>(List.of()));
+        // Bob (2nd-degree mutual space peer connected via Alice) should rank second
+        RecommendedUserResponse second = page.getContent().get(1);
+        assertEquals("bob-2", second.getId());
+        assertEquals(UserRecommendationService.REASON_MUTUAL_SPACE_PEERS, second.getRecommendationReason());
+        assertEquals(1, second.getMutualPeersCount());
+        assertEquals(0, second.getSharedCoursesCount());
+    }
 
-                Page<RecommendedUserResponse> page = service.getRecommendedUsers(auth, 0, 10);
+    @Test
+    void ignoresDeletedAndPrivateProfiles() {
+        Authentication auth = mock(Authentication.class);
+        when(authenticatedUserResolver.resolveAuthenticatedUserIdSafe(auth)).thenReturn("user-current");
 
-                assertTrue(page.getContent().isEmpty());
-        }
+        when(userProfileRepository.findByUserIdAndDeletedAtIsNull("user-current"))
+                .thenReturn(Optional.empty());
+
+        CourseMembership myMembership = CourseMembership.builder()
+                .userId("user-current")
+                .courseId("course-1")
+                .status(MembershipStatus.ACTIVE)
+                .build();
+        CourseMembership peerMembership = CourseMembership.builder()
+                .userId("private-user")
+                .courseId("course-1")
+                .status(MembershipStatus.ACTIVE)
+                .build();
+
+        when(courseMembershipRepository.findAllByUserIdAndStatus("user-current", MembershipStatus.ACTIVE))
+                .thenReturn(List.of(myMembership));
+        when(courseMembershipRepository.findAllByCourseIdInAndStatus(List.of("course-1"), MembershipStatus.ACTIVE))
+                .thenReturn(List.of(myMembership, peerMembership));
+        when(courseMembershipRepository.findAllByUserIdInAndStatus(any(), any()))
+                .thenReturn(List.of());
+
+        // Private profile
+        UserProfile privateProfile = UserProfile.builder()
+                .userId("private-user")
+                .displayName("Hidden User")
+                .profileVisibility(ProfileVisibility.PRIVATE)
+                .build();
+
+        when(userProfileRepository.findAllByUserIdInAndDeletedAtIsNull(any()))
+                .thenReturn(List.of(privateProfile));
+
+        Page<RecommendedUserResponse> page = service.getRecommendedUsers(auth, 0, 10);
+
+        assertTrue(page.getContent().isEmpty());
+    }
 }

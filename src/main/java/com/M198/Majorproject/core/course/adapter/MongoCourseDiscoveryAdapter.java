@@ -19,7 +19,8 @@ class MongoCourseDiscoveryAdapter implements CourseDiscoveryPort {
             return;
         }
 
-        // Only PUBLIC and PRIVATE active courses belong in discovery; LINK_ONLY are private/invite-only
+        // Only PUBLIC and PRIVATE active courses belong in discovery; LINK_ONLY are
+        // private/invite-only
         if (course.getResolvedAccessType() == com.M198.Majorproject.core.course.entity.CourseAccessType.LINK_ONLY
                 || course.getStatus() != com.M198.Majorproject.core.course.entity.CourseStatus.ACTIVE) {
             repository.deleteByCourseId(course.getId());
@@ -43,7 +44,7 @@ class MongoCourseDiscoveryAdapter implements CourseDiscoveryPort {
         discovery.setStatus(course.getStatus());
         discovery.setEnrollmentCount(enrollmentCount);
         discovery.setLastActivityAt(Instant.now());
-        discovery.setPopularityScore(calculatePopularityScore(enrollmentCount));
+        discovery.setPopularityScore(calculatePopularityScore(enrollmentCount, course));
         // Saving data in db
         repository.save(discovery);
     }
@@ -52,8 +53,28 @@ class MongoCourseDiscoveryAdapter implements CourseDiscoveryPort {
         repository.deleteByCourseId(courseId);
     }
 
-    // TODO: Have to do advance calculation here for better feedback
-    private double calculatePopularityScore(long enrollmentCount) {
-        return enrollmentCount;
+    private double calculatePopularityScore(long enrollmentCount, Course course) {
+        // 1. Safe fallback for legacy data missing a creation date
+        if (course.getCreatedAt() == null) {
+            return Math.log10(enrollmentCount + 1);
+        }
+
+        // 2. Calculate course age in hours (enforce a minimum of 1 hour to prevent
+        // division by zero)
+        long ageInHours = java.time.Duration.between(course.getCreatedAt(), Instant.now()).toHours();
+        if (ageInHours < 1) {
+            ageInHours = 1;
+        }
+
+        // 3. Set gravity factor (1.5 is standard; higher means older content is
+        // punished faster)
+        double gravity = 1.5;
+
+        // 4. Calculate score: Smooth the enrollments and apply time-decay gravity
+        // Multiplying by 100 makes the floating-point score easier to read in the
+        // database
+        double smoothedEnrollments = Math.log10(enrollmentCount + 1) * 100;
+
+        return smoothedEnrollments / Math.pow(ageInHours, gravity);
     }
 }
