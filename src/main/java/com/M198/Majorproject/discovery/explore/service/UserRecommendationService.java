@@ -81,11 +81,6 @@ public class UserRecommendationService {
 
     private List<ScoredRecommendation> getSpaceConnectedRecommendations(String currentUserId,
             List<String> myCourseIds) {
-        UserProfile myProfile = userProfileRepository.findByUserIdAndDeletedAtIsNull(currentUserId).orElse(null);
-        String myDepartment = myProfile != null && myProfile.getHeadline() != null
-                ? myProfile.getHeadline().trim().toLowerCase()
-                : "";
-
         Map<String, String> courseTitleMap = new HashMap<>();
         courseRepository.findAllByIdInAndStatus(myCourseIds, CourseStatus.ACTIVE)
                 .forEach(c -> courseTitleMap.put(c.getId(), c.getTitle()));
@@ -159,9 +154,6 @@ public class UserRecommendationService {
             }
 
             String candidateId = profile.getUserId();
-            boolean sameDept = !myDepartment.isEmpty()
-                    && profile.getHeadline() != null
-                    && profile.getHeadline().trim().toLowerCase().equals(myDepartment);
 
             if (directPeerIds.contains(candidateId)) {
                 // Direct space classmate
@@ -172,27 +164,25 @@ public class UserRecommendationService {
                         .toList();
 
                 long sharedCount = sharedTitles.size();
-                int score = (int) (sharedCount * 10) + (sameDept ? 5 : 0) + (profile.isCanCreateCourses() ? 2 : 0);
+                int score = (int) (sharedCount * 10);
 
                 results.add(new ScoredRecommendation(
                         profile,
                         sharedCount,
                         sharedTitles,
                         0,
-                        sameDept,
                         REASON_SHARED_SPACES,
                         score));
             } else if (mutualPeersMap.containsKey(candidateId)) {
                 // 2nd-degree space-joined mutual friend
                 long mutualCount = mutualPeersMap.get(candidateId).size();
-                int score = (int) (mutualCount * 3) + (sameDept ? 2 : 0) + (profile.isCanCreateCourses() ? 1 : 0);
+                int score = (int) (mutualCount * 3);
 
                 results.add(new ScoredRecommendation(
                         profile,
                         0,
                         List.of(),
                         mutualCount,
-                        sameDept,
                         REASON_MUTUAL_SPACE_PEERS,
                         score));
             }
@@ -218,7 +208,6 @@ public class UserRecommendationService {
                 .sharedCoursesCount(rec.sharedCount())
                 .sharedCourseTitles(rec.sharedTitles())
                 .mutualPeersCount(rec.mutualPeersCount())
-                .sameDepartment(rec.sameDept())
                 .recommendationReason(rec.reason())
                 .build();
     }
@@ -228,7 +217,6 @@ public class UserRecommendationService {
             long sharedCount,
             List<String> sharedTitles,
             long mutualPeersCount,
-            boolean sameDept,
             String reason,
             int score) {
     }

@@ -265,25 +265,34 @@ public class CourseLifecycleService {
         var membership = membershipRepository.findByCourseIdAndUserId(courseId, userId);
         boolean isStaffOrEnrolled = membership.filter(value -> value.getStatus() == MembershipStatus.ACTIVE)
                 .isPresent();
-        boolean isDiscoverable = course != null && (course.getAccessType() == CourseAccessType.PUBLIC);
+        CourseAccessType resolvedAccessType = course != null ? course.getResolvedAccessType() : null;
+        boolean isDiscoverable = resolvedAccessType == CourseAccessType.PUBLIC
+                || resolvedAccessType == CourseAccessType.PRIVATE;
 
         if (course == null || course.getStatus() != CourseStatus.ACTIVE || (!isStaffOrEnrolled && !isDiscoverable)) {
             log.warn(
-                    "Course access denied: courseId={}, userId={}, courseExists={}, courseStatus={}, membershipExists={}, membershipStatus={}",
+                    "Course access denied: courseId={}, userId={}, courseExists={}, courseStatus={}, accessType={}, membershipExists={}, membershipStatus={}",
                     courseId, userId, course != null, course == null ? null : course.getStatus(),
+                    resolvedAccessType,
                     membership.isPresent(),
                     membership.map(CourseMembership::getStatus).orElse(null));
             throw new CourseService.CourseNotFoundException();
         }
-        CourseResponse response = toResponse(course);
+        UserProfile ownerProfile = course.getOwnerId() != null
+                ? courseProfilePort.findByUserId(course.getOwnerId()).orElse(null)
+                : null;
+        long memberCount = membershipRepository.countByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE);
+
         if (isStaffOrEnrolled) {
             MembershipRole role = membership.get().getRole() != null ? membership.get().getRole()
                     : MembershipRole.MEMBER;
+            var activeCodeOpt = enrollmentCodeRepository.findByCourseIdAndActiveTrue(courseId);
+            String enrollmentCodeValue = activeCodeOpt.map(EnrollmentCode::getCode).orElse(null);
+            CourseResponse response = toResponse(course, ownerProfile, memberCount, enrollmentCodeValue);
             response.setRole(role.name());
             response.setEnrolled(true);
             response.setMembershipStatus(MembershipStatus.ACTIVE);
-            enrollmentCodeRepository.findByCourseIdAndActiveTrue(courseId).ifPresent(code -> {
-                response.setEnrollmentCode(code.getCode());
+            activeCodeOpt.ifPresent(code -> {
                 boolean isStaff = role == MembershipRole.OWNER || role == MembershipRole.ADMIN
                         || hasAuthority(authentication, "ROLE_ADMIN");
                 if (isStaff) {
@@ -296,7 +305,12 @@ public class CourseLifecycleService {
                     response.setInviteExpiresAt(null);
                 }
             });
+            return response;
         } else {
+            CourseResponse response = toResponse(course, ownerProfile, memberCount, null);
+            if (resolvedAccessType == CourseAccessType.PRIVATE) {
+                response.setLinks(Collections.emptyList());
+            }
             response.setRole("VIEWER");
             response.setEnrolled(false);
             response.setEnrollmentCode(null);
@@ -304,14 +318,15 @@ public class CourseLifecycleService {
             response.setInviteUrl(null);
             response.setInviteExpiresAt(null);
             response.setMembershipStatus(membership.map(CourseMembership::getStatus).orElse(null));
+            return response;
         }
-        return response;
     }
 
     public PublicCourseResponse getPublicCourse(String courseId) {
         validateCourseId(courseId);
         Course course = courseRepository.findByIdAndStatus(courseId, CourseStatus.ACTIVE)
-                .filter(value -> value.getAccessType() == CourseAccessType.PUBLIC)
+                .filter(value -> value.getResolvedAccessType() == CourseAccessType.PUBLIC
+                        || value.getResolvedAccessType() == CourseAccessType.PRIVATE)
                 .orElseThrow(CourseService.CourseNotFoundException::new);
         PublicCourseResponse response = new PublicCourseResponse();
         response.setId(course.getId());
@@ -323,7 +338,7 @@ public class CourseLifecycleService {
         response.setLogoUrl(course.getLogoUrl());
         response.setTheme(course.getTheme());
         response.setTags(course.getTags());
-        response.setAccessType(course.getAccessType() != null ? course.getAccessType() : CourseAccessType.PUBLIC);
+        response.setAccessType(course.getResolvedAccessType());
         response.setEnrollmentEnabled(course.isEnrollmentEnabled());
         response.setMemberCount(membershipRepository.countByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE));
         return response;
@@ -650,11 +665,15 @@ public class CourseLifecycleService {
         String userId = courseAccessPolicy.authenticatedUserId(authentication,
                 () -> new CourseService.CourseAccessException("Authentication required"));
         activeCourse(courseId);
-        if (!hasAuthority(authentication, "ROLE_ADMIN")) {
-            courseAccessPolicy.requireActiveMember(courseId, userId, CourseService.CourseNotFoundException::new);
-        }
         List<CourseMembership> memberships = membershipRepository.findAllByCourseIdAndStatus(courseId,
                 MembershipStatus.ACTIVE);
+        if (!hasAuthority(authentication, "ROLE_ADMIN")) {
+            boolean isActiveMember = memberships.stream()
+                    .anyMatch(m -> userId.equals(m.getUserId()));
+            if (!isActiveMember) {
+                throw new CourseService.CourseNotFoundException();
+            }
+        }
         Map<String, UserProfile> profileMap = new HashMap<>();
         {
             List<String> userIds = memberships.stream().map(CourseMembership::getUserId).toList();

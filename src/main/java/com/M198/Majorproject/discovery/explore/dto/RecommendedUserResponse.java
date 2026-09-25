@@ -27,7 +27,6 @@ public class RecommendedUserResponse {
     private long sharedCoursesCount;
     private List<String> sharedCourseTitles;
     private long mutualPeersCount;
-    private boolean sameDepartment;
     private String recommendationReason;
 
     public String getName() {

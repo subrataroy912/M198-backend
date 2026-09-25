@@ -1,7 +1,6 @@
 package com.M198.Majorproject.discovery.explore.service;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -67,15 +66,6 @@ class UserRecommendationServiceTest {
     void recommendsDirectClassmatesAndSecondDegreeMutualSpacePeers() {
         Authentication auth = mock(Authentication.class);
         when(authenticatedUserResolver.resolveAuthenticatedUserIdSafe(auth)).thenReturn("user-current");
-
-        UserProfile currentProfile = UserProfile.builder()
-                .userId("user-current")
-                .displayName("Current User")
-                .headline("ETCE")
-                .profileVisibility(ProfileVisibility.PUBLIC)
-                .build();
-        when(userProfileRepository.findByUserIdAndDeletedAtIsNull("user-current"))
-                .thenReturn(Optional.of(currentProfile));
 
         // Current user is enrolled in course-1
         CourseMembership myMembership = CourseMembership.builder()
@@ -155,7 +145,6 @@ class UserRecommendationServiceTest {
         assertEquals(UserRecommendationService.REASON_SHARED_SPACES, first.getRecommendationReason());
         assertEquals(1, first.getSharedCoursesCount());
         assertEquals(List.of("Electronics 101"), first.getSharedCourseTitles());
-        assertTrue(first.isSameDepartment());
 
         // Bob (2nd-degree mutual space peer connected via Alice) should rank second
         RecommendedUserResponse second = page.getContent().get(1);
@@ -169,9 +158,6 @@ class UserRecommendationServiceTest {
     void ignoresDeletedAndPrivateProfiles() {
         Authentication auth = mock(Authentication.class);
         when(authenticatedUserResolver.resolveAuthenticatedUserIdSafe(auth)).thenReturn("user-current");
-
-        when(userProfileRepository.findByUserIdAndDeletedAtIsNull("user-current"))
-                .thenReturn(Optional.empty());
 
         CourseMembership myMembership = CourseMembership.builder()
                 .userId("user-current")

@@ -334,22 +334,6 @@ class ProfileServiceTest {
         }
 
         @Test
-        void getPublicProfilesReturnsOnlyPublicProfiles() {
-                UserProfile publicProfile = UserProfile.builder()
-                                .userId("user-2")
-                                .displayName("Public User")
-                                .profileVisibility(ProfileVisibility.PUBLIC)
-                                .build();
-                when(profileRepository.findAllByProfileVisibilityAndDeletedAtIsNull(ProfileVisibility.PUBLIC))
-                                .thenReturn(java.util.List.of(publicProfile));
-
-                var publicProfiles = profileService.getPublicProfiles();
-
-                assertEquals(1, publicProfiles.size());
-                assertEquals("Public User", publicProfiles.get(0).getName());
-        }
-
-        @Test
         void unlockCreatorSetsCanCreateCoursesOnUserAndProfile() {
                 when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
                 when(profileRepository.save(any(UserProfile.class)))

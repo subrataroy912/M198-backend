@@ -89,12 +89,19 @@ public class CourseworkService {
         }
         String userId = courseAccessPolicy.authenticatedUserId(authentication,
                 () -> new CourseworkAccessException("Authentication required"));
-        requireActiveCourse(courseId);
-        CourseMembership membership = courseAccessPolicy.requireActiveMember(courseId, userId,
-                CourseworkNotFoundException::new);
+        var course = requireActiveCourse(courseId);
+        CourseMembership membership = null;
+        try {
+            membership = courseAccessPolicy.requireActiveMember(courseId, userId, CourseworkNotFoundException::new);
+        } catch (CourseworkNotFoundException ex) {
+            if (course.getAccessType() != com.M198.Majorproject.core.course.entity.CourseAccessType.PUBLIC) {
+                throw ex;
+            }
+        }
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        Page<Coursework> pageOfCoursework = courseAccessPolicy.isStaff(membership)
+        boolean isStaff = membership != null && courseAccessPolicy.isStaff(membership);
+        Page<Coursework> pageOfCoursework = isStaff
                 ? courseworkRepository.findAllByCourseIdAndStatusNotOrderByPinnedDescPublishedAtDescCreatedAtDesc(
                         courseId, CourseworkStatus.ARCHIVED, pageRequest)
                 : courseworkRepository.findAllByCourseIdAndStatusOrderByPinnedDescPublishedAtDesc(
@@ -229,8 +236,8 @@ public class CourseworkService {
         }
     }
 
-    private void requireActiveCourse(String courseId) {
-        courseRepository.findByIdAndStatus(courseId, CourseStatus.ACTIVE)
+    private com.M198.Majorproject.core.course.entity.Course requireActiveCourse(String courseId) {
+        return courseRepository.findByIdAndStatus(courseId, CourseStatus.ACTIVE)
                 .orElseThrow(CourseworkNotFoundException::new);
     }
 

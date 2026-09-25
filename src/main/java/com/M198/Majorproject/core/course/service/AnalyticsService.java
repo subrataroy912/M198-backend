@@ -41,14 +41,17 @@ public class AnalyticsService {
     private final CourseAccessPolicy courseAccessPolicy;
 
     public List<CourseGradebookResponse> courseGradebook(String courseId, Authentication a) {
+        String callerId = courseAccessPolicy.authenticatedUserId(a, AnalyticsAccessException::new);
+        List<CourseMembership> allActiveMemberships = membershipRepository
+                .findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE);
         if (isNotAdmin(a)) {
-            courseAccessPolicy.requireStaff(courseId,
-                    courseAccessPolicy.authenticatedUserId(a, AnalyticsAccessException::new),
-                    AnalyticsAccessException::new, AnalyticsAccessException::new);
+            boolean isCallerStaff = allActiveMemberships.stream()
+                    .anyMatch(m -> callerId.equals(m.getUserId()) && courseAccessPolicy.isStaff(m));
+            if (!isCallerStaff) {
+                throw new AnalyticsAccessException();
+            }
         }
-        List<CourseMembership> members = membershipRepository
-                .findAllByCourseIdAndStatus(courseId, MembershipStatus.ACTIVE)
-                .stream()
+        List<CourseMembership> members = allActiveMemberships.stream()
                 .filter(m -> m.getRole() == MembershipRole.MEMBER)
                 .toList();
 
@@ -105,9 +108,19 @@ public class AnalyticsService {
                     AnalyticsAccessException::new, AnalyticsAccessException::new);
 
         }
-        CourseAnalyticsSummary summary = summaryRepository.findByCourseId(courseId)
-                .orElseThrow(AnalyticsNotFoundException::new);
-        return summaryResponse(summary);
+        return summaryRepository.findByCourseId(courseId)
+                .map(this::summaryResponse)
+                .orElseGet(() -> {
+                    CourseAnalyticsResponse empty = new CourseAnalyticsResponse();
+                    empty.setCourseId(courseId);
+                    empty.setStudentCount(0L);
+                    empty.setCourseworkCount(0L);
+                    empty.setSubmissionCount(0L);
+                    empty.setTurnedInCount(0L);
+                    empty.setMissingCount(0L);
+                    empty.setGradedCount(0L);
+                    return empty;
+                });
     }
 
     public List<GradebookEntryResponse> gradebook(String courseId, String studentId, Authentication a) {

@@ -26,7 +26,6 @@ import io.jsonwebtoken.JwtException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-        // TODO: Have to use this logger & AppiResponse dto in this codebase if required
         private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
         @ExceptionHandler(BadCredentialsException.class)

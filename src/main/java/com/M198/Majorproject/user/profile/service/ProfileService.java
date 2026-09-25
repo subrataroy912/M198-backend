@@ -12,8 +12,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -70,32 +68,6 @@ public class ProfileService {
         UserProfileResponse response = profileMapper.toOwnerResponse(context.user(), context.profile());
         enrichOwnerProfile(response, context.user(), context.profile());
         return response;
-    }
-
-    public List<PublicUserProfileResponse> getPublicProfiles() {
-        List<UserProfile> profiles = profileRepository
-                .findAllByProfileVisibilityAndDeletedAtIsNull(ProfileVisibility.PUBLIC);
-        return profiles.stream()
-                .map(this::mapAndEnrichPublicProfile)
-                .toList();
-    }
-
-    public Page<PublicUserProfileResponse> getPublicProfiles(String query, Pageable pageable) {
-
-        Page<UserProfile> profilesPage;
-
-        if (query != null && !query.isBlank()) {
-            profilesPage = profileRepository.searchPublicProfiles(
-                    ProfileVisibility.PUBLIC,
-                    query.trim(),
-                    pageable);
-        } else {
-            profilesPage = profileRepository.findAllByProfileVisibilityAndDeletedAtIsNull(
-                    ProfileVisibility.PUBLIC,
-                    pageable);
-        }
-
-        return profilesPage.map(this::mapAndEnrichPublicProfile);
     }
 
     public PublicUserProfileResponse getUserProfile(
@@ -290,16 +262,6 @@ public class ProfileService {
         if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType.toLowerCase())) {
             throw new IllegalArgumentException("Invalid file format for " + assetName + ". Only JPEG, PNG, and WebP are allowed.");
         }
-    }
-
-    private PublicUserProfileResponse mapAndEnrichPublicProfile(UserProfile profile) {
-        PublicUserProfileResponse response = profileMapper.toPublicResponse(profile);
-        User user = userRepository.findById(profile.getUserId()).orElse(null);
-        if (user != null && user.isCanCreateCourses()) {
-            response.setCanCreateCourses(true);
-        }
-        enrichPublicProfile(response, user, profile);
-        return response;
     }
 
     private void enrichOwnerProfile(

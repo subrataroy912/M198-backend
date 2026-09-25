@@ -722,4 +722,70 @@ class CourseServiceTest {
                 org.junit.jupiter.api.Assertions.assertNotNull(response.getExpiresAt());
                 org.junit.jupiter.api.Assertions.assertFalse(oldCode.isActive());
         }
+
+        @Test
+        void privateActiveCourseCanBeReadByNonMemberWithRestrictedViewerResponse() {
+                com.M198.Majorproject.core.course.entity.SpaceLink privateLink = com.M198.Majorproject.core.course.entity.SpaceLink
+                                .builder()
+                                .id("link-1")
+                                .title("Private Repo")
+                                .url("https://github.com/org/private")
+                                .category("REPOSITORY")
+                                .build();
+                Course course = Course.builder()
+                                .id("course-private")
+                                .ownerId("teacher-1")
+                                .title("Private Research Lab")
+                                .accessType(CourseAccessType.PRIVATE)
+                                .status(CourseStatus.ACTIVE)
+                                .links(java.util.List.of(privateLink))
+                                .build();
+                CourseMembership pendingMembership = CourseMembership.builder()
+                                .courseId("course-private")
+                                .userId("student-1")
+                                .role(MembershipRole.MEMBER)
+                                .status(MembershipStatus.PENDING)
+                                .build();
+
+                when(courseRepository.findById("course-private")).thenReturn(Optional.of(course));
+                when(courseRepository.findByIdAndStatus("course-private", CourseStatus.ACTIVE))
+                                .thenReturn(Optional.of(course));
+                when(membershipRepository.findByCourseIdAndUserId("course-private", "student-1"))
+                                .thenReturn(Optional.of(pendingMembership));
+                when(membershipRepository.countByCourseIdAndStatus("course-private", MembershipStatus.ACTIVE))
+                                .thenReturn(5L);
+
+                var viewerResponse = courseService.getCourse("course-private", student);
+                assertEquals("Private Research Lab", viewerResponse.getTitle());
+                assertEquals(CourseAccessType.PRIVATE, viewerResponse.getAccessType());
+                assertEquals("VIEWER", viewerResponse.getRole());
+                org.junit.jupiter.api.Assertions.assertFalse(viewerResponse.isEnrolled());
+                assertEquals(MembershipStatus.PENDING, viewerResponse.getMembershipStatus());
+                org.junit.jupiter.api.Assertions.assertTrue(viewerResponse.getLinks().isEmpty());
+
+                var publicPreview = courseService.getPublicCourse("course-private");
+                assertEquals("Private Research Lab", publicPreview.getTitle());
+                assertEquals(CourseAccessType.PRIVATE, publicPreview.getAccessType());
+        }
+
+        @Test
+        void linkOnlyCourseCannotBeReadByNonMember() {
+                Course course = Course.builder()
+                                .id("course-link")
+                                .ownerId("teacher-1")
+                                .title("Invite Only Space")
+                                .accessType(CourseAccessType.LINK_ONLY)
+                                .status(CourseStatus.ACTIVE)
+                                .build();
+                when(courseRepository.findById("course-link")).thenReturn(Optional.of(course));
+                when(courseRepository.findByIdAndStatus("course-link", CourseStatus.ACTIVE))
+                                .thenReturn(Optional.of(course));
+                when(membershipRepository.findByCourseIdAndUserId("course-link", "student-1"))
+                                .thenReturn(Optional.empty());
+
+                assertThrows(CourseService.CourseNotFoundException.class,
+                                () -> courseService.getCourse("course-link", student));
+                assertThrows(CourseService.CourseNotFoundException.class,
+                                () -> courseService.getPublicCourse("course-link"));
+        }
 }

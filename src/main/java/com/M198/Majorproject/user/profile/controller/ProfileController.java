@@ -4,9 +4,6 @@
  */
 package com.M198.Majorproject.user.profile.controller;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -32,26 +29,8 @@ public class ProfileController {
 	private final ProfileService profileService;
 
 	// ─────────────────────────────────────────────
-	// Public profiles / search
+	// Public profiles
 	// ─────────────────────────────────────────────
-
-	@GetMapping
-	public Page<PublicUserProfileResponse> getPublicProfiles(
-			@RequestParam(required = false) String q,
-			@RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "20") int size) {
-
-		int safePage = Math.max(0, page);
-		int safeSize = Math.min(Math.max(1, size), 100);
-
-		Sort sort = Sort.by(
-				Sort.Direction.DESC,
-				"createdAt");
-
-		return profileService.getPublicProfiles(
-				q,
-				PageRequest.of(safePage, safeSize, sort));
-	}
 
 	@GetMapping("/by-handle/{handle}")
 	public PublicUserProfileResponse getUserByHandle(

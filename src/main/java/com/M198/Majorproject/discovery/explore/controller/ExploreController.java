@@ -1,5 +1,7 @@
 package com.M198.Majorproject.discovery.explore.controller;
 
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import com.M198.Majorproject.discovery.explore.dto.CourseDiscoveryResponse;
@@ -46,10 +48,12 @@ public class ExploreController {
     }
 
     @GetMapping("/people/recommendations")
-    public PageResponse<RecommendedUserResponse> peopleRecommendations(
+    public ResponseEntity<PageResponse<RecommendedUserResponse>> peopleRecommendations(
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return PageResponse.from(userRecommendationService.getRecommendedUsers(authentication, page, size));
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(PageResponse.from(userRecommendationService.getRecommendedUsers(authentication, page, size)));
     }
 }

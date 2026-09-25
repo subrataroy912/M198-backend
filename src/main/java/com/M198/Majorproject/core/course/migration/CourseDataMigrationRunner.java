@@ -1,5 +1,10 @@
 package com.M198.Majorproject.core.course.migration;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -10,14 +15,33 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
+import com.M198.Majorproject.core.course.entity.Course;
+import com.M198.Majorproject.core.course.entity.CourseAccessType;
+import com.M198.Majorproject.core.course.entity.CourseMembership;
+import com.M198.Majorproject.core.course.entity.CourseStatus;
+import com.M198.Majorproject.core.course.entity.MembershipStatus;
+import com.M198.Majorproject.core.course.port.CourseDiscoveryPort;
+import com.M198.Majorproject.core.course.repository.CourseMembershipRepository;
+import com.M198.Majorproject.core.course.repository.CourseRepository;
+
 @Component
 public class CourseDataMigrationRunner implements ApplicationRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(CourseDataMigrationRunner.class);
     private final MongoTemplate mongoTemplate;
+    private final CourseRepository courseRepository;
+    private final CourseMembershipRepository membershipRepository;
+    private final CourseDiscoveryPort courseDiscoveryPort;
 
-    public CourseDataMigrationRunner(MongoTemplate mongoTemplate) {
+    public CourseDataMigrationRunner(
+            MongoTemplate mongoTemplate,
+            CourseRepository courseRepository,
+            CourseMembershipRepository membershipRepository,
+            CourseDiscoveryPort courseDiscoveryPort) {
         this.mongoTemplate = mongoTemplate;
+        this.courseRepository = courseRepository;
+        this.membershipRepository = membershipRepository;
+        this.courseDiscoveryPort = courseDiscoveryPort;
     }
 
     @Override
@@ -31,6 +55,22 @@ public class CourseDataMigrationRunner implements ApplicationRunner {
             );
             if (res1.getModifiedCount() > 0) {
                 logger.info("Migrated {} courses from OPEN to PUBLIC", res1.getModifiedCount());
+            }
+
+            // 1b. Migrate legacy courses with visibility=PRIVATE and missing access_type -> PRIVATE
+            var res1b = mongoTemplate.updateMulti(
+                    Query.query(new Criteria().andOperator(
+                            Criteria.where("visibility").is("PRIVATE"),
+                            new Criteria().orOperator(
+                                    Criteria.where("access_type").exists(false),
+                                    Criteria.where("access_type").is(null)
+                            )
+                    )),
+                    Update.update("access_type", "PRIVATE"),
+                    "courses"
+            );
+            if (res1b.getModifiedCount() > 0) {
+                logger.info("Migrated {} legacy PRIVATE visibility courses to access_type=PRIVATE", res1b.getModifiedCount());
             }
 
             // 2. Migrate courses: CODE / INVITE -> LINK_ONLY
@@ -103,8 +143,37 @@ public class CourseDataMigrationRunner implements ApplicationRunner {
             if (res7b.getModifiedCount() > 0) {
                 logger.info("Ensured enrollment_enabled is true for {} courses", res7b.getModifiedCount());
             }
+
+            // 8. Re-synchronize all active PUBLIC and PRIVATE courses into course_discovery
+            // so PRIVATE courses that were previously omitted or deleted from discovery appear in UI
+            List<Course> allCourses = courseRepository.findAll();
+            if (!allCourses.isEmpty()) {
+                Set<String> courseIds = allCourses.stream()
+                        .map(Course::getId)
+                        .filter(id -> id != null)
+                        .collect(Collectors.toSet());
+                Map<String, Long> memberCounts = membershipRepository
+                        .findAllByCourseIdInAndStatus(courseIds, MembershipStatus.ACTIVE)
+                        .stream()
+                        .collect(Collectors.groupingBy(CourseMembership::getCourseId, Collectors.counting()));
+
+                int syncedCount = 0;
+                for (Course course : allCourses) {
+                    if (course.getId() == null) {
+                        continue;
+                    }
+                    long count = memberCounts.getOrDefault(course.getId(), 0L);
+                    courseDiscoveryPort.sync(course, count);
+                    if (course.getStatus() == CourseStatus.ACTIVE
+                            && course.getResolvedAccessType() != CourseAccessType.LINK_ONLY) {
+                        syncedCount++;
+                    }
+                }
+                logger.info("Synchronized {} active PUBLIC/PRIVATE courses into course_discovery", syncedCount);
+            }
         } catch (Exception e) {
             logger.warn("Course data migration skipped or failed: {}", e.getMessage());
         }
     }
 }
+
