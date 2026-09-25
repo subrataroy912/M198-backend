@@ -38,8 +38,44 @@ public class CourseworkService {
     private final CourseworkRepository courseworkRepository;
     private final CourseProfilePort profilePort;
 
-    public CourseworkResponse create(
-            String courseId, Authentication authentication, CreateCourseworkRequest request) {
+        @org.springframework.beans.factory.annotation.Autowired(required = false)
+        private com.M198.Majorproject.user.profile.service.MediaStorageService mediaStorageService;
+
+        private List<CourseworkAttachment> normalizeAttachments(List<CourseworkAttachment> rawAttachments) {
+            if (rawAttachments == null || rawAttachments.isEmpty()) {
+                return Collections.emptyList();
+            }
+            return rawAttachments.stream().map(att -> {
+                if (att == null) return null;
+                String rawUrl = att.getUrl() != null ? att.getUrl().trim() : "";
+                if (rawUrl.toLowerCase().startsWith("data:video/")) {
+                    throw new IllegalArgumentException(
+                            "Direct video file upload is not supported. Please share a YouTube or external video link.");
+                }
+                String resolvedUrl = rawUrl;
+                String resolvedType = att.getType() != null ? att.getType() : "LINK";
+                if (rawUrl.toLowerCase().startsWith("data:image/")) {
+                    resolvedType = "IMAGE";
+                    if (mediaStorageService != null) {
+                        try {
+                            resolvedUrl = mediaStorageService.uploadImage(rawUrl, "space_posts");
+                        } catch (Exception ignored) {
+                            // Keep fallback data URL if storage fails transiently
+                        }
+                    }
+                }
+                return CourseworkAttachment.builder()
+                        .id(att.getId() != null ? att.getId() : java.util.UUID.randomUUID().toString())
+                        .type(resolvedType)
+                        .title(att.getTitle())
+                        .url(resolvedUrl)
+                        .sizeBytes(att.getSizeBytes())
+                        .build();
+            }).filter(Objects::nonNull).toList();
+        }
+
+        public CourseworkResponse create(
+                String courseId, Authentication authentication, CreateCourseworkRequest request) {
         String userId = courseAccessPolicy.authenticatedUserId(authentication,
                 () -> new CourseworkAccessException("Authentication required"));
         requireActiveCourse(courseId);
@@ -61,9 +97,7 @@ public class CourseworkService {
 
         boolean isStaff = courseAccessPolicy.isStaff(membership);
         boolean pinned = Boolean.TRUE.equals(request.getPinned()) && isStaff;
-        List<CourseworkAttachment> attachments = request.getAttachments() != null
-                ? request.getAttachments()
-                : Collections.emptyList();
+        List<CourseworkAttachment> attachments = normalizeAttachments(request.getAttachments());
 
         Coursework coursework = Coursework.builder()
                 .courseId(courseId)
@@ -178,7 +212,7 @@ public class CourseworkService {
             coursework.setPinned(request.getPinned());
         }
         if (request.getAttachments() != null) {
-            coursework.setAttachments(request.getAttachments());
+            coursework.setAttachments(normalizeAttachments(request.getAttachments()));
         }
         Coursework saved = courseworkRepository.save(coursework);
         UserProfile profile = saved.getCreatorId() != null && profilePort != null
