@@ -110,9 +110,6 @@ public class ProfileMediaStorageService implements MediaStorageService {
             Map<String, Object> options = new HashMap<>();
             options.put("folder", folder);
             options.put("resource_type", "image");
-            options.put("quality", "auto:good");
-            options.put("fetch_format", "webp");
-            applyFolderTransformationBounds(options, folder);
             if (contentType != null && !contentType.isBlank()) {
                 options.put("context", "content_type=" + contentType);
             }
@@ -134,22 +131,6 @@ public class ProfileMediaStorageService implements MediaStorageService {
                 return "data:" + safeType + ";base64," + Base64.getEncoder().encodeToString(bytes);
             }
             throw new ProfileStorageException("Could not upload profile asset", exception);
-        }
-    }
-
-    private void applyFolderTransformationBounds(Map<String, Object> options, String folder) {
-        if (folder == null) {
-            return;
-        }
-        String normalized = folder.toLowerCase();
-        if (normalized.contains("avatar") || normalized.contains("logo")) {
-            options.put("transformation", "c_fill,g_center,w_400,h_400,q_auto:eco,f_webp");
-        } else if (normalized.contains("banner") || normalized.contains("cover")) {
-            options.put("transformation", "c_limit,w_1920,h_1080,q_auto:good,f_webp");
-        } else if (normalized.contains("chat") || normalized.contains("feed") || normalized.contains("post")) {
-            options.put("transformation", "c_limit,w_1200,h_900,q_auto:good,f_webp");
-        } else if (normalized.contains("scan") || normalized.contains("document") || normalized.contains("submission")) {
-            options.put("transformation", "c_limit,w_2000,h_1500,q_auto:good,f_webp");
         }
     }
 

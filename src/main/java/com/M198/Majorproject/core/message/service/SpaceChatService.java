@@ -51,6 +51,8 @@ import com.M198.Majorproject.user.profile.service.MediaStorageService;
 @RequiredArgsConstructor
 public class SpaceChatService {
 
+        private static final long MIN_SEND_INTERVAL_MS = 800L;
+
         private final SpaceMessageRepository messageRepository;
         private final SpaceChatReadStateRepository readStateRepository;
         private final CourseRepository courseRepository;
@@ -58,6 +60,7 @@ public class SpaceChatService {
         private final CourseProfilePort profilePort;
         private final CourseAccessPolicy accessPolicy;
         private final SimpMessagingTemplate messagingTemplate;
+        private final java.util.concurrent.ConcurrentHashMap<String, Long> lastSentAtByUser = new java.util.concurrent.ConcurrentHashMap<>();
 
         @Autowired(required = false)
         private MediaStorageService mediaStorageService;
@@ -262,6 +265,15 @@ public class SpaceChatService {
                         String userId,
                         SendSpaceMessageRequest request) {
                 CourseMembership membership = requireActiveSpaceAndMembership(spaceId, userId);
+
+                String rateKey = spaceId + ":" + userId;
+                long nowMs = System.currentTimeMillis();
+                Long previousSentMs = lastSentAtByUser.get(rateKey);
+                if (previousSentMs != null && (nowMs - previousSentMs) < MIN_SEND_INTERVAL_MS) {
+                        throw new CourseService.CourseBadRequestException(
+                                        "Please wait a moment before sending another message");
+                }
+                lastSentAtByUser.put(rateKey, nowMs);
 
                 String content = request != null && request.getContent() != null ? request.getContent().trim() : "";
                 List<SpaceMessageAttachment> attachments = request != null && request.getAttachments() != null
