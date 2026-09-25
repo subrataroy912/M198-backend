@@ -52,6 +52,9 @@ public class Notification {
     @Field("resource_id")
     private String resourceId;
 
+    @Field("course_id")
+    private String courseId;
+
     @Builder.Default
     private boolean read = false;
 

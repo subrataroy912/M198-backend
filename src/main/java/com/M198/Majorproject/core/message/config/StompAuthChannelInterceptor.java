@@ -68,6 +68,10 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             }
 
             String destination = accessor.getDestination();
+            String targetUserId = extractUserIdFromDestination(destination);
+            if (targetUserId != null && !targetUserId.equals(user.getName())) {
+                throw new MessageDeliveryException("Cannot subscribe to another user's private topic");
+            }
             String spaceId = extractSpaceIdFromDestination(destination);
             if (spaceId != null) {
                 boolean isMember = membershipRepository.existsByCourseIdAndUserIdAndStatus(
@@ -97,6 +101,18 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             int slashIdx = rest.indexOf('/');
             int endIdx = dotIdx > 0 ? dotIdx : slashIdx;
             return endIdx > 0 ? rest.substring(0, endIdx) : rest;
+        }
+        return null;
+    }
+
+    private String extractUserIdFromDestination(String destination) {
+        if (destination == null) {
+            return null;
+        }
+        if (destination.startsWith("/topic/users/")) {
+            String rest = destination.substring("/topic/users/".length());
+            int slashIdx = rest.indexOf('/');
+            return slashIdx > 0 ? rest.substring(0, slashIdx) : rest;
         }
         return null;
     }

@@ -17,6 +17,7 @@ public class NotificationResponse {
     private String message;
     private NotificationResourceType resourceType;
     private String resourceId;
+    private String courseId;
     private boolean read;
     private Instant readAt;
     private Instant createdAt;

@@ -29,6 +29,12 @@ public class NotificationController {
         return service.markRead(notificationId, a);
     }
 
+    @PatchMapping("/read-all")
+    public java.util.Map<String, Object> readAll(Authentication a) {
+        int count = service.markAllRead(a);
+        return java.util.Map.of("updatedCount", count);
+    }
+
     @GetMapping("/settings")
     public NotificationSettingsResponse settings(Authentication a) {
         return service.settings(a);

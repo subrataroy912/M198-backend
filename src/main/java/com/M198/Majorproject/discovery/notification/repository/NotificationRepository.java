@@ -16,6 +16,8 @@ public interface NotificationRepository extends MongoRepository<Notification, St
 
     Page<Notification> findAllByRecipientIdAndReadFalseOrderByCreatedAtDesc(String recipientId, Pageable pageable);
 
+    java.util.List<Notification> findAllByRecipientIdAndReadFalse(String recipientId);
+
     void deleteAllByResourceTypeAndResourceId(NotificationResourceType resourceType, String resourceId);
 
     void deleteAllByResourceTypeAndResourceIdIn(NotificationResourceType resourceType, Collection<String> resourceIds);

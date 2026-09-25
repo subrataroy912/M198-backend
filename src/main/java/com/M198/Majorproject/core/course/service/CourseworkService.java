@@ -38,44 +38,92 @@ public class CourseworkService {
     private final CourseworkRepository courseworkRepository;
     private final CourseProfilePort profilePort;
 
-        @org.springframework.beans.factory.annotation.Autowired(required = false)
-        private com.M198.Majorproject.user.profile.service.MediaStorageService mediaStorageService;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.M198.Majorproject.user.profile.service.MediaStorageService mediaStorageService;
 
-        private List<CourseworkAttachment> normalizeAttachments(List<CourseworkAttachment> rawAttachments) {
-            if (rawAttachments == null || rawAttachments.isEmpty()) {
-                return Collections.emptyList();
-            }
-            return rawAttachments.stream().map(att -> {
-                if (att == null) return null;
-                String rawUrl = att.getUrl() != null ? att.getUrl().trim() : "";
-                if (rawUrl.toLowerCase().startsWith("data:video/")) {
-                    throw new IllegalArgumentException(
-                            "Direct video file upload is not supported. Please share a YouTube or external video link.");
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.M198.Majorproject.discovery.notification.service.NotificationService notificationService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.M198.Majorproject.core.course.repository.CourseMembershipRepository membershipRepository;
+
+    private void notifyCourseMembersOfCoursework(
+            String courseId,
+            String actorUserId,
+            Coursework coursework,
+            com.M198.Majorproject.discovery.notification.entity.NotificationType notificationType) {
+        if (notificationService == null || membershipRepository == null || coursework == null) {
+            return;
+        }
+        try {
+            var courseOpt = courseRepository.findById(courseId);
+            String spaceName = courseOpt.map(c -> c.getTitle()).orElse("Space");
+            String kind = coursework.getType() == CourseworkType.ASSIGNMENT
+                    ? "assignment"
+                    : coursework.getType() == CourseworkType.MATERIAL
+                            ? "material"
+                            : "post";
+            String title = notificationType == com.M198.Majorproject.discovery.notification.entity.NotificationType.COURSEWORK_UPDATED
+                    ? "Updated " + kind + " in " + spaceName
+                    : "New " + kind + " in " + spaceName;
+            String message = coursework.getTitle() != null ? coursework.getTitle()
+                    : "View the latest update in your space.";
+
+            var activeMembers = membershipRepository.findAllByCourseIdAndStatus(
+                    courseId, com.M198.Majorproject.core.course.entity.MembershipStatus.ACTIVE);
+            for (CourseMembership m : activeMembers) {
+                if (m.getUserId() != null && !m.getUserId().equals(actorUserId)) {
+                    notificationService.sendNotification(
+                            m.getUserId(),
+                            notificationType,
+                            title,
+                            message,
+                            com.M198.Majorproject.discovery.notification.entity.NotificationResourceType.COURSEWORK,
+                            coursework.getId(),
+                            courseId);
                 }
-                String resolvedUrl = rawUrl;
-                String resolvedType = att.getType() != null ? att.getType() : "LINK";
-                if (rawUrl.toLowerCase().startsWith("data:image/")) {
-                    resolvedType = "IMAGE";
-                    if (mediaStorageService != null) {
-                        try {
-                            resolvedUrl = mediaStorageService.uploadImage(rawUrl, "space_posts");
-                        } catch (Exception ignored) {
-                            // Keep fallback data URL if storage fails transiently
-                        }
+            }
+        } catch (Exception ignored) {
+            // Best-effort notification fan-out
+        }
+    }
+
+    private List<CourseworkAttachment> normalizeAttachments(List<CourseworkAttachment> rawAttachments) {
+        if (rawAttachments == null || rawAttachments.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return rawAttachments.stream().map(att -> {
+            if (att == null)
+                return null;
+            String rawUrl = att.getUrl() != null ? att.getUrl().trim() : "";
+            if (rawUrl.toLowerCase().startsWith("data:video/")) {
+                throw new IllegalArgumentException(
+                        "Direct video file upload is not supported. Please share a YouTube or external video link.");
+            }
+            String resolvedUrl = rawUrl;
+            String resolvedType = att.getType() != null ? att.getType() : "LINK";
+            if (rawUrl.toLowerCase().startsWith("data:image/")) {
+                resolvedType = "IMAGE";
+                if (mediaStorageService != null) {
+                    try {
+                        resolvedUrl = mediaStorageService.uploadImage(rawUrl, "space_posts");
+                    } catch (Exception ignored) {
+                        // Keep fallback data URL if storage fails transiently
                     }
                 }
-                return CourseworkAttachment.builder()
-                        .id(att.getId() != null ? att.getId() : java.util.UUID.randomUUID().toString())
-                        .type(resolvedType)
-                        .title(att.getTitle())
-                        .url(resolvedUrl)
-                        .sizeBytes(att.getSizeBytes())
-                        .build();
-            }).filter(Objects::nonNull).toList();
-        }
+            }
+            return CourseworkAttachment.builder()
+                    .id(att.getId() != null ? att.getId() : java.util.UUID.randomUUID().toString())
+                    .type(resolvedType)
+                    .title(att.getTitle())
+                    .url(resolvedUrl)
+                    .sizeBytes(att.getSizeBytes())
+                    .build();
+        }).filter(Objects::nonNull).toList();
+    }
 
-        public CourseworkResponse create(
-                String courseId, Authentication authentication, CreateCourseworkRequest request) {
+    public CourseworkResponse create(
+            String courseId, Authentication authentication, CreateCourseworkRequest request) {
         String userId = courseAccessPolicy.authenticatedUserId(authentication,
                 () -> new CourseworkAccessException("Authentication required"));
         requireActiveCourse(courseId);
@@ -113,6 +161,13 @@ public class CourseworkService {
                 .maximumPoints(request.getMaximumPoints())
                 .build();
         Coursework saved = courseworkRepository.save(coursework);
+        if (saved != null && saved.getStatus() == CourseworkStatus.PUBLISHED) {
+            notifyCourseMembersOfCoursework(
+                    courseId,
+                    userId,
+                    saved,
+                    com.M198.Majorproject.discovery.notification.entity.NotificationType.COURSEWORK_PUBLISHED);
+        }
         UserProfile profile = profilePort != null ? profilePort.findByUserId(userId).orElse(null) : null;
         return toResponse(saved, profile);
     }
@@ -187,6 +242,8 @@ public class CourseworkService {
             throw new CourseworkAccessException("You do not have permission to modify this post");
         }
 
+        CourseworkStatus previousStatus = coursework.getStatus();
+
         if (request.getTitle() != null) {
             coursework.setTitle(normalizeRequired(request.getTitle()));
         }
@@ -215,6 +272,12 @@ public class CourseworkService {
             coursework.setAttachments(normalizeAttachments(request.getAttachments()));
         }
         Coursework saved = courseworkRepository.save(coursework);
+        if (saved != null && saved.getStatus() == CourseworkStatus.PUBLISHED) {
+            var notifType = previousStatus != CourseworkStatus.PUBLISHED
+                    ? com.M198.Majorproject.discovery.notification.entity.NotificationType.COURSEWORK_PUBLISHED
+                    : com.M198.Majorproject.discovery.notification.entity.NotificationType.COURSEWORK_UPDATED;
+            notifyCourseMembersOfCoursework(courseId, userId, saved, notifType);
+        }
         UserProfile profile = saved.getCreatorId() != null && profilePort != null
                 ? profilePort.findByUserId(saved.getCreatorId()).orElse(null)
                 : null;

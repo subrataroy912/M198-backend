@@ -37,12 +37,30 @@ public class CommentService {
     private final CourseMembershipRepository membershipRepository;
     private final CourseProfilePort profilePort;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.M198.Majorproject.discovery.notification.service.NotificationService notificationService;
+
     public CommentResponse addCourseworkComment(String courseworkId, Authentication authentication, CreateCommentRequest request) {
         String userId = userId(authentication);
-        String courseId = courseworkRepository.findById(courseworkId).map(value -> value.getCourseId())
+        var coursework = courseworkRepository.findById(courseworkId)
                 .orElseThrow(CommentNotFoundException::new);
+        String courseId = coursework.getCourseId();
         member(courseId, userId);
-        return save(courseId, courseworkId, userId, CommentTargetType.COURSEWORK, CommentVisibility.PUBLIC, request.getBody());
+        CommentResponse saved = save(courseId, courseworkId, userId, CommentTargetType.COURSEWORK, CommentVisibility.PUBLIC, request.getBody());
+        if (notificationService != null
+                && coursework.getCreatorId() != null
+                && !coursework.getCreatorId().equals(userId)) {
+            String authorName = saved.getAuthorName() != null ? saved.getAuthorName() : "A member";
+            notificationService.sendNotification(
+                    coursework.getCreatorId(),
+                    com.M198.Majorproject.discovery.notification.entity.NotificationType.COMMENT_ADDED,
+                    authorName + " commented on \"" + (coursework.getTitle() != null ? coursework.getTitle() : "your post") + "\"",
+                    saved.getBody(),
+                    com.M198.Majorproject.discovery.notification.entity.NotificationResourceType.COURSEWORK,
+                    courseworkId,
+                    courseId);
+        }
+        return saved;
     }
 
     public List<CommentResponse> courseworkComments(String courseworkId, Authentication authentication) {
@@ -64,7 +82,29 @@ public class CommentService {
         if (!submission.getStudentId().equals(userId) && !staff(membership)) {
             throw new CommentAccessException();
         }
-        return save(submission.getCourseId(), submissionId, userId, CommentTargetType.SUBMISSION, CommentVisibility.PRIVATE, request.getBody());
+        CommentResponse saved = save(submission.getCourseId(), submissionId, userId, CommentTargetType.SUBMISSION, CommentVisibility.PRIVATE, request.getBody());
+        if (notificationService != null) {
+            String recipientId = !submission.getStudentId().equals(userId)
+                    ? submission.getStudentId()
+                    : submission.getGraderId();
+            if (recipientId == null && submission.getCourseworkId() != null) {
+                recipientId = courseworkRepository.findById(submission.getCourseworkId())
+                        .map(cw -> cw.getCreatorId())
+                        .orElse(null);
+            }
+            if (recipientId != null && !recipientId.equals(userId)) {
+                String authorName = saved.getAuthorName() != null ? saved.getAuthorName() : "Someone";
+                notificationService.sendNotification(
+                        recipientId,
+                        com.M198.Majorproject.discovery.notification.entity.NotificationType.COMMENT_ADDED,
+                        authorName + " added a private comment on your submission",
+                        saved.getBody(),
+                        com.M198.Majorproject.discovery.notification.entity.NotificationResourceType.SUBMISSION,
+                        submissionId,
+                        submission.getCourseId());
+            }
+        }
+        return saved;
     }
 
     public List<CommentResponse> submissionComments(String submissionId, Authentication authentication) {

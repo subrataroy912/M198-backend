@@ -29,6 +29,9 @@ public class SubmissionService {
     private final CourseAccessPolicy courseAccessPolicy;
     private final SubmissionRepository submissionRepository;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.M198.Majorproject.discovery.notification.service.NotificationService notificationService;
+
     public SubmissionResponse start(String courseworkId, Authentication authentication) {
         String studentId = courseAccessPolicy.authenticatedUserId(authentication, SubmissionAccessException::new);
         Coursework coursework = publishedAssignment(courseworkId);
@@ -128,6 +131,22 @@ public class SubmissionService {
         submission.setReturnedAt(Instant.now());
         submission.setStatus(SubmissionStatus.GRADED);
         Submission saved = submissionRepository.save(submission);
+        if (notificationService != null && saved != null && saved.getStudentId() != null) {
+            String scoreText = saved.getScore() != null
+                    ? saved.getScore().stripTrailingZeros().toPlainString()
+                    : "";
+            String maxText = coursework.getMaximumPoints() != null
+                    ? " / " + coursework.getMaximumPoints()
+                    : "";
+            notificationService.sendNotification(
+                    saved.getStudentId(),
+                    com.M198.Majorproject.discovery.notification.entity.NotificationType.SUBMISSION_GRADED,
+                    "Assignment Graded: " + (coursework.getTitle() != null ? coursework.getTitle() : "Submission"),
+                    "Your submission received " + scoreText + maxText + " pts.",
+                    com.M198.Majorproject.discovery.notification.entity.NotificationResourceType.SUBMISSION,
+                    saved.getId(),
+                    coursework.getCourseId());
+        }
         return toResponse(saved);
     }
 
