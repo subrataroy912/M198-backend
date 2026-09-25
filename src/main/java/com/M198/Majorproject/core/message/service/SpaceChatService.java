@@ -43,6 +43,10 @@ import com.M198.Majorproject.user.profile.entity.UserProfile;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.multipart.MultipartFile;
+import com.M198.Majorproject.user.profile.service.MediaStorageService;
+
 @Service
 @RequiredArgsConstructor
 public class SpaceChatService {
@@ -54,6 +58,9 @@ public class SpaceChatService {
     private final CourseProfilePort profilePort;
     private final CourseAccessPolicy accessPolicy;
     private final SimpMessagingTemplate messagingTemplate;
+
+    @Autowired(required = false)
+    private MediaStorageService mediaStorageService;
 
     public List<SpaceChatRoomDto> listMySpaceRooms(Authentication authentication) {
         String userId = accessPolicy.authenticatedUserId(
@@ -89,7 +96,11 @@ public class SpaceChatService {
         Map<String, Instant> lastReadMap = readStateRepository
                 .findAllByUserIdAndSpaceIdIn(userId, activeIds)
                 .stream()
-                .collect(Collectors.toMap(SpaceChatReadState::getSpaceId, SpaceChatReadState::getLastReadAt, (a, b) -> a));
+                .filter(s -> s.getSpaceId() != null && s.getLastReadAt() != null)
+                .collect(Collectors.toMap(
+                        SpaceChatReadState::getSpaceId,
+                        SpaceChatReadState::getLastReadAt,
+                        (a, b) -> a.isAfter(b) ? a : b));
 
         List<SpaceChatRoomDto> rooms = new ArrayList<>();
         for (CourseMembership membership : memberships) {
@@ -208,6 +219,34 @@ public class SpaceChatService {
                 .build();
     }
 
+    public SpaceMessageAttachment uploadChatImage(
+            String spaceId,
+            String userId,
+            MultipartFile file) {
+        requireActiveSpaceAndMembership(spaceId, userId);
+        if (file == null || file.isEmpty()) {
+            throw new CourseService.CourseBadRequestException("Image file is required");
+        }
+        String contentType = file.getContentType() != null ? file.getContentType() : "image/webp";
+        if (!contentType.startsWith("image/")) {
+            throw new CourseService.CourseBadRequestException("Only image files are supported");
+        }
+        String uploadedUrl;
+        if (mediaStorageService != null) {
+            uploadedUrl = mediaStorageService.uploadImage(file, "space_chat");
+        } else {
+            throw new CourseService.CourseBadRequestException("Media storage is unavailable");
+        }
+        return SpaceMessageAttachment.builder()
+                .attachmentId("att_" + UUID.randomUUID().toString().substring(0, 8))
+                .name(file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.webp")
+                .type("IMAGE")
+                .mimeType(contentType)
+                .url(uploadedUrl)
+                .sizeBytes(file.getSize())
+                .build();
+    }
+
     public SpaceChatEventDto sendMessage(
             String spaceId,
             String userId,
@@ -235,15 +274,31 @@ public class SpaceChatService {
                 : SpaceChatEventType.TEXT_MESSAGE;
 
         List<SpaceMessageAttachment> normalizedAttachments = attachments.stream()
-                .map(att -> SpaceMessageAttachment.builder()
-                        .attachmentId(att.getAttachmentId() != null
-                                ? att.getAttachmentId()
-                                : "att_" + UUID.randomUUID().toString().substring(0, 8))
-                        .name(att.getName())
-                        .mimeType(att.getMimeType() != null ? att.getMimeType() : "application/octet-stream")
-                        .url(att.getUrl())
-                        .sizeBytes(att.getSizeBytes())
-                        .build())
+                .map(att -> {
+                    String rawUrl = att.getUrl() != null ? att.getUrl().trim() : "";
+                    String resolvedUrl = rawUrl;
+                    if (rawUrl.startsWith("data:image/") && mediaStorageService != null) {
+                        resolvedUrl = mediaStorageService.uploadImage(rawUrl, "space_chat");
+                    }
+                    boolean isImage = "IMAGE".equalsIgnoreCase(att.getType())
+                            || (att.getMimeType() != null && att.getMimeType().toLowerCase().startsWith("image/"))
+                            || rawUrl.startsWith("data:image/")
+                            || resolvedUrl.matches("(?i).*\\.(png|jpe?g|gif|webp|svg)(\\?.*)?$");
+                    String resolvedType = isImage ? "IMAGE" : (att.getType() != null ? att.getType() : "LINK");
+                    String resolvedMime = att.getMimeType() != null && !att.getMimeType().isBlank()
+                            ? att.getMimeType()
+                            : (isImage ? "image/webp" : "application/octet-stream");
+                    return SpaceMessageAttachment.builder()
+                            .attachmentId(att.getAttachmentId() != null
+                                    ? att.getAttachmentId()
+                                    : "att_" + UUID.randomUUID().toString().substring(0, 8))
+                            .name(att.getName() != null && !att.getName().isBlank() ? att.getName() : "Attachment")
+                            .type(resolvedType)
+                            .mimeType(resolvedMime)
+                            .url(resolvedUrl)
+                            .sizeBytes(att.getSizeBytes())
+                            .build();
+                })
                 .toList();
 
         SpaceMessage saved = messageRepository.save(SpaceMessage.builder()
@@ -389,11 +444,25 @@ public class SpaceChatService {
     }
 
     private void updateReadCursor(String spaceId, String userId) {
-        SpaceChatReadState state = readStateRepository.findBySpaceIdAndUserId(spaceId, userId)
-                .orElseGet(() -> SpaceChatReadState.builder()
-                        .spaceId(spaceId)
-                        .userId(userId)
-                        .build());
+        String deterministicId = spaceId + ":" + userId;
+        SpaceChatReadState state;
+        try {
+            state = readStateRepository.findBySpaceIdAndUserId(spaceId, userId)
+                    .orElseGet(() -> SpaceChatReadState.builder()
+                            .id(deterministicId)
+                            .spaceId(spaceId)
+                            .userId(userId)
+                            .build());
+        } catch (RuntimeException ex) {
+            state = SpaceChatReadState.builder()
+                    .id(deterministicId)
+                    .spaceId(spaceId)
+                    .userId(userId)
+                    .build();
+        }
+        if (state.getId() == null) {
+            state.setId(deterministicId);
+        }
         state.setLastReadAt(Instant.now());
         readStateRepository.save(state);
     }

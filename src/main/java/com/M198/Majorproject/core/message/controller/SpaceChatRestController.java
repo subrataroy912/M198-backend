@@ -24,6 +24,11 @@ import com.M198.Majorproject.core.message.service.SpaceChatService;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
+import com.M198.Majorproject.core.message.entity.SpaceMessageAttachment;
+
 @RestController
 @RequestMapping("/v1/messages/spaces")
 @RequiredArgsConstructor
@@ -44,6 +49,17 @@ public class SpaceChatRestController {
             @RequestParam(defaultValue = "30") int limit,
             Authentication authentication) {
         return ResponseEntity.ok(spaceChatService.getHistory(spaceId, before, limit, authentication));
+    }
+
+    @PostMapping(value = "/{spaceId}/upload-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<SpaceMessageAttachment> uploadChatImage(
+            @PathVariable String spaceId,
+            @RequestPart("file") MultipartFile file,
+            Authentication authentication) {
+        String userId = accessPolicy.authenticatedUserId(
+                authentication,
+                () -> new CourseService.CourseAccessException("Authentication required"));
+        return ResponseEntity.ok(spaceChatService.uploadChatImage(spaceId, userId, file));
     }
 
     @PostMapping("/{spaceId}")

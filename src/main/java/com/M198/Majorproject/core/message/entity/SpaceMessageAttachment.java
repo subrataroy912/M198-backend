@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class SpaceMessageAttachment {
     private String attachmentId;
     private String name;
+    private String type;
     private String mimeType;
     private String url;
     private long sizeBytes;

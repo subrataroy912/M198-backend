@@ -19,7 +19,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "space_chat_read_states")
-@CompoundIndex(name = "space_user_read_idx", def = "{'space_id': 1, 'user_id': 1}", unique = true)
+@CompoundIndex(name = "space_user_read_idx", def = "{'space_id': 1, 'user_id': 1}")
 public class SpaceChatReadState {
 
     @Id

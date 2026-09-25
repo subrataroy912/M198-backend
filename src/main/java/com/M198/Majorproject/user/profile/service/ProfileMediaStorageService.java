@@ -105,6 +105,7 @@ public class ProfileMediaStorageService implements MediaStorageService {
     }
 
     public String upload(byte[] bytes, String contentType, String folder) {
+        String safeType = (contentType != null && !contentType.isBlank()) ? contentType : "image/jpeg";
         try {
             Map<String, Object> options = new HashMap<>();
             options.put("folder", folder);
@@ -113,18 +114,21 @@ public class ProfileMediaStorageService implements MediaStorageService {
                 options.put("context", "content_type=" + contentType);
             }
             Map<?, ?> result = cloudinary.uploader().upload(bytes, options);
-            Object secureUrl = result.get("secure_url");
+            Object secureUrl = result != null ? result.get("secure_url") : null;
             if (!(secureUrl instanceof String url) || url.isBlank()) {
                 throw new ProfileStorageException("Cloudinary did not return a secure asset URL");
             }
             return url;
         } catch (ProfileStorageException exception) {
+            if (allowBase64Fallback && bytes != null && bytes.length > 0) {
+                log.warn("Cloudinary upload returned invalid URL for folder {}. Falling back to inline base64.", folder);
+                return "data:" + safeType + ";base64," + Base64.getEncoder().encodeToString(bytes);
+            }
             throw exception;
-        } catch (IOException exception) {
+        } catch (Exception exception) {
             if (allowBase64Fallback && bytes != null && bytes.length > 0) {
                 log.warn("Cloudinary upload failed for folder {}. Falling back to inline base64 representation.", folder, exception);
-                String type = (contentType != null && !contentType.isBlank()) ? contentType : "image/jpeg";
-                return "data:" + type + ";base64," + Base64.getEncoder().encodeToString(bytes);
+                return "data:" + safeType + ";base64," + Base64.getEncoder().encodeToString(bytes);
             }
             throw new ProfileStorageException("Could not upload profile asset", exception);
         }
