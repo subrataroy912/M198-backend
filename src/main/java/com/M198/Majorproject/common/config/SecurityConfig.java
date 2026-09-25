@@ -62,7 +62,10 @@ public class SecurityConfig {
                                         return true;
                                     }
                                     String uri = request.getRequestURI();
-                                    return uri.startsWith("/v1/auth/") || uri.equals("/v1/courses/cover-upload");
+                                    return uri.startsWith("/v1/auth/")
+                                            || uri.startsWith("/v1/ws")
+                                            || uri.startsWith("/ws")
+                                            || uri.equals("/v1/courses/cover-upload");
                                 }))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .authorizeHttpRequests(authorize -> authorize
@@ -74,6 +77,8 @@ public class SecurityConfig {
                                 "/v1/auth/oauth/**",
                                 "/oauth2/**",
                                 "/login/**",
+                                "/v1/ws/**",
+                                "/ws/**",
                                 "/v1/explore/feed",
                                 "/v1/explore/courses/search",
                                 "/v1/explore/courses/*",
