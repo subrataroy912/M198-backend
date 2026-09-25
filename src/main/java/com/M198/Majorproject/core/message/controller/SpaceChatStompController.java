@@ -20,7 +20,7 @@ public class SpaceChatStompController {
 
     private final SpaceChatService spaceChatService;
 
-    @MessageMapping({"/spaces/{spaceId}.send", "/spaces/{spaceId}/send"})
+    @MessageMapping({ "/spaces/{spaceId}.send", "/spaces/{spaceId}/send" })
     public void handleSendMessage(
             @DestinationVariable String spaceId,
             @Payload SendSpaceMessageRequest request,
@@ -31,7 +31,7 @@ public class SpaceChatStompController {
         spaceChatService.sendMessage(spaceId, principal.getName(), request);
     }
 
-    @MessageMapping({"/spaces/{spaceId}.reaction", "/spaces/{spaceId}/reaction"})
+    @MessageMapping({ "/spaces/{spaceId}.reaction", "/spaces/{spaceId}/reaction" })
     public void handleReaction(
             @DestinationVariable String spaceId,
             @Payload SpaceMessageReactionRequest request,
@@ -42,7 +42,7 @@ public class SpaceChatStompController {
         spaceChatService.toggleReaction(spaceId, principal.getName(), request);
     }
 
-    @MessageMapping({"/spaces/{spaceId}.typing", "/spaces/{spaceId}/typing"})
+    @MessageMapping({ "/spaces/{spaceId}.typing", "/spaces/{spaceId}/typing" })
     public void handleTyping(
             @DestinationVariable String spaceId,
             @Payload SpaceTypingStatusRequest request,
