@@ -67,7 +67,7 @@ public class UserProfile {
 
     @Field("profile_visibility")
     @Builder.Default
-    private ProfileVisibility profileVisibility = ProfileVisibility.PRIVATE;
+    private ProfileVisibility profileVisibility = ProfileVisibility.PUBLIC;
 
     @Field("can_create_courses")
     @Builder.Default
