@@ -6,23 +6,31 @@
  */
 package com.M198.Majorproject.user.profile.service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.M198.Majorproject.user.profile.port.ProfileCoursePort;
 import com.M198.Majorproject.user.profile.entity.ProfileVisibility;
+import com.M198.Majorproject.user.identity.entity.AccountStatus;
 import com.M198.Majorproject.user.identity.entity.User;
 import com.M198.Majorproject.user.profile.entity.UserProfile;
 import com.M198.Majorproject.user.profile.repository.UserProfileRepository;
 import com.M198.Majorproject.user.identity.repository.UserRepository;
+import com.M198.Majorproject.user.auth.repository.RefreshTokenRepository;
+import com.M198.Majorproject.user.profile.dto.AvatarMediaResponse;
+import com.M198.Majorproject.user.profile.dto.BannerMediaResponse;
 import com.M198.Majorproject.user.profile.dto.PublicUserProfileResponse;
+import com.M198.Majorproject.user.profile.dto.UpdateCreatorProfileRequest;
 import com.M198.Majorproject.user.profile.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.user.profile.dto.UserProfileResponse;
 import com.M198.Majorproject.user.profile.exception.HandleConflictException;
@@ -39,6 +47,14 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ProfileService {
 
+    private static final long MAX_AVATAR_SIZE = 2L * 1024 * 1024; // 2MB
+    private static final long MAX_BANNER_SIZE = 5L * 1024 * 1024; // 5MB
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+    );
+
     private final UserRepository userRepository;
     private final UserProfileRepository profileRepository;
     private final ProfileCoursePort profileCoursePort;
@@ -47,6 +63,7 @@ public class ProfileService {
     private final ProfilePatcher profilePatcher;
     private final HandleChangePolicy handleChangePolicy;
     private final MediaStorageService mediaStorageService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     public UserProfileResponse getMyProfile(Authentication authentication) {
         UserContext context = userResolver.resolveCurrentUser(authentication);
@@ -124,21 +141,12 @@ public class ProfileService {
     public UserProfileResponse updateMyProfile(
             Authentication authentication,
             UpdateUserProfileRequest request) {
-        return updateMyProfile(authentication, request, null, null);
-    }
-
-    public UserProfileResponse updateMyProfile(
-            Authentication authentication,
-            UpdateUserProfileRequest request,
-            MultipartFile avatarFile,
-            MultipartFile bannerFile) {
         UserContext context = userResolver.resolveCurrentUser(authentication);
         User user = context.user();
         UserProfile profile = context.profile();
 
         profilePatcher.patch(profile, request);
         handleChangePolicy.validateAndApplyHandleChange(profile, request != null ? request.getHandle() : null);
-        applyMediaFiles(profile, avatarFile, bannerFile);
         profile.setProfileCompleted(true);
 
         try {
@@ -151,25 +159,136 @@ public class ProfileService {
         }
     }
 
-    private void applyMediaFiles(
-            UserProfile profile,
-            MultipartFile avatarFile,
-            MultipartFile bannerFile) {
-        if (mediaStorageService.hasContent(avatarFile)) {
-            String oldAvatar = profile.getAvatarUrl();
-            String newAvatar = mediaStorageService.uploadImage(avatarFile, "user_avatars");
-            profile.setAvatarUrl(newAvatar);
-            if (oldAvatar != null && !oldAvatar.equals(newAvatar)) {
-                mediaStorageService.deleteImage(oldAvatar);
-            }
+    public AvatarMediaResponse uploadAvatar(Authentication authentication, MultipartFile file) {
+        validateImage(file, MAX_AVATAR_SIZE, "Avatar");
+        UserContext context = userResolver.resolveCurrentUser(authentication);
+        UserProfile profile = context.profile();
+
+        String oldAvatar = profile.getAvatarUrl();
+        String newAvatar = mediaStorageService.uploadImage(file, "user_avatars");
+        profile.setAvatarUrl(newAvatar);
+
+        if (oldAvatar != null && !oldAvatar.equals(newAvatar)) {
+            mediaStorageService.deleteImage(oldAvatar);
         }
-        if (mediaStorageService.hasContent(bannerFile)) {
-            String oldBanner = profile.getBannerUrl();
-            String newBanner = mediaStorageService.uploadImage(bannerFile, "user_banners");
-            profile.setBannerUrl(newBanner);
-            if (oldBanner != null && !oldBanner.equals(newBanner)) {
-                mediaStorageService.deleteImage(oldBanner);
-            }
+
+        UserProfile saved = profileRepository.save(profile);
+        return AvatarMediaResponse.builder()
+                .avatarUrl(saved.getAvatarUrl())
+                .updatedAt(saved.getUpdatedAt() != null ? saved.getUpdatedAt() : Instant.now())
+                .build();
+    }
+
+    public AvatarMediaResponse deleteAvatar(Authentication authentication) {
+        UserContext context = userResolver.resolveCurrentUser(authentication);
+        UserProfile profile = context.profile();
+
+        String oldAvatar = profile.getAvatarUrl();
+        if (oldAvatar != null && !oldAvatar.isBlank()) {
+            mediaStorageService.deleteImage(oldAvatar);
+            profile.setAvatarUrl(null);
+            UserProfile saved = profileRepository.save(profile);
+            return AvatarMediaResponse.builder()
+                    .avatarUrl(null)
+                    .updatedAt(saved.getUpdatedAt() != null ? saved.getUpdatedAt() : Instant.now())
+                    .build();
+        }
+
+        return AvatarMediaResponse.builder()
+                .avatarUrl(null)
+                .updatedAt(profile.getUpdatedAt() != null ? profile.getUpdatedAt() : Instant.now())
+                .build();
+    }
+
+    public BannerMediaResponse uploadBanner(Authentication authentication, MultipartFile file) {
+        validateImage(file, MAX_BANNER_SIZE, "Banner");
+        UserContext context = userResolver.resolveCurrentUser(authentication);
+        UserProfile profile = context.profile();
+
+        String oldBanner = profile.getBannerUrl();
+        String newBanner = mediaStorageService.uploadImage(file, "user_banners");
+        profile.setBannerUrl(newBanner);
+
+        if (oldBanner != null && !oldBanner.equals(newBanner)) {
+            mediaStorageService.deleteImage(oldBanner);
+        }
+
+        UserProfile saved = profileRepository.save(profile);
+        return BannerMediaResponse.builder()
+                .bannerUrl(saved.getBannerUrl())
+                .updatedAt(saved.getUpdatedAt() != null ? saved.getUpdatedAt() : Instant.now())
+                .build();
+    }
+
+    public BannerMediaResponse deleteBanner(Authentication authentication) {
+        UserContext context = userResolver.resolveCurrentUser(authentication);
+        UserProfile profile = context.profile();
+
+        String oldBanner = profile.getBannerUrl();
+        if (oldBanner != null && !oldBanner.isBlank()) {
+            mediaStorageService.deleteImage(oldBanner);
+            profile.setBannerUrl(null);
+            UserProfile saved = profileRepository.save(profile);
+            return BannerMediaResponse.builder()
+                    .bannerUrl(null)
+                    .updatedAt(saved.getUpdatedAt() != null ? saved.getUpdatedAt() : Instant.now())
+                    .build();
+        }
+
+        return BannerMediaResponse.builder()
+                .bannerUrl(null)
+                .updatedAt(profile.getUpdatedAt() != null ? profile.getUpdatedAt() : Instant.now())
+                .build();
+    }
+
+    public UserProfileResponse updateCreatorProfile(Authentication authentication, UpdateCreatorProfileRequest request) {
+        UserContext context = userResolver.resolveCurrentUser(authentication);
+        User user = context.user();
+        UserProfile profile = context.profile();
+
+        if (!user.isCanCreateCourses() && !profile.isCanCreateCourses()) {
+            throw new AccessDeniedException("Creator privileges required to update creator profile");
+        }
+
+        if (request != null && request.getTags() != null) {
+            profile.setTags(new ArrayList<>(request.getTags()));
+        }
+
+        UserProfile saved = profileRepository.save(profile);
+        UserProfileResponse response = profileMapper.toOwnerResponse(user, saved);
+        enrichOwnerProfile(response, user, saved);
+        return response;
+    }
+
+    public void deleteMyAccount(Authentication authentication) {
+        UserContext context = userResolver.resolveCurrentUser(authentication);
+        User user = context.user();
+        UserProfile profile = context.profile();
+
+        Instant now = Instant.now();
+        user.setActive(false);
+        user.setStatus(AccountStatus.DELETED);
+        user.setDeletedAt(now);
+        userRepository.save(user);
+
+        profile.setDeletedAt(now);
+        profileRepository.save(profile);
+
+        refreshTokenRepository.deleteAllByUserId(user.getId());
+        log.info("User {} account has been deleted and sessions revoked", user.getId());
+    }
+
+    private void validateImage(MultipartFile file, long maxBytes, String assetName) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException(assetName + " file cannot be empty");
+        }
+        if (file.getSize() > maxBytes) {
+            long maxMb = maxBytes / (1024 * 1024);
+            throw new IllegalArgumentException(assetName + " file size exceeds maximum limit of " + maxMb + "MB");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType.toLowerCase())) {
+            throw new IllegalArgumentException("Invalid file format for " + assetName + ". Only JPEG, PNG, and WebP are allowed.");
         }
     }
 

@@ -10,7 +10,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.Authentication;
@@ -44,6 +43,8 @@ class ProfileServiceTest {
         private final HandleChangePolicy handleChangePolicy = new HandleChangePolicy(profileRepository);
         private final ProfilePatcher profilePatcher = new ProfilePatcher(mediaStorageService);
         private final ProfileCoursePort profileCoursePort = mock(ProfileCoursePort.class);
+        private final com.M198.Majorproject.user.auth.repository.RefreshTokenRepository refreshTokenRepository = mock(
+                        com.M198.Majorproject.user.auth.repository.RefreshTokenRepository.class);
         private final ProfileService profileService = new ProfileService(
                         userRepository,
                         profileRepository,
@@ -52,7 +53,8 @@ class ProfileServiceTest {
                         userResolver,
                         profilePatcher,
                         handleChangePolicy,
-                        mediaStorageService);
+                        mediaStorageService,
+                        refreshTokenRepository);
         private final Authentication authentication = mock(Authentication.class);
         private User user;
         private UserProfile profile;
@@ -162,45 +164,120 @@ class ProfileServiceTest {
         }
 
         @Test
-        void emptyUploadedFileUsesTheAssetUrlClearRule() {
-                profile.setAvatarUrl("https://existing.example/avatar.jpg");
-                UpdateUserProfileRequest request = new UpdateUserProfileRequest();
-                request.setAvatarUrl("");
-
-                profileService.updateMyProfile(
-                                authentication,
-                                request,
-                                new MockMultipartFile("avatarFile", new byte[0]),
-                                null);
-
-                assertEquals(null, profile.getAvatarUrl());
-                verifyNoInteractions(uploader);
+        void uploadAvatarRejectsInvalidMimeType() {
+                MockMultipartFile textFile = new MockMultipartFile("file", "test.txt", "text/plain",
+                                new byte[] { 1, 2, 3 });
+                var ex = assertThrows(IllegalArgumentException.class,
+                                () -> profileService.uploadAvatar(authentication, textFile));
+                org.junit.jupiter.api.Assertions
+                                .assertTrue(ex.getMessage().contains("Only JPEG, PNG, and WebP are allowed"));
         }
 
         @Test
-        void nonEmptyAssetFilesUploadToTheirDedicatedFoldersAndOverrideUrlFields() throws Exception {
+        void uploadAvatarRejectsFileExceedingTwoMegabytes() {
+                byte[] largePayload = new byte[2 * 1024 * 1024 + 1];
+                MockMultipartFile largeFile = new MockMultipartFile("file", "huge.jpg", "image/jpeg", largePayload);
+                var ex = assertThrows(IllegalArgumentException.class,
+                                () -> profileService.uploadAvatar(authentication, largeFile));
+                org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("exceeds maximum limit of 2MB"));
+        }
+
+        @Test
+        void uploadAvatarSucceedsAndDeletesOldAvatar() throws Exception {
+                profile.setAvatarUrl("https://res.cloudinary.com/test/image/upload/v12345/user_avatars/old_avatar.jpg");
                 when(uploader.upload(any(byte[].class),
                                 argThat(options -> "user_avatars".equals(options.get("folder")))))
-                                .thenReturn(java.util.Map.of("secure_url", "https://cdn.example/avatar.jpg"));
+                                .thenReturn(java.util.Map.of("secure_url", "https://cdn.example/new-avatar.jpg"));
+
+                MockMultipartFile avatar = new MockMultipartFile("file", "avatar.jpg", "image/jpeg",
+                                new byte[] { 1, 2 });
+                var res = profileService.uploadAvatar(authentication, avatar);
+
+                assertEquals("https://cdn.example/new-avatar.jpg", res.getAvatarUrl());
+                assertEquals("https://cdn.example/new-avatar.jpg", profile.getAvatarUrl());
+                verify(uploader).destroy(argThat(id -> id != null && id.contains("old_avatar")), any());
+        }
+
+        @Test
+        void deleteAvatarRemovesAvatarAndCleansStorage() throws Exception {
+                profile.setAvatarUrl("https://res.cloudinary.com/test/image/upload/v12345/user_avatars/my_avatar.jpg");
+
+                var res = profileService.deleteAvatar(authentication);
+
+                assertEquals(null, res.getAvatarUrl());
+                assertEquals(null, profile.getAvatarUrl());
+                verify(uploader).destroy(argThat(id -> id != null && id.contains("my_avatar")), any());
+        }
+
+        @Test
+        void uploadBannerRejectsFileExceedingFiveMegabytes() {
+                byte[] largePayload = new byte[5 * 1024 * 1024 + 1];
+                MockMultipartFile largeFile = new MockMultipartFile("file", "huge.jpg", "image/jpeg", largePayload);
+                var ex = assertThrows(IllegalArgumentException.class,
+                                () -> profileService.uploadBanner(authentication, largeFile));
+                org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("exceeds maximum limit of 5MB"));
+        }
+
+        @Test
+        void uploadBannerSucceedsAndSetsUrl() throws Exception {
                 when(uploader.upload(any(byte[].class),
                                 argThat(options -> "user_banners".equals(options.get("folder")))))
-                                .thenReturn(java.util.Map.of("secure_url", "https://cdn.example/banner.jpg"));
-                UpdateUserProfileRequest request = new UpdateUserProfileRequest();
-                request.setAvatarUrl("");
-                request.setBannerUrl("");
+                                .thenReturn(java.util.Map.of("secure_url", "https://cdn.example/new-banner.jpg"));
 
-                var response = profileService.updateMyProfile(
-                                authentication,
-                                request,
-                                new MockMultipartFile("avatarFile", "avatar.jpg", "image/jpeg", new byte[] { 1 }),
-                                new MockMultipartFile("bannerFile", "banner.jpg", "image/jpeg", new byte[] { 2 }));
+                MockMultipartFile banner = new MockMultipartFile("file", "banner.png", "image/png",
+                                new byte[] { 1, 2 });
+                var res = profileService.uploadBanner(authentication, banner);
 
-                assertEquals("https://cdn.example/avatar.jpg", response.getAvatarUrl());
-                assertEquals("https://cdn.example/banner.jpg", response.getBannerUrl());
-                verify(uploader).upload(any(byte[].class),
-                                argThat(options -> "user_avatars".equals(options.get("folder"))));
-                verify(uploader).upload(any(byte[].class),
-                                argThat(options -> "user_banners".equals(options.get("folder"))));
+                assertEquals("https://cdn.example/new-banner.jpg", res.getBannerUrl());
+                assertEquals("https://cdn.example/new-banner.jpg", profile.getBannerUrl());
+        }
+
+        @Test
+        void deleteBannerRemovesBanner() throws Exception {
+                profile.setBannerUrl("https://res.cloudinary.com/test/image/upload/v12345/user_banners/my_banner.jpg");
+
+                var res = profileService.deleteBanner(authentication);
+
+                assertEquals(null, res.getBannerUrl());
+                assertEquals(null, profile.getBannerUrl());
+                verify(uploader).destroy(argThat(id -> id != null && id.contains("my_banner")), any());
+        }
+
+        @Test
+        void updateCreatorProfileSucceedsForCreator() {
+                user.setCanCreateCourses(true);
+                profile.setCanCreateCourses(true);
+
+                com.M198.Majorproject.user.profile.dto.UpdateCreatorProfileRequest req = new com.M198.Majorproject.user.profile.dto.UpdateCreatorProfileRequest(
+                                java.util.List.of("React", "Spring"));
+                var res = profileService.updateCreatorProfile(authentication, req);
+
+                assertEquals(java.util.List.of("React", "Spring"), profile.getTags());
+                assertEquals(java.util.List.of("React", "Spring"), res.getTags());
+        }
+
+        @Test
+        void updateCreatorProfileFailsForNonCreator() {
+                user.setCanCreateCourses(false);
+                profile.setCanCreateCourses(false);
+
+                com.M198.Majorproject.user.profile.dto.UpdateCreatorProfileRequest req = new com.M198.Majorproject.user.profile.dto.UpdateCreatorProfileRequest(
+                                java.util.List.of("React"));
+                assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                                () -> profileService.updateCreatorProfile(authentication, req));
+        }
+
+        @Test
+        void deleteMyAccountSoftDeletesAndRevokesTokens() {
+                profileService.deleteMyAccount(authentication);
+
+                org.junit.jupiter.api.Assertions.assertFalse(user.isActive());
+                assertEquals(AccountStatus.DELETED, user.getStatus());
+                org.junit.jupiter.api.Assertions.assertNotNull(user.getDeletedAt());
+                org.junit.jupiter.api.Assertions.assertNotNull(profile.getDeletedAt());
+                verify(userRepository).save(user);
+                verify(profileRepository).save(profile);
+                verify(refreshTokenRepository).deleteAllByUserId("user-1");
         }
 
         @Test

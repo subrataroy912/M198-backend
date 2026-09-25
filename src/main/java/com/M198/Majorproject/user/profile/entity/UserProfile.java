@@ -85,6 +85,10 @@ public class UserProfile {
     @Builder.Default
     private java.util.List<ProfileLink> links = new java.util.ArrayList<>();
 
+    @Field("tags")
+    @Builder.Default
+    private java.util.List<String> tags = new java.util.ArrayList<>();
+
     @Field("handle_updated_timestamps")
     @Builder.Default
     private java.util.List<Instant> handleUpdatedTimestamps = new java.util.ArrayList<>();

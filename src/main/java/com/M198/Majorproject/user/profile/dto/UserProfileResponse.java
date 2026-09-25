@@ -29,6 +29,7 @@ public class UserProfileResponse {
     private String address;
     private ProfileVisibility profileVisibility;
     private List<ProfileLink> links;
+    private List<String> tags;
     private boolean canCreateCourses;
     private java.time.Instant joinedAt;
     private long coursesCreatedCount;

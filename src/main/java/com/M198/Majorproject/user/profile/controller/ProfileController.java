@@ -12,11 +12,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.M198.Majorproject.user.profile.dto.AvatarMediaResponse;
+import com.M198.Majorproject.user.profile.dto.BannerMediaResponse;
 import com.M198.Majorproject.user.profile.dto.PublicUserProfileResponse;
+import com.M198.Majorproject.user.profile.dto.UpdateCreatorProfileRequest;
 import com.M198.Majorproject.user.profile.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.user.profile.dto.UserProfileResponse;
 import com.M198.Majorproject.user.profile.service.ProfileService;
 
+import org.springframework.http.HttpStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -27,58 +31,137 @@ public class ProfileController {
 
 	private final ProfileService profileService;
 
+	// ─────────────────────────────────────────────
+	// Public profiles / search
+	// ─────────────────────────────────────────────
+
 	@GetMapping
 	public Page<PublicUserProfileResponse> getPublicProfiles(
-			@RequestParam(value = "q", required = false) String query,
-			@RequestParam(value = "page", defaultValue = "0") int page,
-			@RequestParam(value = "size", defaultValue = "20") int size) {
+			@RequestParam(required = false) String q,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size) {
 
+		int safePage = Math.max(0, page);
 		int safeSize = Math.min(Math.max(1, size), 100);
 
-		Sort defaultSort = Sort.by(Sort.Direction.DESC, "createdAt");
+		Sort sort = Sort.by(
+				Sort.Direction.DESC,
+				"createdAt");
 
-		return profileService.getPublicProfiles(query, PageRequest.of(page, safeSize, defaultSort));
-	}
-
-	@GetMapping("/me")
-	public UserProfileResponse getMyProfile(Authentication authentication) {
-		return profileService.getMyProfile(authentication);
+		return profileService.getPublicProfiles(
+				q,
+				PageRequest.of(safePage, safeSize, sort));
 	}
 
 	@GetMapping("/by-handle/{handle}")
 	public PublicUserProfileResponse getUserByHandle(
 			@PathVariable String handle,
 			Authentication authentication) {
+
 		return profileService.getUserProfile(handle, authentication);
 	}
 
-	@GetMapping("/{identifier}")
-	public PublicUserProfileResponse getUserProfile(
-			@PathVariable String identifier,
+	@GetMapping("/{userId}")
+	public PublicUserProfileResponse getUserById(
+			@PathVariable String userId,
 			Authentication authentication) {
-		return profileService.getUserProfile(identifier, authentication);
+
+		return profileService.getUserProfile(userId, authentication);
 	}
 
-	@PatchMapping(value = "/me", consumes = MediaType.APPLICATION_JSON_VALUE)
+	// ─────────────────────────────────────────────
+	// Current user
+	// ─────────────────────────────────────────────
+
+	@GetMapping("/me")
+	public UserProfileResponse getMyProfile(
+			Authentication authentication) {
+
+		return profileService.getMyProfile(authentication);
+	}
+
+	@PatchMapping("/me")
 	public UserProfileResponse updateProfile(
 			@Valid @RequestBody UpdateUserProfileRequest request,
 			Authentication authentication) {
-		return profileService.updateMyProfile(authentication, request);
+
+		return profileService.updateMyProfile(
+				authentication,
+				request);
 	}
 
-	@PatchMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public UserProfileResponse updateProfileWithAssets(
-			@Valid @RequestPart(value = "profile", required = false) UpdateUserProfileRequest request,
-			@RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile,
-			@RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile,
+	// ─────────────────────────────────────────────
+	// Avatar
+	// ─────────────────────────────────────────────
+
+	@PutMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public AvatarMediaResponse uploadAvatar(
+			@RequestPart("file") MultipartFile file,
 			Authentication authentication) {
-		UpdateUserProfileRequest effectiveRequest = request != null ? request : new UpdateUserProfileRequest();
-		return profileService.updateMyProfile(authentication, effectiveRequest, avatarFile, bannerFile);
+
+		return profileService.uploadAvatar(
+				authentication,
+				file);
 	}
 
-	@PostMapping("/me/unlock-creator")
-	public UserProfileResponse unlockCreator(Authentication authentication) {
+	@DeleteMapping("/me/avatar")
+	public AvatarMediaResponse deleteAvatar(
+			Authentication authentication) {
+
+		return profileService.deleteAvatar(authentication);
+	}
+
+	// ─────────────────────────────────────────────
+	// Banner
+	// ─────────────────────────────────────────────
+
+	@PutMapping(value = "/me/banner", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public BannerMediaResponse uploadBanner(
+			@RequestPart("file") MultipartFile file,
+			Authentication authentication) {
+
+		return profileService.uploadBanner(
+				authentication,
+				file);
+	}
+
+	@DeleteMapping("/me/banner")
+	public BannerMediaResponse deleteBanner(
+			Authentication authentication) {
+
+		return profileService.deleteBanner(authentication);
+	}
+
+	// ─────────────────────────────────────────────
+	// Creator
+	// ─────────────────────────────────────────────
+
+	@PatchMapping("/me/creator-profile")
+	public UserProfileResponse updateCreatorProfile(
+			@Valid @RequestBody UpdateCreatorProfileRequest request,
+			Authentication authentication) {
+
+		return profileService.updateCreatorProfile(
+				authentication,
+				request);
+	}
+
+	@PostMapping({"/me/creator/unlock", "/me/unlock-creator"})
+	public UserProfileResponse unlockCreator(
+			Authentication authentication) {
+
 		return profileService.unlockCreator(authentication);
 	}
 
+	// ─────────────────────────────────────────────
+	// Account
+	// ─────────────────────────────────────────────
+
+	@DeleteMapping("/me")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deleteMyAccount(
+			Authentication authentication) {
+
+		profileService.deleteMyAccount(authentication);
+	}
 }
