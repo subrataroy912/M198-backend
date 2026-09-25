@@ -28,10 +28,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final AppUserDetailsService userDetailsService;
+    private final com.M198.Majorproject.common.presence.UserPresenceService userPresenceService;
 
-    public JwtAuthenticationFilter(JwtService jwtService, AppUserDetailsService userDetailsService) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public JwtAuthenticationFilter(
+            JwtService jwtService,
+            AppUserDetailsService userDetailsService,
+            com.M198.Majorproject.common.presence.UserPresenceService userPresenceService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.userPresenceService = userPresenceService;
+    }
+
+    public JwtAuthenticationFilter(JwtService jwtService, AppUserDetailsService userDetailsService) {
+        this(jwtService, userDetailsService, null);
     }
 
     @Override
@@ -53,6 +63,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     userDetails, null, userDetails.getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (userPresenceService != null) {
+                userPresenceService.markUserActive(userId);
+            }
         } catch (RuntimeException ignored) {
             SecurityContextHolder.clearContext();
         }

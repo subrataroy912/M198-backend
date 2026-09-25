@@ -101,6 +101,9 @@ public class UserProfile {
     @LastModifiedDate
     private Instant updatedAt;
 
+    @Field("last_active_at")
+    private Instant lastActiveAt;
+
     @Field("deleted_at")
     private Instant deletedAt;
 }

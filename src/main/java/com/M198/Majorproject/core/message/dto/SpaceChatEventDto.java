@@ -35,10 +35,14 @@ public class SpaceChatEventDto {
     private String senderId;
     private String emoji;
 
-    // For TYPING_STATUS
+    // For TYPING_STATUS & PRESENCE_UPDATE
     private String userId;
     private String username;
     private Boolean isTyping;
+    private Boolean online;
+    private Instant lastActiveAt;
+    private Long onlineCount;
+    private Set<String> onlineUserIds;
 
     private Instant timestamp;
 
@@ -51,5 +55,7 @@ public class SpaceChatEventDto {
         private String username;
         private String avatarUrl;
         private String role;
+        private Boolean online;
+        private Instant lastActiveAt;
     }
 }

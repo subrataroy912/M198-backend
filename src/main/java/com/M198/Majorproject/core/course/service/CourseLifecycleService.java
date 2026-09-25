@@ -661,6 +661,9 @@ public class CourseLifecycleService {
                 userId);
     }
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.M198.Majorproject.common.presence.UserPresenceService userPresenceService;
+
     public List<CourseMemberResponse> roster(String courseId, Authentication authentication) {
         String userId = courseAccessPolicy.authenticatedUserId(authentication,
                 () -> new CourseService.CourseAccessException("Authentication required"));
@@ -684,14 +687,27 @@ public class CourseLifecycleService {
         return memberships.stream()
                 .map(membership -> {
                     CourseMemberResponse response = new CourseMemberResponse();
-                    response.setUserId(membership.getUserId());
+                    String memberUserId = membership.getUserId();
+                    response.setUserId(memberUserId);
                     response.setRole(membership.getRole());
                     response.setJoinedAt(membership.getJoinedAt());
-                    UserProfile profile = profileMap.get(membership.getUserId());
+                    UserProfile profile = profileMap.get(memberUserId);
+                    Instant fallbackLastActive = membership.getJoinedAt();
                     if (profile != null) {
                         response.setName(profile.getDisplayName());
                         response.setAvatarUrl(profile.getAvatarUrl());
+                        if (profile.getLastActiveAt() != null) {
+                            fallbackLastActive = profile.getLastActiveAt();
+                        } else if (profile.getUpdatedAt() != null) {
+                            fallbackLastActive = profile.getUpdatedAt();
+                        }
                     }
+                    boolean isOnline = (memberUserId != null && memberUserId.equals(userId))
+                            || (userPresenceService != null && userPresenceService.isOnline(memberUserId));
+                    response.setOnline(isOnline);
+                    response.setLastActiveAt(userPresenceService != null
+                            ? userPresenceService.getLastActiveAt(memberUserId, fallbackLastActive)
+                            : fallbackLastActive);
                     return response;
                 }).toList();
     }

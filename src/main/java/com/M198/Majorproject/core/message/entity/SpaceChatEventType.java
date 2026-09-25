@@ -8,5 +8,6 @@ public enum SpaceChatEventType {
     REACTION_ADDED,
     REACTION_REMOVED,
     TYPING_STATUS,
-    MESSAGE_DELETED
+    MESSAGE_DELETED,
+    PRESENCE_UPDATE
 }

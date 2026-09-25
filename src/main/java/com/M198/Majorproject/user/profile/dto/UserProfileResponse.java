@@ -36,4 +36,6 @@ public class UserProfileResponse {
     private long coursesEnrolledCount;
     private List<String> badges;
     private boolean profileCompleted;
+    private boolean online;
+    private java.time.Instant lastActiveAt;
 }

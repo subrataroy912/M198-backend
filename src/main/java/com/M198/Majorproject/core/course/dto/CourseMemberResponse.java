@@ -15,4 +15,6 @@ public class CourseMemberResponse {
     private Instant joinedAt;
     private String name;
     private String avatarUrl;
+    private boolean online;
+    private Instant lastActiveAt;
 }

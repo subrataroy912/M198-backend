@@ -30,6 +30,8 @@ public class PublicUserProfileResponse {
     private long coursesCreatedCount;
     private long coursesEnrolledCount;
     private List<String> badges;
+    private boolean online;
+    private java.time.Instant lastActiveAt;
 
     public String getName() {
         return displayName != null && !displayName.isBlank()

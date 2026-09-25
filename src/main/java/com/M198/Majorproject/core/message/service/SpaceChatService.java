@@ -65,10 +65,17 @@ public class SpaceChatService {
         @Autowired(required = false)
         private MediaStorageService mediaStorageService;
 
+        @Autowired(required = false)
+        private com.M198.Majorproject.common.presence.UserPresenceService userPresenceService;
+
         public List<SpaceChatRoomDto> listMySpaceRooms(Authentication authentication) {
                 String userId = accessPolicy.authenticatedUserId(
                                 authentication,
                                 () -> new CourseService.CourseAccessException("Authentication required"));
+
+                if (userPresenceService != null) {
+                        userPresenceService.markUserActive(userId);
+                }
 
                 List<CourseMembership> memberships = membershipRepository.findAllByUserIdAndStatus(
                                 userId, MembershipStatus.ACTIVE);
@@ -91,10 +98,17 @@ public class SpaceChatService {
 
                 Set<String> activeIds = courseMap.keySet();
 
-                Map<String, Long> memberCounts = membershipRepository
-                                .findAllByCourseIdInAndStatus(activeIds, MembershipStatus.ACTIVE)
-                                .stream()
+                List<CourseMembership> allRoomMemberships = membershipRepository
+                                .findAllByCourseIdInAndStatus(activeIds, MembershipStatus.ACTIVE);
+
+                Map<String, Long> memberCounts = allRoomMemberships.stream()
                                 .collect(Collectors.groupingBy(CourseMembership::getCourseId, Collectors.counting()));
+
+                Map<String, Set<String>> memberIdsBySpace = allRoomMemberships.stream()
+                                .filter(m -> m.getCourseId() != null && m.getUserId() != null)
+                                .collect(Collectors.groupingBy(
+                                                CourseMembership::getCourseId,
+                                                Collectors.mapping(CourseMembership::getUserId, Collectors.toSet())));
 
                 Map<String, Instant> lastReadMap = readStateRepository
                                 .findAllByUserIdAndSpaceIdIn(userId, activeIds)
@@ -146,6 +160,13 @@ public class SpaceChatService {
                                                         : "Shared an attachment")
                                         : null;
 
+                        Set<String> spaceMemberIds = memberIdsBySpace.getOrDefault(spaceId, Set.of(userId));
+                        Set<String> onlineIds = new java.util.HashSet<>(
+                                        userPresenceService != null
+                                                        ? userPresenceService.getOnlineUserIds(spaceMemberIds)
+                                                        : Collections.emptySet());
+                        onlineIds.add(userId);
+
                         rooms.add(SpaceChatRoomDto.builder()
                                         .spaceId(spaceId)
                                         .title(course.getTitle())
@@ -156,6 +177,8 @@ public class SpaceChatService {
                                         .myRole(membership.getRole() != null ? membership.getRole().name()
                                                         : MembershipRole.MEMBER.name())
                                         .memberCount(memberCounts.getOrDefault(spaceId, 1L))
+                                        .onlineCount(onlineIds.size())
+                                        .onlineUserIds(onlineIds)
                                         .unreadCount(unreadCount)
                                         .lastMessageText(lastText)
                                         .lastMessageSender(latestMsg != null ? latestMsg.getSenderUsername() : null)
@@ -531,16 +554,53 @@ public class SpaceChatService {
                 return "Member";
         }
 
+        public void broadcastSpacePresence(String spaceId, String triggerUserId, boolean isOnline) {
+                if (spaceId == null || spaceId.isBlank()) {
+                        return;
+                }
+                List<CourseMembership> memberships = membershipRepository.findAllByCourseIdAndStatus(
+                                spaceId, MembershipStatus.ACTIVE);
+                Set<String> memberIds = memberships.stream()
+                                .map(CourseMembership::getUserId)
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toSet());
+                Set<String> onlineUserIds = userPresenceService != null
+                                ? userPresenceService.getOnlineUserIds(memberIds)
+                                : Collections.emptySet();
+
+                SpaceChatEventDto event = SpaceChatEventDto.builder()
+                                .type(SpaceChatEventType.PRESENCE_UPDATE)
+                                .spaceId(spaceId)
+                                .userId(triggerUserId)
+                                .online(isOnline)
+                                .lastActiveAt(userPresenceService != null
+                                                ? userPresenceService.getLastActiveAt(triggerUserId, Instant.now())
+                                                : Instant.now())
+                                .onlineCount((long) onlineUserIds.size())
+                                .onlineUserIds(onlineUserIds)
+                                .timestamp(Instant.now())
+                                .build();
+                messagingTemplate.convertAndSend("/topic/spaces/" + spaceId, event);
+        }
+
         private SpaceChatEventDto toEventDto(SpaceMessage msg) {
+                String senderId = msg.getSenderId();
+                boolean senderOnline = userPresenceService != null && userPresenceService.isOnline(senderId);
+                Instant senderLastActive = userPresenceService != null
+                                ? userPresenceService.getLastActiveAt(senderId, msg.getCreatedAt())
+                                : msg.getCreatedAt();
+
                 return SpaceChatEventDto.builder()
                                 .eventId(msg.getId())
                                 .type(msg.getType() != null ? msg.getType() : SpaceChatEventType.TEXT_MESSAGE)
                                 .spaceId(msg.getSpaceId())
                                 .sender(SpaceChatEventDto.SenderInfo.builder()
-                                                .userId(msg.getSenderId())
+                                                .userId(senderId)
                                                 .username(msg.getSenderUsername())
                                                 .avatarUrl(msg.getSenderAvatarUrl())
                                                 .role(msg.getSenderRole())
+                                                .online(senderOnline)
+                                                .lastActiveAt(senderLastActive)
                                                 .build())
                                 .content(msg.getContent())
                                 .attachments(msg.getAttachments())

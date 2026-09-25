@@ -264,6 +264,9 @@ public class ProfileService {
         }
     }
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.M198.Majorproject.common.presence.UserPresenceService userPresenceService;
+
     private void enrichOwnerProfile(
             UserProfileResponse response,
             User user,
@@ -275,6 +278,15 @@ public class ProfileService {
         long enrolled = profileCoursePort.countActiveEnrolledCourses(user.getId());
         response.setCoursesCreatedCount(created);
         response.setCoursesEnrolledCount(enrolled);
+
+        boolean isOnline = userPresenceService != null ? userPresenceService.isOnline(user.getId()) : true;
+        java.time.Instant fallbackLastActive = profile != null && profile.getLastActiveAt() != null
+                ? profile.getLastActiveAt()
+                : (profile != null ? profile.getUpdatedAt() : user.getUpdatedAt());
+        response.setOnline(isOnline);
+        response.setLastActiveAt(userPresenceService != null
+                ? userPresenceService.getLastActiveAt(user.getId(), fallbackLastActive)
+                : fallbackLastActive);
 
         List<String> badges = new ArrayList<>();
         if (response.isAdmin()) {
@@ -301,6 +313,15 @@ public class ProfileService {
         long enrolled = profileCoursePort.countActiveEnrolledCourses(userId);
         response.setCoursesCreatedCount(created);
         response.setCoursesEnrolledCount(enrolled);
+
+        boolean isOnline = userPresenceService != null && userPresenceService.isOnline(userId);
+        java.time.Instant fallbackLastActive = profile != null && profile.getLastActiveAt() != null
+                ? profile.getLastActiveAt()
+                : (profile != null ? profile.getUpdatedAt() : (user != null ? user.getUpdatedAt() : null));
+        response.setOnline(isOnline);
+        response.setLastActiveAt(userPresenceService != null
+                ? userPresenceService.getLastActiveAt(userId, fallbackLastActive)
+                : fallbackLastActive);
 
         List<String> badges = new ArrayList<>();
         if ((user != null && user.isAdmin()) || (profile != null && profile.isAdmin())) {

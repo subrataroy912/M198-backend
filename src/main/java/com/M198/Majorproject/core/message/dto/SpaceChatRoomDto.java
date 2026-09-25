@@ -20,6 +20,8 @@ public class SpaceChatRoomDto {
     private String theme;
     private String myRole;
     private long memberCount;
+    private long onlineCount;
+    private java.util.Set<String> onlineUserIds;
     private long unreadCount;
     private String lastMessageText;
     private String lastMessageSender;
