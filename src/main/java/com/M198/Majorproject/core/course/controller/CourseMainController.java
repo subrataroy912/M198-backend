@@ -37,7 +37,7 @@ public class CourseMainController {
     public ResponseEntity<List<CourseResponse>> listCourses(Authentication authentication) {
         List<CourseResponse> courses = courseService.listMyCourses(authentication);
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(30, TimeUnit.SECONDS).cachePrivate().mustRevalidate())
+                .cacheControl(CacheControl.noStore())
                 .body(courses);
     }
 
