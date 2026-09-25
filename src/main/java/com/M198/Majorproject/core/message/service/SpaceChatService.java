@@ -298,7 +298,14 @@ public class SpaceChatService {
                 }
                 lastSentAtByUser.put(rateKey, nowMs);
 
-                String content = request != null && request.getContent() != null ? request.getContent().trim() : "";
+                String rawContent = request != null && request.getContent() != null ? request.getContent() : "";
+                String content = rawContent
+                                .replace("\r\n", "\n")
+                                .replaceAll("\n{3,}", "\n\n")
+                                .trim();
+                if (content.length() > 2000) {
+                        content = content.substring(0, 2000).trim();
+                }
                 List<SpaceMessageAttachment> attachments = request != null && request.getAttachments() != null
                                 ? request.getAttachments()
                                 : Collections.emptyList();
