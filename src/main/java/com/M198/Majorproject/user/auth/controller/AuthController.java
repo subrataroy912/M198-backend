@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.M198.Majorproject.user.auth.dto.AuthResponse;
+import com.M198.Majorproject.user.auth.dto.CompleteOnboardingRequest;
 import com.M198.Majorproject.user.auth.dto.LoginRequest;
 import com.M198.Majorproject.user.auth.dto.RegisterUserRequest;
 import com.M198.Majorproject.user.auth.exception.RefreshTokenException;
@@ -45,6 +46,31 @@ public class AuthController {
         AuthResponse authResponse = authService.register(request);
         authService.setRefreshCookie(response, authResponse.getRefreshToken());
         return ResponseEntity.status(HttpStatus.CREATED).body(authResponse);
+    }
+
+    @PostMapping("/onboarding/complete")
+    public ResponseEntity<AuthResponse> completeOnboarding(
+            @Valid @RequestBody CompleteOnboardingRequest request,
+            Authentication authentication,
+            HttpServletResponse response,
+            CsrfToken csrfToken) {
+        exposeCsrfToken(response, csrfToken);
+        String pendingUserId = authentication.getName();
+        AuthResponse authResponse = authService.completeOnboarding(pendingUserId, request);
+        authService.setRefreshCookie(response, authResponse.getRefreshToken());
+        return ResponseEntity.ok(authResponse);
+    }
+
+    @PostMapping("/onboarding/cancel")
+    public ResponseEntity<Void> cancelOnboarding(
+            Authentication authentication,
+            HttpServletResponse response) {
+        if (authentication != null && authentication.isAuthenticated()) {
+            authService.cancelOnboarding(authentication.getName());
+        }
+        authService.clearRefreshCookie(response);
+        authService.clearCsrfCookie(response);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/login")

@@ -38,4 +38,6 @@ public class UserProfileResponse {
     private boolean profileCompleted;
     private boolean online;
     private java.time.Instant lastActiveAt;
+    private Integer handleChangesRemaining;
+    private java.time.Instant handleNextChangeAllowedAt;
 }

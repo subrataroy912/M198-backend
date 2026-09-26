@@ -1,17 +1,25 @@
-package com.M198.Majorproject.user.profile.dto;
+package com.M198.Majorproject.user.auth.dto;
 
 import java.util.List;
 
-import jakarta.validation.constraints.Size;
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.M198.Majorproject.user.profile.entity.ProfileLink;
 import com.M198.Majorproject.user.profile.entity.ProfileVisibility;
+import com.fasterxml.jackson.annotation.JsonAlias;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class UpdateUserProfileRequest {
+public class CompleteOnboardingRequest {
+
+    @NotBlank(message = "Handle cannot be blank")
+    @Size(min = 3, max = 31, message = "Handle must be between 3 and 31 characters")
+    @Pattern(regexp = "^@?[A-Za-z0-9_]+$", message = "Handle must contain only letters, numbers, or underscores (with an optional leading @)")
+    private String handle;
 
     @Size(max = 100)
     private String firstName;
@@ -60,4 +68,6 @@ public class UpdateUserProfileRequest {
     private ProfileVisibility profileVisibility;
 
     private List<ProfileLink> links;
+
+    private List<String> tags;
 }

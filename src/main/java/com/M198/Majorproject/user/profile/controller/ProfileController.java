@@ -13,6 +13,7 @@ import com.M198.Majorproject.user.profile.dto.AvatarMediaResponse;
 import com.M198.Majorproject.user.profile.dto.BannerMediaResponse;
 import com.M198.Majorproject.user.profile.dto.PublicUserProfileResponse;
 import com.M198.Majorproject.user.profile.dto.UpdateCreatorProfileRequest;
+import com.M198.Majorproject.user.profile.dto.UpdateUserHandleRequest;
 import com.M198.Majorproject.user.profile.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.user.profile.dto.UserProfileResponse;
 import com.M198.Majorproject.user.profile.service.ProfileService;
@@ -65,6 +66,16 @@ public class ProfileController {
 			Authentication authentication) {
 
 		return profileService.updateMyProfile(
+				authentication,
+				request);
+	}
+
+	@PatchMapping("/me/handle")
+	public UserProfileResponse updateHandle(
+			@Valid @RequestBody UpdateUserHandleRequest request,
+			Authentication authentication) {
+
+		return profileService.updateMyHandle(
 				authentication,
 				request);
 	}

@@ -71,6 +71,16 @@ public class GlobalExceptionHandler {
                                 .body(Map.of("error", "Handle is already taken"));
         }
 
+        @ExceptionHandler(HandleRateLimitExceededException.class)
+        ResponseEntity<Map<String, Object>> handleHandleRateLimitExceededException(HandleRateLimitExceededException exception) {
+                java.util.Map<String, Object> body = new java.util.HashMap<>();
+                body.put("error", exception.getMessage());
+                if (exception.getResetsAt() != null) {
+                        body.put("resetsAt", exception.getResetsAt().toString());
+                }
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(body);
+        }
+
         @ExceptionHandler(IllegalArgumentException.class)
         ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException exception) {
                 return ResponseEntity.badRequest().body(Map.of("error", exception.getMessage()));

@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +17,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.M198.Majorproject.user.profile.entity.UserProfile;
+import com.M198.Majorproject.user.profile.exception.HandleRateLimitExceededException;
 import com.M198.Majorproject.user.profile.repository.UserProfileRepository;
 
 class HandleChangePolicyTest {
@@ -61,41 +63,63 @@ class HandleChangePolicyTest {
     }
 
     @Test
-    void emptyHandleClearsHandleToNull() {
-        policy.validateAndApplyHandleChange(profile, "   ");
-        assertNull(profile.getHandle());
-        assertEquals(1, profile.getHandleUpdatedTimestamps().size());
+    void firstTimeHandleSetupDoesNotConsumeQuota() {
+        UserProfile newProfile = UserProfile.builder()
+                .userId("u-new")
+                .handle(null)
+                .handleUpdatedTimestamps(new ArrayList<>())
+                .build();
+
+        policy.validateAndApplyHandleChange(newProfile, "brand_new_handle");
+        assertEquals("brand_new_handle", newProfile.getHandle());
+        assertEquals(0, newProfile.getHandleUpdatedTimestamps().size());
+        assertEquals(3, policy.getRemainingChanges(newProfile));
+        assertNull(policy.getNextAllowedChangeAt(newProfile));
     }
 
     @Test
-    void enforceTwoChangesPerFourteenDays() {
+    void enforceThreeChangesPerFourteenDays() {
+        assertEquals(3, policy.getRemainingChanges(profile));
+
         policy.validateAndApplyHandleChange(profile, "handle_one");
         assertEquals("handle_one", profile.getHandle());
+        assertEquals(2, policy.getRemainingChanges(profile));
 
         policy.validateAndApplyHandleChange(profile, "handle_two");
         assertEquals("handle_two", profile.getHandle());
+        assertEquals(1, policy.getRemainingChanges(profile));
 
-        var ex = assertThrows(IllegalArgumentException.class,
-                () -> policy.validateAndApplyHandleChange(profile, "handle_three"));
-        assertEquals("You can only change your handle twice within a 14-day period.", ex.getMessage());
+        policy.validateAndApplyHandleChange(profile, "handle_three");
+        assertEquals("handle_three", profile.getHandle());
+        assertEquals(0, policy.getRemainingChanges(profile));
+        assertNotNull(policy.getNextAllowedChangeAt(profile));
+
+        var ex = assertThrows(HandleRateLimitExceededException.class,
+                () -> policy.validateAndApplyHandleChange(profile, "handle_four"));
+        assertEquals("You can only change your handle 3 times within a 14-day period.", ex.getMessage());
+        assertEquals(baseTime.plus(Duration.ofDays(14)), ex.getResetsAt());
     }
 
     @Test
     void updatesOlderThanFourteenDaysDoNotBlockNewChanges() {
-        // Add 2 timestamps older than 14 days
+        // Add 3 timestamps older than 14 days
+        profile.getHandleUpdatedTimestamps().add(baseTime.minus(Duration.ofDays(16)));
         profile.getHandleUpdatedTimestamps().add(baseTime.minus(Duration.ofDays(15)));
         profile.getHandleUpdatedTimestamps().add(baseTime.minus(Duration.ofDays(14).plusSeconds(1)));
 
-        // Should allow 2 fresh changes
+        // Should allow 3 fresh changes
         policy.validateAndApplyHandleChange(profile, "new_handle_1");
         assertEquals("new_handle_1", profile.getHandle());
 
         policy.validateAndApplyHandleChange(profile, "new_handle_2");
         assertEquals("new_handle_2", profile.getHandle());
 
-        // 3rd within the window should fail
-        assertThrows(IllegalArgumentException.class,
-                () -> policy.validateAndApplyHandleChange(profile, "new_handle_3"));
+        policy.validateAndApplyHandleChange(profile, "new_handle_3");
+        assertEquals("new_handle_3", profile.getHandle());
+
+        // 4th within the window should fail
+        assertThrows(HandleRateLimitExceededException.class,
+                () -> policy.validateAndApplyHandleChange(profile, "new_handle_4"));
     }
 
     @Test

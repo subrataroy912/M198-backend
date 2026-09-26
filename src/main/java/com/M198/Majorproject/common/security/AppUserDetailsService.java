@@ -13,6 +13,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+import com.M198.Majorproject.user.auth.entity.PendingRegistration;
+import com.M198.Majorproject.user.auth.repository.PendingRegistrationRepository;
 import com.M198.Majorproject.user.identity.entity.AccountStatus;
 import com.M198.Majorproject.user.identity.entity.User;
 import com.M198.Majorproject.user.identity.repository.UserRepository;
@@ -24,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class AppUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final PendingRegistrationRepository pendingRegistrationRepository;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -32,9 +36,25 @@ public class AppUserDetailsService implements UserDetailsService {
     }
 
     public UserDetails loadById(String userId) throws UsernameNotFoundException {
-        User user = userRepository.findByIdAndActiveTrueAndStatus(userId, AccountStatus.ACTIVE)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        return toUserDetails(user, userId);
+        Optional<User> userOpt = userRepository.findByIdAndActiveTrueAndStatus(userId, AccountStatus.ACTIVE);
+        if (userOpt.isPresent()) {
+            return toUserDetails(userOpt.get(), userId);
+        }
+
+        Optional<PendingRegistration> pendingOpt = pendingRegistrationRepository.findById(userId);
+        if (pendingOpt.isPresent()) {
+            return toPendingUserDetails(pendingOpt.get());
+        }
+
+        throw new UsernameNotFoundException("User not found");
+    }
+
+    private UserDetails toPendingUserDetails(PendingRegistration pending) {
+        return org.springframework.security.core.userdetails.User
+                .withUsername(pending.getId())
+                .password(pending.getPasswordHash() != null ? pending.getPasswordHash() : "{noop}__PENDING__")
+                .roles("ONBOARDING", "USER")
+                .build();
     }
 
     private UserDetails toUserDetails(User user) {

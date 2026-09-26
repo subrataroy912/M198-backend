@@ -41,6 +41,12 @@ import com.M198.Majorproject.user.profile.repository.UserProfileRepository;
 import com.M198.Majorproject.user.identity.repository.UserRepository;
 import com.M198.Majorproject.common.security.JwtService;
 
+import static org.mockito.Mockito.never;
+import com.M198.Majorproject.user.auth.dto.CompleteOnboardingRequest;
+import com.M198.Majorproject.user.auth.entity.PendingRegistration;
+import com.M198.Majorproject.user.auth.repository.PendingRegistrationRepository;
+import com.M198.Majorproject.user.profile.service.MediaStorageService;
+
 class AuthServiceTest {
 
         private final UserRepository userRepository = mock(UserRepository.class);
@@ -49,6 +55,8 @@ class AuthServiceTest {
         private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
         private final AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
         private final RefreshTokenRepository refreshTokenRepository = mock(RefreshTokenRepository.class);
+        private final PendingRegistrationRepository pendingRegistrationRepository = mock(PendingRegistrationRepository.class);
+        private final MediaStorageService mediaStorageService = mock(MediaStorageService.class);
         private final JwtService jwtService = new JwtService("test-secret-that-is-long-enough-32",
                         java.time.Duration.ofMinutes(5), java.time.Duration.ofDays(1));
         private final AuthService authService = new AuthService(
@@ -58,10 +66,12 @@ class AuthServiceTest {
                         passwordEncoder,
                         authenticationManager,
                         jwtService,
-                        refreshTokenRepository);
+                        refreshTokenRepository,
+                        pendingRegistrationRepository,
+                        mediaStorageService);
 
         @Test
-        void registrationPersistsUserAndProfileWithDefaultPrivileges() {
+        void registrationPersistsPlaceholderInPendingRegistrations() {
                 RegisterUserRequest request = new RegisterUserRequest();
                 request.setEmail("newuser@example.com");
                 request.setPassword("password123");
@@ -70,22 +80,28 @@ class AuthServiceTest {
 
                 when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.empty());
                 when(passwordEncoder.encode("password123")).thenReturn("encoded-pass");
-                when(userRepository.save(any(User.class))).thenAnswer(inv -> {
-                        User u = inv.getArgument(0);
-                        u.setId("new-user-id");
-                        return u;
+                when(pendingRegistrationRepository.save(any(PendingRegistration.class))).thenAnswer(inv -> {
+                        PendingRegistration p = inv.getArgument(0);
+                        p.setId("new-pending-id");
+                        return p;
                 });
-                when(profileRepository.save(any(UserProfile.class))).thenAnswer(inv -> inv.getArgument(0));
 
                 AuthResponse response = authService.register(request);
 
                 assertNotNull(response);
-                assertEquals("new-user-id", response.getUserId());
+                assertEquals("new-pending-id", response.getUserId());
                 org.junit.jupiter.api.Assertions.assertTrue(response.isNewUser());
                 org.junit.jupiter.api.Assertions.assertFalse(response.isProfileCompleted());
-                verify(userRepository).save(argThat(user -> !user.isAdmin() && !user.isCanCreateCourses()));
-                verify(profileRepository).save(argThat(profile -> !profile.isAdmin() && !profile.isCanCreateCourses() && !profile.isProfileCompleted()));
+                org.junit.jupiter.api.Assertions.assertTrue(response.isOnboarding());
+                verify(pendingRegistrationRepository).deleteByEmail("newuser@example.com");
+                verify(pendingRegistrationRepository).save(argThat(p -> p.getEmail().equals("newuser@example.com")
+                                && p.getAuthType().equals("LOCAL")
+                                && p.getFirstName().equals("New")
+                                && p.getLastName().equals("User")));
+                verify(userRepository, never()).save(any(User.class));
+                verify(profileRepository, never()).save(any(UserProfile.class));
         }
+
 
         @Test
         void refreshCookieUsesSecureHttpOnlySameSiteAndRootPath() {
@@ -239,7 +255,7 @@ class AuthServiceTest {
 
                 when(userRepository.findByEmail("duplicate@example.com")).thenReturn(Optional.empty());
                 when(passwordEncoder.encode("password123")).thenReturn("encoded-pass");
-                when(userRepository.save(any(User.class)))
+                when(pendingRegistrationRepository.save(any(PendingRegistration.class)))
                                 .thenThrow(new DataIntegrityViolationException("duplicate key error"));
 
                 var exception = assertThrows(AuthConflictException.class, () -> authService.register(request));
@@ -387,5 +403,86 @@ class AuthServiceTest {
                 assertNotNull(response);
                 org.junit.jupiter.api.Assertions.assertTrue(response.isAdmin());
                 org.junit.jupiter.api.Assertions.assertFalse(response.isCanCreateCourses());
+        }
+
+        @Test
+        void completeOnboardingCreatesUserAndProfileAndPurgesPending() {
+                PendingRegistration pending = PendingRegistration.builder()
+                                .id("pending-123")
+                                .email("pending@example.com")
+                                .passwordHash("encoded-pass")
+                                .firstName("Pending")
+                                .lastName("User")
+                                .authType("LOCAL")
+                                .build();
+
+                when(pendingRegistrationRepository.findById("pending-123")).thenReturn(Optional.of(pending));
+                when(profileRepository.existsByHandleIgnoreCase("new_handle")).thenReturn(false);
+                when(userRepository.findByEmail("pending@example.com")).thenReturn(Optional.empty());
+                when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+                        User u = inv.getArgument(0);
+                        u.setId("final-user-id");
+                        return u;
+                });
+                when(profileRepository.save(any(UserProfile.class))).thenAnswer(inv -> inv.getArgument(0));
+
+                CompleteOnboardingRequest request = new CompleteOnboardingRequest();
+                request.setHandle("new_handle");
+                request.setHeadline("Software Engineer");
+                request.setAbout("Hello world");
+
+                AuthResponse response = authService.completeOnboarding("pending-123", request);
+
+                assertNotNull(response);
+                assertEquals("final-user-id", response.getUserId());
+                assertEquals("pending@example.com", response.getEmail());
+                org.junit.jupiter.api.Assertions.assertTrue(response.isProfileCompleted());
+                org.junit.jupiter.api.Assertions.assertFalse(response.isOnboarding());
+
+                verify(userRepository).save(argThat(u -> u.getEmail().equals("pending@example.com") && u.isActive()));
+                verify(profileRepository).save(argThat(p -> p.getHandle().equals("new_handle") && p.isProfileCompleted()));
+                verify(pendingRegistrationRepository).deleteById("pending-123");
+                verify(refreshTokenRepository).deleteAllByUserId("pending-123");
+        }
+
+        @Test
+        void cancelOnboardingPurgesPendingRegistrationAndTokens() {
+                PendingRegistration pending = PendingRegistration.builder()
+                                .id("pending-123")
+                                .email("pending@example.com")
+                                .avatarUrl("https://example.com/avatar.png")
+                                .build();
+
+                when(pendingRegistrationRepository.findById("pending-123")).thenReturn(Optional.of(pending));
+
+                authService.cancelOnboarding("pending-123");
+
+                verify(mediaStorageService).deleteImage("https://example.com/avatar.png");
+                verify(pendingRegistrationRepository).deleteById("pending-123");
+                verify(refreshTokenRepository).deleteAllByUserId("pending-123");
+        }
+
+        @Test
+        void registrationWithOptionalNamesSucceeds() {
+                RegisterUserRequest request = new RegisterUserRequest();
+                request.setEmail("optionalname@example.com");
+                request.setPassword("password123");
+                request.setFirstName(null);
+                request.setLastName(null);
+
+                when(userRepository.findByEmail("optionalname@example.com")).thenReturn(Optional.empty());
+                when(passwordEncoder.encode("password123")).thenReturn("encoded-pass");
+                when(pendingRegistrationRepository.save(any(PendingRegistration.class))).thenAnswer(inv -> {
+                        PendingRegistration p = inv.getArgument(0);
+                        p.setId("pending-opt");
+                        return p;
+                });
+
+                AuthResponse response = authService.register(request);
+
+                assertNotNull(response);
+                assertEquals("pending-opt", response.getUserId());
+                assertEquals("optionalname", response.getDisplayName());
+                org.junit.jupiter.api.Assertions.assertTrue(response.isOnboarding());
         }
 }

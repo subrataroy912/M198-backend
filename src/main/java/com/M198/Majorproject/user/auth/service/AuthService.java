@@ -47,10 +47,14 @@ import com.M198.Majorproject.user.auth.entity.RefreshToken;
 import com.M198.Majorproject.user.identity.entity.User;
 import com.M198.Majorproject.user.auth.entity.UserOAuth;
 import com.M198.Majorproject.user.profile.entity.UserProfile;
+import com.M198.Majorproject.user.auth.dto.CompleteOnboardingRequest;
+import com.M198.Majorproject.user.auth.entity.PendingRegistration;
+import com.M198.Majorproject.user.auth.repository.PendingRegistrationRepository;
 import com.M198.Majorproject.user.auth.repository.RefreshTokenRepository;
 import com.M198.Majorproject.user.auth.repository.UserOAuthRepository;
 import com.M198.Majorproject.user.profile.repository.UserProfileRepository;
 import com.M198.Majorproject.user.identity.repository.UserRepository;
+import com.M198.Majorproject.user.profile.service.MediaStorageService;
 import com.M198.Majorproject.common.security.JwtService;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -77,13 +81,15 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PendingRegistrationRepository pendingRegistrationRepository;
+    private final MediaStorageService mediaStorageService;
 
     @Transactional
     public AuthResponse register(RegisterUserRequest request) {
         String email = requireValidEmail(request.getEmail());
         String rawPassword = requireNonBlank(request.getPassword(), "Password is required");
-        String firstName = requireNonBlank(request.getFirstName(), "First name is required");
-        String lastName = requireNonBlank(request.getLastName(), "Last name is required");
+        String firstName = request.getFirstName() != null ? request.getFirstName().trim() : "";
+        String lastName = request.getLastName() != null ? request.getLastName().trim() : "";
 
         userRepository.findByEmail(email).ifPresent(existingUser -> {
             if (isSocialOnlyAccount(existingUser)) {
@@ -97,38 +103,43 @@ public class AuthService {
             throw new DuplicateKeyException("Email is already registered");
         });
 
-        User user = User.builder()
+        pendingRegistrationRepository.deleteByEmail(email);
+
+        Instant now = Instant.now();
+        PendingRegistration pending = PendingRegistration.builder()
                 .email(email)
                 .passwordHash(passwordEncoder.encode(rawPassword))
-                .status(AccountStatus.ACTIVE)
-                .active(true)
-                .verified(false)
-                .isAdmin(false)
+                .firstName(firstName)
+                .lastName(lastName)
+                .authType("LOCAL")
+                .createdAt(now)
+                .expiresAt(now.plus(java.time.Duration.ofHours(24)))
                 .build();
-
         try {
-            user = userRepository.save(user);
+            pending = pendingRegistrationRepository.save(pending);
         } catch (DataIntegrityViolationException ex) {
-            // Race condition protection (unique constraint on email)
             throw new AuthConflictException("Email is already registered");
         }
 
-        // 4. Create profile
-        profileRepository.save(UserProfile.builder()
-                .userId(user.getId())
-                .firstName(firstName)
-                .lastName(lastName)
-                .displayName(firstName + " " + lastName)
-                .profileVisibility(ProfileVisibility.PRIVATE)
-                .isAdmin(false)
-                .canCreateCourses(false)
-                .profileCompleted(false)
-                .build());
+        String accessToken = jwtService.createAccessToken(pending.getId());
+        String refreshToken = jwtService.createRefreshToken(pending.getId());
+        persistRefreshToken(pending.getId(), refreshToken, jwtService.refreshTokenExpiresAt());
 
-        AuthResponse response = issueTokens(user);
-        response.setNewUser(true);
-        response.setProfileCompleted(false);
-        return response;
+        String displayName = (firstName + " " + lastName).trim();
+        if (displayName.isBlank()) {
+            displayName = email.split("@")[0];
+        }
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .userId(pending.getId())
+                .email(pending.getEmail())
+                .displayName(displayName)
+                .isNewUser(true)
+                .profileCompleted(false)
+                .isOnboarding(true)
+                .build();
     }
 
     @Transactional
@@ -209,9 +220,36 @@ public class AuthService {
 
         refreshTokenRepository.deleteByTokenHash(tokenHash);
 
-        User user = userRepository.findByIdAndActiveTrueAndStatus(userId, AccountStatus.ACTIVE)
-                .orElseThrow(() -> new AuthenticationServiceException("Invalid refresh token"));
-        return issueTokens(user);
+        Optional<User> userOpt = userRepository.findByIdAndActiveTrueAndStatus(userId, AccountStatus.ACTIVE);
+        if (userOpt.isPresent()) {
+            return issueTokens(userOpt.get());
+        }
+
+        Optional<PendingRegistration> pendingOpt = pendingRegistrationRepository.findById(userId);
+        if (pendingOpt.isPresent()) {
+            PendingRegistration pending = pendingOpt.get();
+            String newAccessToken = jwtService.createAccessToken(pending.getId());
+            String newRefreshToken = jwtService.createRefreshToken(pending.getId());
+            persistRefreshToken(pending.getId(), newRefreshToken, jwtService.refreshTokenExpiresAt());
+            String displayName = ((pending.getFirstName() != null ? pending.getFirstName() : "") + " "
+                    + (pending.getLastName() != null ? pending.getLastName() : "")).trim();
+            if (displayName.isBlank() && pending.getEmail() != null) {
+                displayName = pending.getEmail().split("@")[0];
+            }
+            return AuthResponse.builder()
+                    .accessToken(newAccessToken)
+                    .refreshToken(newRefreshToken)
+                    .userId(pending.getId())
+                    .email(pending.getEmail())
+                    .displayName(displayName)
+                    .avatarUrl(pending.getAvatarUrl())
+                    .isNewUser(true)
+                    .profileCompleted(false)
+                    .isOnboarding(true)
+                    .build();
+        }
+
+        throw new AuthenticationServiceException("Invalid refresh token");
     }
 
     public void logout(String authenticatedUserId, String refreshToken) {
@@ -328,8 +366,37 @@ public class AuthService {
                     userRepository.save(user);
                 }
             } else {
-                user = createOAuthUser(normalizedEmail, displayName, avatarUrl);
-                isFreshOAuthRegistration = true;
+                pendingRegistrationRepository.deleteByEmail(normalizedEmail);
+                Instant now = Instant.now();
+                String[] names = splitDisplayName(displayName, normalizedEmail);
+                PendingRegistration pending = PendingRegistration.builder()
+                        .email(normalizedEmail)
+                        .firstName(names[0])
+                        .lastName(names[1])
+                        .authType("OAUTH")
+                        .provider(provider)
+                        .providerUserId(providerUserId)
+                        .avatarUrl(avatarUrl)
+                        .createdAt(now)
+                        .expiresAt(now.plus(java.time.Duration.ofHours(24)))
+                        .build();
+                pending = pendingRegistrationRepository.save(pending);
+
+                String accessToken = jwtService.createAccessToken(pending.getId());
+                String refreshToken = jwtService.createRefreshToken(pending.getId());
+                persistRefreshToken(pending.getId(), refreshToken, jwtService.refreshTokenExpiresAt());
+
+                return AuthResponse.builder()
+                        .accessToken(accessToken)
+                        .refreshToken(refreshToken)
+                        .userId(pending.getId())
+                        .email(normalizedEmail)
+                        .displayName(displayName == null || displayName.isBlank() ? names[0] : displayName)
+                        .avatarUrl(avatarUrl)
+                        .isNewUser(true)
+                        .profileCompleted(false)
+                        .isOnboarding(true)
+                        .build();
             }
 
             if (oauthRepository.findByUserIdAndProvider(user.getId(), provider).isEmpty()) {
@@ -362,29 +429,6 @@ public class AuthService {
         return response;
     }
 
-    private User createOAuthUser(String email, String displayName, String avatarUrl) {
-        String normalizedEmail = normalizeEmail(email);
-        User user = userRepository.save(User.builder()
-                .email(normalizedEmail)
-                .status(AccountStatus.ACTIVE)
-                .active(true)
-                .verified(true)
-                .isAdmin(false)
-                .build());
-        String[] names = splitDisplayName(displayName, normalizedEmail);
-        profileRepository.save(UserProfile.builder()
-                .userId(user.getId())
-                .firstName(names[0])
-                .lastName(names[1])
-                .displayName(displayName == null || displayName.isBlank() ? names[0] : displayName)
-                .avatarUrl(avatarUrl)
-                .profileVisibility(ProfileVisibility.PRIVATE)
-                .isAdmin(false)
-                .canCreateCourses(false)
-                .profileCompleted(false)
-                .build());
-        return user;
-    }
 
     private void ensureProfileExists(User user, String displayName, String avatarUrl) {
         var existingProfile = profileRepository.findByUserId(user.getId());
@@ -431,17 +475,139 @@ public class AuthService {
         };
     }
 
+    @Transactional
+    public AuthResponse completeOnboarding(String pendingUserId, CompleteOnboardingRequest request) {
+        PendingRegistration pending = pendingRegistrationRepository.findById(pendingUserId)
+                .orElseThrow(() -> new AuthenticationServiceException(
+                        "Onboarding session expired or not found. Please register again."));
+
+        String rawHandle = request.getHandle();
+        if (rawHandle == null || rawHandle.isBlank()) {
+            throw new IllegalArgumentException("Handle is required to complete profile");
+        }
+        String handle = rawHandle.trim().toLowerCase().replaceAll("^@", "");
+        if (!handle.matches("^[a-z0-9_]{3,30}$")) {
+            throw new IllegalArgumentException(
+                    "Handle must be between 3 and 30 characters and contain only letters, numbers, or underscores");
+        }
+
+        if (profileRepository.existsByHandleIgnoreCase(handle)) {
+            throw new AuthConflictException("Handle is already taken");
+        }
+
+        if (userRepository.findByEmail(pending.getEmail()).isPresent()) {
+            throw new AuthConflictException("Email is already registered");
+        }
+
+        Instant now = Instant.now();
+        User user = User.builder()
+                .email(pending.getEmail())
+                .passwordHash(pending.getPasswordHash())
+                .status(AccountStatus.ACTIVE)
+                .active(true)
+                .verified(true)
+                .isAdmin(false)
+                .canCreateCourses(false)
+                .lastLoginAt(now)
+                .build();
+        user = userRepository.save(user);
+
+        if ("OAUTH".equalsIgnoreCase(pending.getAuthType()) && pending.getProvider() != null) {
+            try {
+                oauthRepository.save(UserOAuth.builder()
+                        .userId(user.getId())
+                        .provider(pending.getProvider())
+                        .providerUserId(pending.getProviderUserId())
+                        .build());
+            } catch (DuplicateKeyException ignored) {
+            }
+        }
+
+        String firstName = request.getFirstName() != null && !request.getFirstName().isBlank()
+                ? request.getFirstName().trim()
+                : pending.getFirstName();
+        String lastName = request.getLastName() != null && !request.getLastName().isBlank()
+                ? request.getLastName().trim()
+                : pending.getLastName();
+        String displayName = request.getDisplayName() != null && !request.getDisplayName().isBlank()
+                ? request.getDisplayName().trim()
+                : (((firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "")).trim());
+        if (displayName.isBlank()) {
+            displayName = handle;
+        }
+
+        String avatarUrl = request.getAvatarUrl() != null && !request.getAvatarUrl().isBlank()
+                ? request.getAvatarUrl()
+                : pending.getAvatarUrl();
+
+        UserProfile profile = UserProfile.builder()
+                .userId(user.getId())
+                .handle(handle)
+                .firstName(firstName)
+                .lastName(lastName)
+                .displayName(displayName)
+                .headline(request.getHeadline())
+                .about(request.getAbout())
+                .avatarUrl(avatarUrl)
+                .bannerUrl(request.getBannerUrl())
+                .city(request.getCity())
+                .country(request.getCountry())
+                .phone(request.getPhone())
+                .gender(request.getGender())
+                .dateOfBirth(request.getDateOfBirth())
+                .address(request.getAddress())
+                .profileVisibility(request.getProfileVisibility() != null ? request.getProfileVisibility()
+                        : ProfileVisibility.PUBLIC)
+                .links(request.getLinks() != null ? request.getLinks() : new java.util.ArrayList<>())
+                .tags(request.getTags() != null ? request.getTags() : new java.util.ArrayList<>())
+                .handleUpdatedTimestamps(new java.util.ArrayList<>(java.util.List.of(now)))
+                .profileCompleted(true)
+                .isAdmin(false)
+                .canCreateCourses(false)
+                .build();
+        profileRepository.save(profile);
+
+        pendingRegistrationRepository.deleteById(pendingUserId);
+        refreshTokenRepository.deleteAllByUserId(pendingUserId);
+
+        AuthResponse response = issueTokens(user);
+        response.setDisplayName(displayName);
+        response.setAvatarUrl(avatarUrl);
+        response.setNewUser(true);
+        response.setProfileCompleted(true);
+        response.setOnboarding(false);
+        return response;
+    }
+
+    @Transactional
+    public void cancelOnboarding(String pendingUserId) {
+        pendingRegistrationRepository.findById(pendingUserId).ifPresent(pending -> {
+            if (pending.getAvatarUrl() != null && !pending.getAvatarUrl().isBlank()) {
+                try {
+                    mediaStorageService.deleteImage(pending.getAvatarUrl());
+                } catch (Exception ignored) {
+                }
+            }
+            pendingRegistrationRepository.deleteById(pendingUserId);
+        });
+        refreshTokenRepository.deleteAllByUserId(pendingUserId);
+        logger.info("Cancelled onboarding and purged pending registration for ID {}", pendingUserId);
+    }
+
+    private void persistRefreshToken(String userId, String refreshToken, Instant expiresAt) {
+        enforceConcurrentSessionCap(userId);
+        refreshTokenRepository.save(RefreshToken.builder()
+                .tokenHash(hash(refreshToken))
+                .userId(userId)
+                .expiresAt(expiresAt)
+                .build());
+    }
+
     private AuthResponse issueTokens(User user) {
         UserProfile profile = profileRepository.findByUserId(user.getId()).orElse(null);
 
-        enforceConcurrentSessionCap(user.getId());
-
         String refreshToken = jwtService.createRefreshToken(user.getId());
-        refreshTokenRepository.save(RefreshToken.builder()
-                .tokenHash(hash(refreshToken))
-                .userId(user.getId())
-                .expiresAt(jwtService.refreshTokenExpiresAt())
-                .build());
+        persistRefreshToken(user.getId(), refreshToken, jwtService.refreshTokenExpiresAt());
         boolean isProfileDone = profile != null
                 && (profile.isProfileCompleted() || (profile.getHandle() != null && !profile.getHandle().isBlank()));
 

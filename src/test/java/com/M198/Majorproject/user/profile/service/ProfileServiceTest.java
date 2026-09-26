@@ -14,7 +14,9 @@ import static org.mockito.Mockito.when;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.Authentication;
 
+import com.M198.Majorproject.user.profile.dto.UpdateUserHandleRequest;
 import com.M198.Majorproject.user.profile.dto.UpdateUserProfileRequest;
+import com.M198.Majorproject.user.profile.exception.HandleRateLimitExceededException;
 import com.M198.Majorproject.user.identity.entity.AccountStatus;
 import com.M198.Majorproject.user.profile.entity.ProfileLink;
 import com.M198.Majorproject.user.profile.entity.ProfileVisibility;
@@ -45,6 +47,8 @@ class ProfileServiceTest {
         private final ProfileCoursePort profileCoursePort = mock(ProfileCoursePort.class);
         private final com.M198.Majorproject.user.auth.repository.RefreshTokenRepository refreshTokenRepository = mock(
                         com.M198.Majorproject.user.auth.repository.RefreshTokenRepository.class);
+        private final com.M198.Majorproject.user.auth.repository.PendingRegistrationRepository pendingRegistrationRepository = mock(
+                        com.M198.Majorproject.user.auth.repository.PendingRegistrationRepository.class);
         private final ProfileService profileService = new ProfileService(
                         userRepository,
                         profileRepository,
@@ -54,7 +58,8 @@ class ProfileServiceTest {
                         profilePatcher,
                         handleChangePolicy,
                         mediaStorageService,
-                        refreshTokenRepository);
+                        refreshTokenRepository,
+                        pendingRegistrationRepository);
         private final Authentication authentication = mock(Authentication.class);
         private User user;
         private UserProfile profile;
@@ -142,11 +147,10 @@ class ProfileServiceTest {
                                 .build();
                 when(profileRepository.findByHandle("ada_lovelace")).thenReturn(Optional.of(existingProfile));
 
-                UpdateUserProfileRequest request = new UpdateUserProfileRequest();
-                request.setHandle("ada_lovelace");
+                UpdateUserHandleRequest request = new UpdateUserHandleRequest("ada_lovelace");
 
                 assertThrows(IllegalArgumentException.class,
-                                () -> profileService.updateMyProfile(authentication, request));
+                                () -> profileService.updateMyHandle(authentication, request));
         }
 
         @Test
@@ -282,21 +286,30 @@ class ProfileServiceTest {
 
         @Test
         void handleUpdateEnforcesFourteenDayRateLimit() {
-                UpdateUserProfileRequest request1 = new UpdateUserProfileRequest();
-                request1.setHandle("handle_one");
-                profileService.updateMyProfile(authentication, request1);
+                profile.setHandle("initial_handle");
+                UpdateUserHandleRequest request1 = new UpdateUserHandleRequest("handle_one");
+                profileService.updateMyHandle(authentication, request1);
                 assertEquals("handle_one", profile.getHandle());
 
-                UpdateUserProfileRequest request2 = new UpdateUserProfileRequest();
-                request2.setHandle("handle_two");
-                profileService.updateMyProfile(authentication, request2);
+                UpdateUserHandleRequest request2 = new UpdateUserHandleRequest("handle_two");
+                profileService.updateMyHandle(authentication, request2);
                 assertEquals("handle_two", profile.getHandle());
 
-                UpdateUserProfileRequest request3 = new UpdateUserProfileRequest();
-                request3.setHandle("handle_three");
-                var ex = assertThrows(IllegalArgumentException.class,
-                                () -> profileService.updateMyProfile(authentication, request3));
-                assertEquals("You can only change your handle twice within a 14-day period.", ex.getMessage());
+                UpdateUserHandleRequest request3 = new UpdateUserHandleRequest("handle_three");
+                profileService.updateMyHandle(authentication, request3);
+                assertEquals("handle_three", profile.getHandle());
+
+                UpdateUserHandleRequest request4 = new UpdateUserHandleRequest("handle_four");
+                var ex = assertThrows(HandleRateLimitExceededException.class,
+                                () -> profileService.updateMyHandle(authentication, request4));
+                assertEquals("You can only change your handle 3 times within a 14-day period.", ex.getMessage());
+        }
+
+        @Test
+        void ownerProfileIncludesHandleRateLimitMetadata() {
+                var response = profileService.getMyProfile(authentication);
+                assertEquals(3, response.getHandleChangesRemaining());
+                org.junit.jupiter.api.Assertions.assertNull(response.getHandleNextChangeAllowedAt());
         }
 
         @Test

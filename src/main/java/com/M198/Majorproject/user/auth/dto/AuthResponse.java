@@ -35,6 +35,8 @@ public class AuthResponse {
     private boolean isNewUser;
     @com.fasterxml.jackson.annotation.JsonProperty("profileCompleted")
     private boolean profileCompleted;
+    @com.fasterxml.jackson.annotation.JsonProperty("isOnboarding")
+    private boolean isOnboarding;
     @com.fasterxml.jackson.annotation.JsonProperty("isLongTimeAway")
     private boolean isLongTimeAway;
 }

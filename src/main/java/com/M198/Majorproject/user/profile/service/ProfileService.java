@@ -29,6 +29,7 @@ import com.M198.Majorproject.user.profile.dto.AvatarMediaResponse;
 import com.M198.Majorproject.user.profile.dto.BannerMediaResponse;
 import com.M198.Majorproject.user.profile.dto.PublicUserProfileResponse;
 import com.M198.Majorproject.user.profile.dto.UpdateCreatorProfileRequest;
+import com.M198.Majorproject.user.profile.dto.UpdateUserHandleRequest;
 import com.M198.Majorproject.user.profile.dto.UpdateUserProfileRequest;
 import com.M198.Majorproject.user.profile.dto.UserProfileResponse;
 import com.M198.Majorproject.user.profile.exception.HandleConflictException;
@@ -36,6 +37,9 @@ import com.M198.Majorproject.user.profile.exception.ProfileNotFoundException;
 import com.M198.Majorproject.user.profile.mapper.ProfileMapper;
 import com.M198.Majorproject.user.profile.security.AuthenticatedUserResolver;
 import com.M198.Majorproject.user.profile.security.UserContext;
+
+import com.M198.Majorproject.user.auth.entity.PendingRegistration;
+import com.M198.Majorproject.user.auth.repository.PendingRegistrationRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,11 +66,34 @@ public class ProfileService {
     private final HandleChangePolicy handleChangePolicy;
     private final MediaStorageService mediaStorageService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PendingRegistrationRepository pendingRegistrationRepository;
 
     public UserProfileResponse getMyProfile(Authentication authentication) {
+        String userId = userResolver.resolveAuthenticatedUserIdSafe(authentication);
+        if (userId != null) {
+            var pendingOpt = pendingRegistrationRepository.findById(userId);
+            if (pendingOpt.isPresent()) {
+                return buildPendingProfileResponse(pendingOpt.get());
+            }
+        }
         UserContext context = userResolver.resolveCurrentUser(authentication);
         UserProfileResponse response = profileMapper.toOwnerResponse(context.user(), context.profile());
         enrichOwnerProfile(response, context.user(), context.profile());
+        return response;
+    }
+
+    private UserProfileResponse buildPendingProfileResponse(PendingRegistration pending) {
+        UserProfileResponse response = new UserProfileResponse();
+        response.setId(pending.getId());
+        response.setEmail(pending.getEmail());
+        response.setFirstName(pending.getFirstName());
+        response.setLastName(pending.getLastName());
+        String displayName = ((pending.getFirstName() != null ? pending.getFirstName() : "") + " "
+                + (pending.getLastName() != null ? pending.getLastName() : "")).trim();
+        response.setDisplayName(displayName.isBlank() ? (pending.getEmail() != null ? pending.getEmail().split("@")[0] : "") : displayName);
+        response.setAvatarUrl(pending.getAvatarUrl());
+        response.setProfileCompleted(false);
+        response.setHandleChangesRemaining(3);
         return response;
     }
 
@@ -118,8 +145,23 @@ public class ProfileService {
         UserProfile profile = context.profile();
 
         profilePatcher.patch(profile, request);
-        handleChangePolicy.validateAndApplyHandleChange(profile, request != null ? request.getHandle() : null);
         profile.setProfileCompleted(true);
+
+        UserProfile saved = profileRepository.save(profile);
+        UserProfileResponse response = profileMapper.toOwnerResponse(user, saved);
+        enrichOwnerProfile(response, user, saved);
+        return response;
+    }
+
+    public UserProfileResponse updateMyHandle(
+            Authentication authentication,
+            UpdateUserHandleRequest request) {
+        UserContext context = userResolver.resolveCurrentUser(authentication);
+        User user = context.user();
+        UserProfile profile = context.profile();
+
+        String newHandle = request != null ? request.getHandle() : null;
+        handleChangePolicy.validateAndApplyHandleChange(profile, newHandle);
 
         try {
             UserProfile saved = profileRepository.save(profile);
@@ -133,6 +175,25 @@ public class ProfileService {
 
     public AvatarMediaResponse uploadAvatar(Authentication authentication, MultipartFile file) {
         validateImage(file, MAX_AVATAR_SIZE, "Avatar");
+        String userId = userResolver.resolveAuthenticatedUserIdSafe(authentication);
+        if (userId != null) {
+            var pendingOpt = pendingRegistrationRepository.findById(userId);
+            if (pendingOpt.isPresent()) {
+                PendingRegistration pending = pendingOpt.get();
+                String oldAvatar = pending.getAvatarUrl();
+                String newAvatar = mediaStorageService.uploadImage(file, "user_avatars");
+                pending.setAvatarUrl(newAvatar);
+                if (oldAvatar != null && !oldAvatar.equals(newAvatar)) {
+                    mediaStorageService.deleteImage(oldAvatar);
+                }
+                pendingRegistrationRepository.save(pending);
+                return AvatarMediaResponse.builder()
+                        .avatarUrl(newAvatar)
+                        .updatedAt(Instant.now())
+                        .build();
+            }
+        }
+
         UserContext context = userResolver.resolveCurrentUser(authentication);
         UserProfile profile = context.profile();
 
@@ -152,6 +213,24 @@ public class ProfileService {
     }
 
     public AvatarMediaResponse deleteAvatar(Authentication authentication) {
+        String userId = userResolver.resolveAuthenticatedUserIdSafe(authentication);
+        if (userId != null) {
+            var pendingOpt = pendingRegistrationRepository.findById(userId);
+            if (pendingOpt.isPresent()) {
+                PendingRegistration pending = pendingOpt.get();
+                String oldAvatar = pending.getAvatarUrl();
+                if (oldAvatar != null && !oldAvatar.isBlank()) {
+                    mediaStorageService.deleteImage(oldAvatar);
+                    pending.setAvatarUrl(null);
+                    pendingRegistrationRepository.save(pending);
+                }
+                return AvatarMediaResponse.builder()
+                        .avatarUrl(null)
+                        .updatedAt(Instant.now())
+                        .build();
+            }
+        }
+
         UserContext context = userResolver.resolveCurrentUser(authentication);
         UserProfile profile = context.profile();
 
@@ -233,6 +312,21 @@ public class ProfileService {
     }
 
     public void deleteMyAccount(Authentication authentication) {
+        String userId = userResolver.resolveAuthenticatedUserIdSafe(authentication);
+        if (userId != null) {
+            var pendingOpt = pendingRegistrationRepository.findById(userId);
+            if (pendingOpt.isPresent()) {
+                PendingRegistration pending = pendingOpt.get();
+                if (pending.getAvatarUrl() != null && !pending.getAvatarUrl().isBlank()) {
+                    mediaStorageService.deleteImage(pending.getAvatarUrl());
+                }
+                pendingRegistrationRepository.deleteById(userId);
+                refreshTokenRepository.deleteAllByUserId(userId);
+                log.info("Pending registration {} cancelled and purged", userId);
+                return;
+            }
+        }
+
         UserContext context = userResolver.resolveCurrentUser(authentication);
         User user = context.user();
         UserProfile profile = context.profile();
@@ -296,6 +390,11 @@ public class ProfileService {
             badges.add("CREATOR");
         }
         response.setBadges(badges);
+
+        if (profile != null) {
+            response.setHandleChangesRemaining(handleChangePolicy.getRemainingChanges(profile));
+            response.setHandleNextChangeAllowedAt(handleChangePolicy.getNextAllowedChangeAt(profile));
+        }
     }
 
     private void enrichPublicProfile(

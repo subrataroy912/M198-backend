@@ -25,6 +25,8 @@ public interface UserProfileRepository extends MongoRepository<UserProfile, Stri
 
         Optional<UserProfile> findByHandleIgnoreCase(String handle);
 
+        boolean existsByHandleIgnoreCase(String handle);
+
         List<UserProfile> findAllByUserIdIn(Collection<String> userIds);
 
         List<UserProfile> findAllByUserIdInAndDeletedAtIsNull(Collection<String> userIds);
